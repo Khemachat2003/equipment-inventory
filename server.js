@@ -1,5 +1,8 @@
 require("dotenv").config();
 
+console.log("GOOGLE_SERVICE_ACCOUN:", !!process.env.GOOGLE_SERVICE_ACCOUN);
+console.log("GOOGLE_CREDENTIALS:", !!process.env.GOOGLE_CREDENTIALS);
+
 const express = require("express");
 const { google } = require("googleapis");
 const { Octokit } = require("@octokit/rest");
@@ -141,10 +144,10 @@ const SPREADSHEET_ID = "1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE";
 
 let serviceAccount = null;
 
-if (process.env.GOOGLE_SERVICE_ACCOUNT) {
-  serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+if (process.env.GOOGLE_SERVICE_ACCOUN) {
+  serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUN);
 } else {
-  console.error("❌ GOOGLE_SERVICE_ACCOUNT env missing");
+  console.error("❌ GOOGLE_SERVICE_ACCOUN env missing");
 }
 
 const backendAuth = new google.auth.GoogleAuth({
@@ -183,6 +186,8 @@ app.post("/api/login", async (req, res) => {
     });
 
     const users = userRes.data.values || [];
+
+    console.log("SHEET DATA:", users);
 
     const user = users.find(u =>
       u[0]?.trim() === username.trim() &&
