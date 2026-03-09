@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ระบบเบิกคืนอุปกรณ์</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: Arial; padding:20px; }
+
+/* LOGIN */
+#loginBox{
+    max-width:350px;
+    margin:100px auto;
+    padding:30px;
+    border:1px solid #030b38;
+    border-radius:10px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    text-align:center;
+}
+
+#mainApp{
+    display:none;
+}
+
+table { border-collapse: collapse; width:100%; margin-top:20px; }
+th,td { border:1px solid #000000; padding:8px; text-align:center; }
+tr:hover { background:#018003; cursor:pointer; color:white; }
+button { padding:6px 12px; margin-top:10px; cursor:pointer; }
+input, select { padding:6px; margin:5px; }
+#search { width:300px; }
+
+.card{
+    border:1px solid #000000;
+    padding:20px;
+    border-radius:10px;
+    width:180px;
+    text-align:center;
+    background:#97cce3;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.card p{
+    font-size:24px;
+    font-weight:bold;
+    margin:10px 0 0 0;
+}
+
+.edit-btn{
+    background:#ffc107;
+    border:none;
+    border-radius:5px;
+}
+
+.view-btn{
+    background:#17a2b8;
+    border:none;
+    border-radius:5px;
+    color:white;
+}
+
+.logout-btn{
+    background:red;
+    color:white;
+    border:none;
+    border-radius:5px;
+    float:right;
+}
+.tab{
+  display:none;
+}
+.tab.active{
+  display:block;
+}
+.nav button{
+  margin:5px;
+  padding:8px 15px;
+  border:none;
+  border-radius:6px;
+  background:#007bff;
+  color:white;
+  cursor:pointer;
+}
+.add-box{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.add-box input{
+  padding:6px;
+}
+.add-box button{
+  padding:6px 12px;
+  background:#28a745;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+.add-box button:hover{
+  background:#218838;
+}
+img.preview{
+  width:50px;
+  height:50px;
+  object-fit:cover;
+  border-radius:6px;
+}
+.out-stock {
+    background-color: #ffdddd;
+}
+
+.out-stock td {
+    font-weight: bold;
+}
+.out-text {
+    color: red;
+    font-weight: bold;
+}
+.modal{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-box{
+  background:rgb(255, 255, 255);
+  padding:25px;
+  border-radius:10px;
+  width:350px;
+}
+
+.modal-box h3{
+  margin-top:0;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginBox">
+<h2>🔐 Login</h2>
+<input type="text" id="username" placeholder="Username"><br>
+<input type="password" id="password" placeholder="Password"><br>
+<button onclick="login()">เข้าสู่ระบบ</button>
+<p id="loginError" style="color:red;"></p>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="mainApp" style="display:none;">
+
+<button class="logout-btn" onclick="logout()">Logout</button>
+
+<h1>ระบบเบิกคืนอุปกรณ์</h1>
+
+<div class="nav">
+  <button onclick="openTab('dashboard')">📊 Dashboard</button>
+  <button onclick="openTab('stock')">📦 อุปกรณ์</button>
+  <button onclick="openTab('history')">📜 ประวัติ</button>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<div id="dashboard" class="tab active">
+  <h2>📊 Dashboard</h2>
+
+  <div style="display:flex; gap:20px; flex-wrap:wrap;">
+    <div class="card"><h3>📦 รายการทั้งหมด</h3><p id="totalItems">0</p></div>
+    <div class="card"><h3>🏢 Office รวม</h3><p id="totalOffice">0</p></div>
+    <div class="card"><h3>🏗 Site รวม</h3><p id="totalSite">0</p></div>
+    <div class="card"><h3>🔄 เบิกวันนี้</h3><p id="todayBorrow">0</p></div>
+    <div class="card"><h3>🔁 คืนวันนี้</h3><p id="todayReturn">0</p></div>
+  </div>
+
+  <h3>📈 กราฟวันนี้</h3>
+  <canvas id="myChart" height="100"></canvas>
+</div>
+
+<!-- ================= STOCK ================= -->
+<div id="stock" class="tab">
+  <h2>📦 รายการอุปกรณ์</h2>
+
+  <!-- 🔎 ค้นหา -->
+  <input type="text" id="search" 
+         placeholder="ค้นหาด้วยรหัสหรือชื่อ..." 
+         onkeyup="filterTable()">
+
+  <br><br>
+
+<h3>➕ เพิ่มอุปกรณ์ใหม่</h3>
+<div class="add-box">
+  <input type="text" id="newCode" placeholder="รหัสอุปกรณ์">
+  <input type="text" id="newName" placeholder="ชื่ออุปกรณ์">
+  <input type="number" id="newQty" placeholder="จำนวน">
+  <input type="file" id="newImage" accept="image/*">
+  <button onclick="addItem()">บันทึก</button>
+</div>
+<hr>
+
+<button onclick="openReturnModal()">
+🔁 คืนอุปกรณ์จาก Site ทั้งหมด
+</button>
+
+  <!-- 📋 ตาราง -->
+  <table>
+    <thead>
+      <tr>
+        <th>รหัส</th>
+        <th>รูป</th>
+        <th>ชื่อ</th>
+        <th>ทั้งหมด</th>
+        <th>Office</th>
+        <th>Site</th>
+        <th>แก้ไข</th>
+      </tr>
+    </thead>
+    <tbody id="stockBody"></tbody>
+  </table>
+</div>
+
+<!-- ================= HISTORY ================= -->
+<div id="history" class="tab">
+  <h2>📜 ประวัติการทำรายการ</h2>
+<!-- ===== ส่วนตั้งค่ารายงาน ===== -->
+
+<div style="margin-bottom:20px; padding:15px; border:1px solid #ccc; border-radius:8px;">
+
+  <h3>ตั้งค่ารายงาน</h3>
+
+  <input id="title" placeholder="หัวข้อรายงาน"
+    style="width:250px; margin-bottom:10px;">
+  <br>
+
+  <input id="locationsCount" placeholder="จำนวนสถานที่"
+    style="width:250px; margin-bottom:10px;">
+  <br>
+
+   <textarea id="locations"
+    placeholder="รายชื่อสถานที่ (บรรทัดละ 1 ที่)"
+    rows="4"
+    style="width:300px;"></textarea>
+    <br>
+
+  <input id="vehicle" placeholder="ยานพาหนะ"
+    style="width:250px; margin-bottom:10px;">
+  <br>
+
+  <label>ช่วงวันที่</label><br>
+  <input type="date" id="startDate">
+  <input type="date" id="endDate">
+  <br><br>
+
+  <input id="employeeCount" placeholder="จำนวนพนักงาน"
+    style="width:250px; margin-bottom:10px;">
+  <br>
+
+  <textarea id="employees"
+    placeholder="รายชื่อพนักงาน (บรรทัดละ 1 คน)"
+    rows="4"
+    style="width:300px;"></textarea>
+
+  <br><br>
+
+<label>ประเภทรายงาน</label><br>
+<select id="reportType">
+  <option value="all">รายการเบิกและคืน</option>
+  <option value="borrow">รายการเบิก</option>
+  <option value="return">รายการคืน</option>
+</select>
+
+<br><br>
+
+  <button onclick="exportPDF()" class="export-btn">
+    📄 Export PDF
+  </button>
+
+</div>
+
+
+<!-- ===== ตารางประวัติ ===== -->
+
+<table>
+  <thead>
+    <tr>
+      <th>วันที่</th>
+      <th>รหัส</th>
+      <th>ชื่อ</th>
+      <th>ประเภท</th>
+      <th>จำนวน</th>
+      <th>ผู้ทำ</th>
+      <th>ดู</th>
+    </tr>
+  </thead>
+  <tbody id="historyBody"></tbody>
+</table>
+
+</div>
+
+</div>
+
+<script>
+
+let selectedCode = "";
+let selectedName = "";
+let stockData = [];
+let chart;
+
+// ================= LOGIN =================
+async function login(){
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch("/api/login",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({username,password})
+    });
+
+    const result = await res.json();
+
+    if(result.success){
+        document.getElementById("loginBox").style.display="none";
+        document.getElementById("mainApp").style.display="block";
+        initApp();
+    }else{
+        document.getElementById("loginError").innerText="Username หรือ Password ไม่ถูกต้อง";
+    }
+}
+
+function logout(){
+    location.reload();
+}
+
+function initApp(){
+    loadStock();
+    loadDashboard();
+    loadHistory();
+    openTab("dashboardSection"); // ให้เปิดหน้า dashboard ก่อน
+}
+
+// ================= DASHBOARD =================
+async function loadDashboard(){
+    const res = await fetch("/api/dashboard");
+    const data = await res.json();
+
+    document.getElementById("totalItems").innerText = data.totalItems || 0;
+    document.getElementById("totalOffice").innerText = data.totalOffice || 0;
+    document.getElementById("totalSite").innerText = data.totalSite || 0;
+    document.getElementById("todayBorrow").innerText = data.todayBorrow || 0;
+    document.getElementById("todayReturn").innerText = data.todayReturn || 0;
+
+    renderChart(data.todayBorrow || 0, data.todayReturn || 0);
+}
+
+function renderChart(borrow, ret){
+    const ctx = document.getElementById("myChart");
+    if(chart) chart.destroy();
+    chart = new Chart(ctx,{
+        type:'bar',
+        data:{
+            labels:['เบิก','คืน'],
+            datasets:[{
+                label:'จำนวนวันนี้',
+                data:[borrow,ret]
+            }]
+        }
+    });
+}
+
+// ================= STOCK =================
+async function loadStock(){
+    const res = await fetch("/api/stock");
+    stockData = await res.json();
+    renderTable(stockData);
+}
+
+function renderTable(data){
+
+    const tbody = document.getElementById("stockBody");
+    tbody.innerHTML = "";
+
+    data.forEach(item => {
+
+        const tr = document.createElement("tr");
+
+        // 🔥 ใช้นามสกุลจริง ถ้าไม่มีให้ default เป็น jpg
+        const extension = item.ext ? item.ext : "jpg";
+
+        // 🔥 กัน cache รูปเก่า
+        const imageUrl = `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${item.code}.${extension}?v=${Date.now()}`;
+        const officeStock = parseInt(item.office) || 0;
+
+if (officeStock < 1) {
+    tr.classList.add("out-stock");
+}
+
+        tr.innerHTML = `
+    <td>${item.code}</td>
+    <td>
+        <img 
+            src="${imageUrl}"
+            width="80"
+            style="object-fit:cover;border-radius:6px;"
+            onerror="this.onerror=null; this.src='/image/noimage.jpg';">
+    </td>
+    <td>${item.name}</td>
+    <td>${item.total}</td>
+    <td>
+    ${item.office < 1 
+        ? '<span class="out-text">🔴 ไม่มีใน Stock </span>' 
+        : item.office}
+</td>
+    <td>${item.site}</td>
+    <td>
+    <input type="number" min="1" id="qty-${item.code}" 
+        style="width:60px">
+
+    <input type="text" id="user-${item.code}" 
+        placeholder="ชื่อ"
+        style="width:100px">
+
+    <select id="type-${item.code}">
+        <option value="เบิก">เบิก</option>
+        <option value="คืน">คืน</option>
+    </select>
+
+    <button 
+        onclick="event.stopPropagation(); submitRowTransfer('${item.code}', '${item.name}')">
+        ✔
+    </button>
+
+    <button class="edit-btn"
+        onclick="event.stopPropagation(); editTotal('${item.code}', ${item.total})">
+        ✏️
+    </button>
+</td>
+`;
+      
+        tbody.appendChild(tr);
+    });
+}
+
+function filterTable(){
+    const keyword = document.getElementById("search").value.toLowerCase();
+    const filtered = stockData.filter(item =>
+        item.code.toLowerCase().includes(keyword) ||
+        item.name.toLowerCase().includes(keyword)
+    );
+    renderTable(filtered);
+}
+
+// ================= EDIT TOTAL =================
+async function editTotal(code, currentTotal){
+
+    const newTotal = prompt("แก้ไขจำนวนทั้งหมด:", currentTotal);
+    if(newTotal === null) return;
+
+    const res = await fetch("/api/update-total",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+            code:code,
+            newTotal:parseInt(newTotal)
+        })
+    });
+
+    const result = await res.json();
+
+    if(result.error){
+        alert(result.error);
+    }else{
+        alert("อัปเดตสำเร็จ");
+        await loadStock();
+        await loadDashboard();
+    }
+}
+
+// ================= HISTORY =================
+async function loadHistory(){
+    const res = await fetch("/api/history");
+    const data = await res.json();
+
+    const tbody = document.getElementById("historyBody");
+    tbody.innerHTML = "";
+
+    data.forEach(item=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${item.date}</td>
+            <td>${item.code}</td>
+            <td>${item.name}</td>
+            <td>${item.type}</td>
+            <td>${item.qty}</td>
+            <td>${item.user}</td>
+            <td><button class="view-btn" onclick="viewDetail('${item.code}','${item.name}','${item.type}','${item.qty}','${item.user}','${item.date}')">🔍</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function viewDetail(code,name,type,qty,user,date){
+    alert(
+`รายละเอียดการทำรายการ
+
+วันที่: ${date}
+รหัส: ${code}
+ชื่อ: ${name}
+ประเภท: ${type}
+จำนวน: ${qty}
+ผู้ทำรายการ: ${user}`
+    );
+}
+// ================= TAB CONTROL =================
+function openTab(id){
+  document.querySelectorAll(".tab").forEach(tab=>{
+    tab.classList.remove("active");
+  });
+
+  const target = document.getElementById(id);
+  if(target){
+      target.classList.add("active");
+  }else{
+      console.error("ไม่พบ tab:", id);
+  }
+}
+document.addEventListener("DOMContentLoaded", function(){
+    openTab("dashboard");
+});
+async function addItem(){
+
+    const code = document.getElementById("newCode").value.trim();
+    const name = document.getElementById("newName").value.trim();
+    const qty = parseInt(document.getElementById("newQty").value);
+    const file = document.getElementById("newImage").files[0];
+
+    if(!code || !name || !qty || !file){
+        alert("กรอกข้อมูลและเลือกรูปให้ครบ");
+        return;
+    }
+
+    const extension = file.name.split('.').pop().toLowerCase();
+
+    if(extension !== "jpg" && extension !== "jpeg" && extension !== "png"){
+        alert("รองรับเฉพาะไฟล์ JPG หรือ PNG เท่านั้น");
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = async function(e){
+
+        const base64 = e.target.result;
+
+        try{
+
+            const response = await fetch("/upload-image",{
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    fileName: code + "." + extension,
+                    base64: base64
+                })
+            });
+
+            const result = await response.json();
+
+            if(result.success){
+
+                // 👉 ยิง API ไปเพิ่มข้อมูลใน Google Sheet
+                await fetch("/api/add-item", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        name: name,
+                        total: qty,
+                        office: 0,
+                        site: 0,
+                        ext: extension
+                    })
+                });
+
+                const newItem = {
+                    code: code,
+                    name: name,
+                    total: qty,
+                    office: 0,
+                    site: 0,
+                    ext: extension
+                };
+
+                stockData.push(newItem);
+                renderTable(stockData);
+                clearForm();
+
+                alert("เพิ่มอุปกรณ์สำเร็จ");
+
+            } else {
+
+                alert("อัปโหลดรูปไม่สำเร็จ");
+                console.log(result);
+
+            }
+
+        } catch(err){
+
+            console.log(err);
+            alert("เกิดข้อผิดพลาด");
+
+        }
+    };
+
+    reader.readAsDataURL(file);
+}
+function clearForm(){
+    document.getElementById("newCode").value = "";
+    document.getElementById("newName").value = "";
+    document.getElementById("newQty").value = "";
+    document.getElementById("newImage").value = "";
+}
+
+async function submitRowTransfer(code, name){
+
+    const qty = parseInt(document.getElementById(`qty-${code}`).value);
+    const user = document.getElementById(`user-${code}`).value.trim();
+    const type = document.getElementById(`type-${code}`).value;
+
+    if(!qty || qty <= 0 || !user){
+        return alert("กรอกข้อมูลให้ครบ");
+    }
+
+    const res = await fetch("/api/transfer",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+            code: code,
+            name: name,
+            qty: qty,
+            type: type,
+            user: user
+        })
+    });
+
+    const result = await res.json();
+
+    if(result.error){
+        alert(result.error);
+    }else{
+        alert("สำเร็จ");
+        await loadStock();
+        await loadDashboard();
+        await loadHistory();
+    }
+}
+async function exportPDF() {
+
+  const title = document.getElementById("title")?.value || "รายงานประวัติการเบิก–คืนอุปกรณ์";
+
+  // เปลี่ยนจาก location เป็น locations
+  const locationCount = document.getElementById("locationCount")?.value || "0";
+const locations = document.getElementById("locations")?.value || "";
+
+  const vehicle = document.getElementById("vehicle")?.value || "-";
+  const startDate = document.getElementById("startDate")?.value || "";
+  const endDate = document.getElementById("endDate")?.value || "";
+  const employeeCount = document.getElementById("employeeCount")?.value || "0";
+  const employees = document.getElementById("employees")?.value || "";
+  const reportType = document.getElementById("reportType")?.value || "all";
+
+  try {
+
+    const res = await fetch("/api/export-history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        locationCount,   // ส่ง locations
+        locations,      // ส่ง locations
+        vehicle,
+        startDate,
+        endDate,
+        employeeCount,
+        employees,
+        reportType
+      })
+    });
+
+    const result = await res.json();
+
+    if (result.success && result.link) {
+      alert("สร้างไฟล์สำเร็จ");
+      window.open(result.link, "_blank");
+    } else {
+      alert(result.error || "Export ไม่สำเร็จ");
+    }
+
+  } catch (error) {
+    console.error("Export Error:", error);
+    alert("เกิดข้อผิดพลาดในการ Export");
+  }
+
+}
+
+async function openReturnModal(){
+
+  const res = await fetch("/api/get-site-items");
+  const data = await res.json();
+
+  const list = document.getElementById("returnList");
+  list.innerHTML = "";
+
+  data.items.forEach(item=>{
+    const div = document.createElement("div");
+
+    div.innerHTML = `
+    <label>
+      <input type="checkbox"
+      data-code="${item.code}"
+      data-name="${item.name}"
+      data-qty="${item.qty}">
+      ${item.name} (${item.qty})
+    </label>
+    `;
+
+    list.appendChild(div);
+  });
+
+  document.getElementById("returnModal").style.display = "flex";
+}
+function closeReturnModal(){
+  document.getElementById("returnModal").style.display = "none";
+}
+
+/* ปุ่มเลือกทั้งหมด */
+function selectAllReturn(){
+  const checks = document.querySelectorAll("#returnList input[type='checkbox']");
+  checks.forEach(c => c.checked = true);
+}
+
+/* ปุ่มยกเลิกเลือก */
+function unselectAllReturn(){
+  const checks = document.querySelectorAll("#returnList input[type='checkbox']");
+  checks.forEach(c => c.checked = false);
+}
+async function confirmSelectedReturn(){
+
+  const checks = document.querySelectorAll("#returnList input:checked");
+
+  const items = [];
+
+  checks.forEach(c=>{
+    items.push({
+      code:c.dataset.code,
+      qty:parseInt(c.dataset.qty)
+    });
+  });
+
+  if(items.length === 0){
+    alert("กรุณาเลือกรายการ");
+    return;
+  }
+
+  const res = await fetch("/api/return-selected-site",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({items})
+  });
+
+  const data = await res.json();
+
+  if(data.success){
+    alert("คืนอุปกรณ์เรียบร้อย");
+    closeReturnModal();
+    loadStock();
+  }else{
+    alert("เกิดข้อผิดพลาด");
+  }
+
+}
+</script>
+<div id="returnModal" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+justify-content:center;
+align-items:center;">
+
+<div style="
+background:rgb(33, 239, 18);
+padding:20px;
+border-radius:10px;
+width:350px;
+max-height:80vh;
+display:flex;
+flex-direction:column;
+">
+
+<h3>รายการที่จะคืนจาก Site</h3>
+
+<div style="margin-bottom:10px;">
+<button onclick="selectAllReturn()">เลือกทั้งหมด</button>
+<button onclick="unselectAllReturn()">ยกเลิกเลือก</button>
+</div>
+
+<div id="returnList" style="
+flex:1;
+overflow-y:auto;
+margin-bottom:10px;
+"></div>
+
+<div style="display:flex;gap:10px;justify-content:flex-end;">
+<button onclick="confirmSelectedReturn()">คืนรายการที่เลือก</button>
+<button onclick="closeReturnModal()">ยกเลิก</button>
+</div>
+
+</div>
+</div>
+</body>
+</html>
