@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const express = require("express");
 const { google } = require("googleapis");
 const { Octokit } = require("@octokit/rest");
@@ -7,7 +8,19 @@ const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
 const axios = require("axios");
-const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+
+/* =========================
+   GOOGLE OAUTH CONFIG
+========================= */
+
+let credentials = null;
+
+if (process.env.GOOGLE_CREDENTIALS) {
+  credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+} else {
+  console.error("❌ GOOGLE_CREDENTIALS env is missing");
+}
+
 const { client_id, client_secret, redirect_uris } = credentials.web;
 
 const oAuth2Client = new google.auth.OAuth2(
@@ -22,10 +35,9 @@ let stockData = [];
 let transferLog = [];
 
 /* =========================
-   🔥 IMPORTANT FIX START
+   SESSION / SECURITY
 ========================= */
 
-// ถ้า deploy บน https (Render / Railway) ให้เปิดบรรทัดนี้
 app.set("trust proxy", 1);
 
 app.use(cors({
@@ -43,23 +55,28 @@ app.use(session({
     sameSite: "none"
   }
 }));
-// =====================
-// AUTH MIDDLEWARE
-// =====================
+
+/* =========================
+   BODY PARSER
+========================= */
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+app.use(express.static("public"));
+app.use("/image", express.static(path.join(__dirname, "image")));
+
+/* =========================
+   AUTH MIDDLEWARE
+========================= */
+
 function requireLogin(req, res, next) {
   if (!req.session.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 }
-/* =========================
-   🔥 IMPORTANT FIX END
-========================= */
-
-app.use(express.json({ limit: "10mb" }));
-app.use(bodyParser.json());
-app.use(express.static("public"));
-app.use("/image", express.static(path.join(__dirname, "image")));
 
 /* =========================
    GOOGLE LOGIN
@@ -88,10 +105,12 @@ app.get("/auth/google", (req, res) => {
 app.get("/auth/google/callback", async (req, res) => {
 
   try {
+
     const code = req.query.code;
     const state = JSON.parse(req.query.state || "{}");
 
     const { tokens } = await oAuth2Client.getToken(code);
+
     oAuth2Client.setCredentials(tokens);
 
     if (state.user) {
@@ -105,19 +124,31 @@ app.get("/auth/google/callback", async (req, res) => {
     });
 
   } catch (err) {
+
     console.error("OAuth error:", err);
+
     res.redirect("/");
+
   }
+
 });
 
 /* =========================
-   GOOGLE SHEETS (Service Account)
+   GOOGLE SHEETS SERVICE ACCOUNT
 ========================= */
 
 const SPREADSHEET_ID = "1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE";
 
+let serviceAccount = null;
+
+if (process.env.GOOGLE_SERVICE_ACCOUNT) {
+  serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+} else {
+  console.error("❌ GOOGLE_SERVICE_ACCOUNT env missing");
+}
+
 const backendAuth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
+  credentials: serviceAccount,
   scopes: [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
