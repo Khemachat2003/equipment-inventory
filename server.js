@@ -29,7 +29,7 @@ let transferLog = [];
 app.set("trust proxy", 1);
 
 app.use(cors({
-  origin: true,          // หรือใส่ URL frontend เช่น "http://localhost:5173"
+  origin: true,
   credentials: true
 }));
 
@@ -39,8 +39,8 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,        // ถ้า localhost = false
-    sameSite: "lax"
+    secure: true,
+    sameSite: "none"
   }
 }));
 // =====================
@@ -130,9 +130,14 @@ const backendAuth = new google.auth.GoogleAuth({
 
 app.post("/api/login", async (req, res) => {
 
-  const { username, password } = req.body;
-
   try {
+
+    const username = req.body?.username || "";
+    const password = req.body?.password || "";
+
+    if (!username || !password) {
+      return res.status(400).json({ error: "Missing username or password" });
+    }
 
     const authClient = await backendAuth.getClient();
 
@@ -167,11 +172,17 @@ app.post("/api/login", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Login error" });
-  }
-});
 
+    console.error("LOGIN ERROR:", err);
+
+    res.status(500).json({
+      error: "Server error",
+      message: err.message
+    });
+
+  }
+
+});
 /* =========================
    AUTH CHECK
 ========================= */
