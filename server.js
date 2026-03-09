@@ -26,7 +26,7 @@ let transferLog = [];
 ========================= */
 
 // ถ้า deploy บน https (Render / Railway) ให้เปิดบรรทัดนี้
-// app.set("trust proxy", 1);
+app.set("trust proxy", 1);
 
 app.use(cors({
   origin: true,          // หรือใส่ URL frontend เช่น "http://localhost:5173"
@@ -39,7 +39,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,        // ถ้า localhost = false
+    secure: true,        // ถ้า localhost = false
     sameSite: "lax"
   }
 }));
@@ -117,8 +117,11 @@ app.get("/auth/google/callback", async (req, res) => {
 const SPREADSHEET_ID = "1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE";
 
 const backendAuth = new google.auth.GoogleAuth({
-  keyFile: "credentials.json",
-  scopes: ["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
+  credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
+  scopes: [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+  ]
 });
 
 /* =========================
