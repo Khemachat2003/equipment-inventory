@@ -803,21 +803,20 @@ async function checkAuth() {
   const data = await res.json();
 
   if (!data.loggedIn) {
-    window.location.href = "/";
+
+    // แสดง login
+    document.getElementById("loginBox").style.display="block";
+    document.getElementById("mainApp").style.display="none";
+
     return;
   }
 
   document.getElementById("userDisplay").innerText = data.username;
 
-  // ซ่อนหน้า login
-  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("mainApp").style.display="block";
 
-  // เปิดระบบหลัก
-  document.getElementById("mainApp").style.display = "block";
-
-  // เปิด dashboard
   initApp();
-
 }
 
 window.onload = checkAuth;
