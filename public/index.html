@@ -346,7 +346,7 @@ function initApp(){
     loadStock();
     loadDashboard();
     loadHistory();
-    openTab("dashboardSection"); // ให้เปิดหน้า dashboard ก่อน
+    openTab("dashboard"); // ให้เปิดหน้า dashboard ก่อน
 }
 
 // ================= DASHBOARD =================
@@ -796,7 +796,10 @@ async function confirmSelectedReturn(){
 }
 async function checkAuth() {
 
-  const res = await fetch("/api/check-auth");
+  const res = await fetch("/api/check-auth",{
+    credentials:"include"
+  });
+
   const data = await res.json();
 
   if (!data.loggedIn) {
@@ -805,6 +808,15 @@ async function checkAuth() {
   }
 
   document.getElementById("username").innerText = data.username;
+
+  // ซ่อนหน้า login
+  document.getElementById("loginBox").style.display = "none";
+
+  // เปิดระบบหลัก
+  document.getElementById("mainApp").style.display = "block";
+
+  // เปิด dashboard
+  initApp();
 
 }
 
