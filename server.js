@@ -11,13 +11,17 @@ const axios = require("axios");
 /* =========================
    GOOGLE OAUTH CONFIG
 ========================= */
-
+console.log("ENV GOOGLE_OAUTH:", process.env.GOOGLE_OAUTH);
 let credentials = null;
 
-if (process.env.GOOGLE_CREDENTIALS) {
-  credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+if (process.env.GOOGLE_OAUTH) {
+  credentials = JSON.parse(process.env.GOOGLE_OAUTH);
 } else {
-  console.error("❌ GOOGLE_CREDENTIALS env is missing");
+  console.error("❌ GOOGLE_OAUTH env is missing");
+}
+
+if (!credentials || !credentials.web) {
+  throw new Error("❌ Invalid GOOGLE_OAUTH JSON format");
 }
 
 const { client_id, client_secret, redirect_uris } = credentials.web;
