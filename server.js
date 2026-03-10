@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const { google } = require("googleapis");
+const { google } = require("googleapis")
 const { Octokit } = require("@octokit/rest");
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN
@@ -1068,11 +1068,12 @@ stream.on("finish", async () => {
 
   try {
 
-    const authClient = await backendAuth.getClient();
+    // ใช้ OAuth token ของ user ที่ login
+    oAuth2Client.setCredentials(req.session.tokens);
 
     const drive = google.drive({
       version: "v3",
-      auth: authClient
+      auth: oAuth2Client
     });
 
     const driveResponse = await drive.files.create({
@@ -1083,7 +1084,7 @@ stream.on("finish", async () => {
       },
       media: {
         mimeType: "application/pdf",
-       body: fs.createReadStream(filePath)
+        body: fs.createReadStream(filePath)
       },
       fields: "id, webViewLink"
     });
@@ -1096,8 +1097,13 @@ stream.on("finish", async () => {
     });
 
   } catch (error) {
+
     console.log("Drive Upload Error:", error);
-    res.status(500).json({ error: "Upload Drive ล้มเหลว" });
+
+    res.status(500).json({
+      error: "Upload Drive ล้มเหลว"
+    });
+
   }
 
 });
