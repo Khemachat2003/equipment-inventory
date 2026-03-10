@@ -141,11 +141,11 @@ app.get("/auth/google/callback", async (req, res) => {
 ========================= */
 let serviceAccount = null;
 
-if (process.env.GOOGLE_CREDENTIALS) {
-  serviceAccount = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+if (process.env.GOOGLE_CREDENTIALS_ACCOUNT) {
+  serviceAccount = JSON.parse(process.env.GOOGLE_CREDENTIALS_ACCOUNT);
   console.log("✅ Google credentials loaded");
 } else {
-  console.error("❌ GOOGLE_CREDENTIALS env missing");
+  console.error("❌ GOOGLE_CREDENTIALS_ACCOUNT env missing");
 }
 
 const backendAuth = new google.auth.GoogleAuth({
