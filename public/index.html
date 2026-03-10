@@ -319,7 +319,7 @@ async function login(){
 
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
-    
+
     const res = await fetch("/api/login",{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
@@ -794,7 +794,23 @@ async function confirmSelectedReturn(){
   }
 
 }
+async function checkAuth() {
+
+  const res = await fetch("/api/check-auth");
+  const data = await res.json();
+
+  if (!data.loggedIn) {
+    window.location.href = "/";
+    return;
+  }
+
+  document.getElementById("username").innerText = data.username;
+
+}
+
+window.onload = checkAuth;
 </script>
+
 <div id="returnModal" style="
 display:none;
 position:fixed;

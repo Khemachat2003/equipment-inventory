@@ -1359,7 +1359,23 @@ app.post("/api/return-selected-site", requireLogin, async (req,res)=>{
   }
 
 });
+app.use(session({
+  secret: "mysecret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false
+  }
+}));
+app.get("/dashboard", (req, res) => {
 
+  if (!req.session.user) {
+    return res.redirect("/");
+  }
+
+  res.sendFile(__dirname + "/public/index.html");
+
+});
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
