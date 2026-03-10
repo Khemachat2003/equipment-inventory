@@ -799,10 +799,15 @@ if (reportType === "return") {
       margins: { top: 100, bottom: 60, left: 60, right: 60 }
     });
 
-    const stream = fs.createWriteStream(fileName);
-    doc.pipe(stream);
+    const filePath = path.join(__dirname, fileName);
 
-    doc.registerFont("THSarabun", "./fonts/THSarabunNew.ttf");
+const stream = fs.createWriteStream(filePath);
+doc.pipe(stream);
+
+    doc.registerFont(
+  "THSarabun",
+  path.join(__dirname, "fonts", "THSarabunNew.ttf")
+);
     doc.font("THSarabun").fontSize(14);
 
     const marginLeft = doc.page.margins.left;
@@ -812,7 +817,12 @@ if (reportType === "return") {
     // ================= HEADER =================
     function drawReportHeader() {
 
-      doc.image("./logo.png", marginLeft, 40, { width: 70 });
+      doc.image(
+  path.join(__dirname, "logo.png"),
+  marginLeft,
+  40,
+  { width: 70 }
+);
 
       doc.y = 45;
 
@@ -1073,12 +1083,12 @@ stream.on("finish", async () => {
       },
       media: {
         mimeType: "application/pdf",
-        body: fs.createReadStream(fileName)
+       body: fs.createReadStream(filePath)
       },
       fields: "id, webViewLink"
     });
 
-    fs.unlinkSync(fileName);
+    fs.unlinkSync(filePath);
 
     res.json({
       success: true,
@@ -1093,7 +1103,7 @@ stream.on("finish", async () => {
 });
 
   } catch (err) {
-    console.log("Export Error:", err);
+    console.error("Export Error:", err);
     res.status(500).json({ error: "Export ล้มเหลว" });
   }
 
