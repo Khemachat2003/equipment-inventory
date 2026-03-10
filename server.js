@@ -726,10 +726,6 @@ function formatDate(dateStr){
 
 app.post("/api/export-history", requireLogin, async (req, res) => {
 
-  if (!req.session.tokens) {
-    return res.status(401).json({ error: "กรุณา Login Google ก่อน Export" });
-  }
-
   try {
 
     const title = req.body.title || "รายงานประวัติการเบิก–คืนอุปกรณ์";
@@ -1058,43 +1054,43 @@ doc.text(`วันที่ ${today}`, rightX, doc.y - 14, {
 });
     doc.end();
 
-    stream.on("finish", async () => {
+stream.on("finish", async () => {
 
-      try {
+  try {
 
-        oAuth2Client.setCredentials(req.session.tokens);
+    const authClient = await backendAuth.getClient();
 
-        const drive = google.drive({
-          version: "v3",
-          auth: oAuth2Client
-        });
-
-        const driveResponse = await drive.files.create({
-          requestBody: {
-            name: fileName,
-            mimeType: "application/pdf",
-            parents: ["1xbSU_CSbMsq5xXOejRNMpGpRcnG2rb2o"]
-          },
-          media: {
-            mimeType: "application/pdf",
-            body: fs.createReadStream(fileName)
-          },
-          fields: "id, webViewLink"
-        });
-
-        fs.unlinkSync(fileName);
-
-        res.json({
-          success: true,
-          link: driveResponse.data.webViewLink
-        });
-
-      } catch (error) {
-        console.log("Drive Upload Error:", error);
-        res.status(500).json({ error: "Upload Drive ล้มเหลว" });
-      }
-
+    const drive = google.drive({
+      version: "v3",
+      auth: authClient
     });
+
+    const driveResponse = await drive.files.create({
+      requestBody: {
+        name: fileName,
+        mimeType: "application/pdf",
+        parents: ["1xbSU_CSbMsq5xXOejRNMpGpRcnG2rb2o"]
+      },
+      media: {
+        mimeType: "application/pdf",
+        body: fs.createReadStream(fileName)
+      },
+      fields: "id, webViewLink"
+    });
+
+    fs.unlinkSync(fileName);
+
+    res.json({
+      success: true,
+      link: driveResponse.data.webViewLink
+    });
+
+  } catch (error) {
+    console.log("Drive Upload Error:", error);
+    res.status(500).json({ error: "Upload Drive ล้มเหลว" });
+  }
+
+});
 
   } catch (err) {
     console.log("Export Error:", err);
