@@ -2,14 +2,14 @@ require("dotenv").config();
 const express = require("express");
 const { google } = require("googleapis");
 const { Octokit } = require("@octokit/rest");
+const octokit = new Octokit({
+  auth: process.env.GITHUB_TOKEN
+});
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
 const axios = require("axios");
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN
-});
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 console.log("Spreadsheet:", process.env.SPREADSHEET_ID);
 /* =========================
