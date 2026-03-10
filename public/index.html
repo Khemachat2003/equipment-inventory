@@ -667,14 +667,11 @@ async function submitRowTransfer(code, name){
         await loadHistory();
     }
 }
-async function exportPDF() {
+function exportPDF() {
 
   const title = document.getElementById("title")?.value || "รายงานประวัติการเบิก–คืนอุปกรณ์";
-
-  // เปลี่ยนจาก location เป็น locations
   const locationCount = document.getElementById("locationCount")?.value || "0";
-const locations = document.getElementById("locations")?.value || "";
-
+  const locations = document.getElementById("locations")?.value || "";
   const vehicle = document.getElementById("vehicle")?.value || "-";
   const startDate = document.getElementById("startDate")?.value || "";
   const endDate = document.getElementById("endDate")?.value || "";
@@ -682,40 +679,41 @@ const locations = document.getElementById("locations")?.value || "";
   const employees = document.getElementById("employees")?.value || "";
   const reportType = document.getElementById("reportType")?.value || "all";
 
-  try {
+  const form = document.createElement("form");
 
-    const res = await fetch("/api/export-history", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        locationCount,   // ส่ง locations
-        locations,      // ส่ง locations
-        vehicle,
-        startDate,
-        endDate,
-        employeeCount,
-        employees,
-        reportType
-      })
-    });
+  form.method = "POST";
+  form.action = "/api/export-history";
+  form.target = "_blank";
 
-    const result = await res.json();
+  const data = {
+    title,
+    locationCount,
+    locations,
+    vehicle,
+    startDate,
+    endDate,
+    employeeCount,
+    employees,
+    reportType
+  };
 
-    if (result.success && result.link) {
-      alert("สร้างไฟล์สำเร็จ");
-      window.open(result.link, "_blank");
-    } else {
-      alert(result.error || "Export ไม่สำเร็จ");
-    }
+  for (const key in data) {
 
-  } catch (error) {
-    console.error("Export Error:", error);
-    alert("เกิดข้อผิดพลาดในการ Export");
+    const input = document.createElement("input");
+
+    input.type = "hidden";
+    input.name = key;
+    input.value = data[key];
+
+    form.appendChild(input);
+
   }
 
-}
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
 
+}
 async function openReturnModal(){
 
   const res = await fetch("/api/get-site-items");

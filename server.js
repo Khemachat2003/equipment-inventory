@@ -799,7 +799,7 @@ if (reportType === "return") {
       margins: { top: 100, bottom: 60, left: 60, right: 60 }
     });
 
-    const filePath = path.join(__dirname, fileName);
+    const filePath = `/tmp/${fileName}`;
 
 const stream = fs.createWriteStream(filePath);
 doc.pipe(stream);
@@ -1062,49 +1062,28 @@ doc.text(`วันที่ ${today}`, rightX, doc.y - 14, {
   width: contentWidthSign / 2,
   align: "center"
 });
-    doc.end();
+   doc.end();
 
-stream.on("finish", async () => {
+stream.on("error", (err) => {
+  console.error("Stream error:", err);
+});
 
-  try {
+stream.on("finish", () => {
 
-    console.log("Uploading file:", filePath);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
 
-    const authClient = await backendAuth.getClient();
+  res.download(filePath, fileName, (err) => {
 
-    const drive = google.drive({
-      version: "v3",
-      auth: authClient
-    });
+    if (err) {
+      console.error("Download error:", err);
+    }
 
-    const driveResponse = await drive.files.create({
-      requestBody: {
-        name: fileName,
-        mimeType: "application/pdf"
-      },
-      media: {
-        mimeType: "application/pdf",
-        body: fs.createReadStream(filePath)
-      },
-      fields: "id, webViewLink"
-    });
+    setTimeout(() => {
+      fs.unlink(filePath, () => {});
+    }, 3000);
 
-    console.log("UPLOAD SUCCESS:", driveResponse.data);
-
-    res.json({
-      success: true,
-      link: driveResponse.data.webViewLink
-    });
-
-  } catch (error) {
-
-    console.error("Drive Upload Error:", error.response?.data || error);
-
-    res.status(500).json({
-      error: "Upload Drive ล้มเหลว"
-    });
-
-  }
+  });
 
 });
 
@@ -1114,7 +1093,6 @@ stream.on("finish", async () => {
   }
 
 });
-
 
 app.get("/api/get-site-items", requireLogin, async (req,res)=>{
 
