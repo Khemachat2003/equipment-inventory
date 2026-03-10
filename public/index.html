@@ -794,24 +794,21 @@ async function confirmSelectedReturn(){
   }
 
 }
-async function checkAuth() {
+async function checkAuth(){
 
   const res = await fetch("/api/check-auth",{
     credentials:"include"
   });
 
-  const data = await res.json();
-
-  if (!data.loggedIn) {
-
-    // แสดง login
-    document.getElementById("loginBox").style.display="block";
-    document.getElementById("mainApp").style.display="none";
-
+  if(!res.ok){
     return;
   }
 
-  document.getElementById("userDisplay").innerText = data.username;
+  const data = await res.json();
+
+  if(!data.loggedIn){
+    return;
+  }
 
   document.getElementById("loginBox").style.display="none";
   document.getElementById("mainApp").style.display="block";
