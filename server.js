@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const { google } = require("googleapis")
+const { google } = require("googleapis");
 const { Octokit } = require("@octokit/rest");
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN
@@ -1068,25 +1068,32 @@ stream.on("finish", async () => {
 
   try {
 
-    // ใช้ OAuth token ของ user ที่ login
-    oAuth2Client.setCredentials(req.session.tokens);
+    const authClient = await backendAuth.getClient();
 
     const drive = google.drive({
       version: "v3",
-      auth: oAuth2Client
+      auth: authClient
     });
 
     const driveResponse = await drive.files.create({
       requestBody: {
         name: fileName,
-        mimeType: "application/pdf",
-        parents: ["1xbSU_CSbMsq5xXOejRNMpGpRcnG2rb2o"]
+        mimeType: "application/pdf"
       },
       media: {
         mimeType: "application/pdf",
         body: fs.createReadStream(filePath)
       },
       fields: "id, webViewLink"
+    });
+
+    // ให้ทุกคนเปิดได้
+    await drive.permissions.create({
+      fileId: driveResponse.data.id,
+      requestBody: {
+        role: "reader",
+        type: "anyone"
+      }
     });
 
     fs.unlinkSync(filePath);
