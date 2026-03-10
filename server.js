@@ -1,8 +1,4 @@
 require("dotenv").config();
-
-console.log("GOOGLE_SERVICE_ACCOUNT:", !!process.env.GOOGLE_SERVICE_ACCOUNT);
-console.log("GOOGLE_CREDENTIALS:", !!process.env.GOOGLE_CREDENTIALS);
-
 const express = require("express");
 const { google } = require("googleapis");
 const { Octokit } = require("@octokit/rest");
@@ -139,15 +135,13 @@ app.get("/auth/google/callback", async (req, res) => {
 /* =========================
    GOOGLE SHEETS SERVICE ACCOUNT
 ========================= */
-
-const SPREADSHEET_ID = "1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE";
-
 let serviceAccount = null;
 
-if (process.env.GOOGLE_SERVICE_ACCOUNT) {
-  serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+if (process.env.GOOGLE_CREDENTIALS) {
+  serviceAccount = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+  console.log("✅ Google credentials loaded");
 } else {
-  console.error("❌ GOOGLE_SERVICE_ACCOUNT env missing");
+  console.error("❌ GOOGLE_CREDENTIALS env missing");
 }
 
 const backendAuth = new google.auth.GoogleAuth({
