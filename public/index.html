@@ -182,6 +182,7 @@ img.preview{
   </div>
 
   <h3>📈 กราฟวันนี้</h3>
+  <canvas id="chart"></canvas>
   <canvas id="myChart" height="100"></canvas>
 </div>
 
@@ -666,8 +667,39 @@ async function submitRowTransfer(code, name){
         await loadDashboard();
         await loadHistory();
     }
+    async function loadDashboardChart(){
+
+  const res = await fetch("/api/dashboard-stats");
+  const data = await res.json();
+
+  const labels = Object.keys(data).reverse();
+
+  const borrow = labels.map(d => data[d].borrow);
+  const ret = labels.map(d => data[d].return);
+
+  const ctx = document.getElementById("chart");
+
+  new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:labels,
+      datasets:[
+        {
+          label:"เบิก",
+          data:borrow
+        },
+        {
+          label:"คืน",
+          data:ret
+        }
+      ]
+    }
+  });
+
+}
 }
 function exportPDF() {
+  alert("กำลังสร้าง PDF กรุณารอสักครู่...");
 
   const title = document.getElementById("title")?.value || "รายงานประวัติการเบิก–คืนอุปกรณ์";
   const locationCount = document.getElementById("locationCount")?.value || "0";
@@ -815,6 +847,54 @@ async function checkAuth(){
 }
 
 window.onload = checkAuth;
+
+async function loadDashboardChart(){
+
+  const res = await fetch("/api/dashboard-stats");
+  const data = await res.json();
+
+  const labels = Object.keys(data).reverse();
+
+  const borrow = labels.map(d => data[d].borrow);
+  const ret = labels.map(d => data[d].return);
+
+  const ctx = document.getElementById("chart");
+
+  new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:labels,
+      datasets:[
+        {
+          label:"เบิก",
+          data:borrow
+        },
+        {
+          label:"คืน",
+          data:ret
+        }
+      ]
+    },
+
+    options:{
+      onClick:(e, elements)=>{
+        if(elements.length){
+
+          const index = elements[0].index;
+          const date = labels[index];
+
+          window.open(`/history.html?date=${date}`);
+
+        }
+      }
+    }
+
+  });
+
+}
+
+loadDashboardChart();
+
 </script>
 
 <div id="returnModal" style="

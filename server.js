@@ -791,8 +791,11 @@ if (reportType === "return") {
     if (filteredRows.length === 0) {
       return res.status(400).json({ error: "ไม่มีข้อมูลสำหรับ Export" });
     }
+    if (filteredRows.length > 1000) {
+      return res.status(400).json({ error: "ข้อมูลมากเกินไป กรุณาเลือกช่วงวันที่" });
+    }
 
-    const fileName = `history_${Date.now()}.pdf`;
+    const fileName = `Report-${new Date().toISOString().slice(0,10)}.pdf`;
 
     const doc = new PDFDocument({
       size: "A4",
@@ -1352,7 +1355,54 @@ app.post("/api/return-selected-site", requireLogin, async (req,res)=>{
   }
 
 });
+app.get("/api/dashboard-stats", requireLogin, async (req, res) => {
 
+  const authClient = await backendAuth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: authClient });
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "Transfer_Log!A:H"
+  });
+
+  const rows = response.data.values || [];
+  const data = rows.slice(1);
+
+  const stats = {};
+
+  const today = new Date();
+
+  for (let i = 0; i < 30; i++) {
+
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+
+    const key = d.toISOString().slice(0,10);
+    stats[key] = { borrow: 0, return: 0 };
+
+  }
+
+  data.forEach(row => {
+
+    if (!row[0]) return;
+
+    const [datePart] = row[0].split(" ");
+    const [day, month, buddhistYear] = datePart.split("/");
+    const year = parseInt(buddhistYear) - 543;
+
+    const d = new Date(year, month - 1, day);
+    const key = d.toISOString().slice(0,10);
+
+    if (!stats[key]) return;
+
+    if (row[4] === "เบิก") stats[key].borrow++;
+    if (row[4] === "คืน") stats[key].return++;
+
+  });
+
+  res.json(stats);
+
+});
 app.get("/dashboard", (req, res) => {
 
   if (!req.session.user) {
