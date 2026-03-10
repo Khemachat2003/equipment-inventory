@@ -1068,6 +1068,8 @@ stream.on("finish", async () => {
 
   try {
 
+    console.log("Uploading file:", filePath);
+
     const authClient = await backendAuth.getClient();
 
     const drive = google.drive({
@@ -1087,16 +1089,7 @@ stream.on("finish", async () => {
       fields: "id, webViewLink"
     });
 
-    // ให้ทุกคนเปิดได้
-    await drive.permissions.create({
-      fileId: driveResponse.data.id,
-      requestBody: {
-        role: "reader",
-        type: "anyone"
-      }
-    });
-
-    fs.unlinkSync(filePath);
+    console.log("UPLOAD SUCCESS:", driveResponse.data);
 
     res.json({
       success: true,
@@ -1105,7 +1098,7 @@ stream.on("finish", async () => {
 
   } catch (error) {
 
-    console.log("Drive Upload Error:", error);
+    console.error("Drive Upload Error:", error.response?.data || error);
 
     res.status(500).json({
       error: "Upload Drive ล้มเหลว"
