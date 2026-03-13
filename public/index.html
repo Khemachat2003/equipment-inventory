@@ -11,6 +11,21 @@
 *{
 box-sizing:border-box;
 }
+@media (max-width:768px){
+
+.add-box{
+flex-direction:column;
+}
+
+input, textarea, select{
+width:100%;
+}
+
+.card{
+width:100%;
+}
+
+}
 
 body{
 margin:0;
@@ -777,26 +792,39 @@ async function editTotal(code, currentTotal){
 }
 
 // ================= HISTORY =================
-async function loadHistory(){
-    const res = await fetch("/api/history");
-    const data = await res.json();
+function loadHistory(){
 
-    const tbody = document.getElementById("historyBody");
-    tbody.innerHTML = "";
+  const start = document.getElementById("historyStart").value;
+  const end = document.getElementById("historyEnd").value;
 
-    data.forEach(item=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${item.date}</td>
-            <td>${item.code}</td>
-            <td>${item.name}</td>
-            <td>${item.type}</td>
-            <td>${item.qty}</td>
-            <td>${item.user}</td>
-            <td><button class="view-btn" onclick="viewDetail('${item.code}','${item.name}','${item.type}','${item.qty}','${item.user}','${item.date}')">🔍</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
+  const history = JSON.parse(localStorage.getItem("history")) || [];
+
+  const tbody = document.getElementById("historyBody");
+  tbody.innerHTML = "";
+
+  history.forEach(h=>{
+
+    const d = new Date(h.date);
+
+    if(start && d < new Date(start)) return;
+    if(end && d > new Date(end + "T23:59:59")) return;
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+    <td>${h.date}</td>
+    <td>${h.code}</td>
+    <td>${h.name}</td>
+    <td>${h.type}</td>
+    <td>${h.qty}</td>
+    <td>${h.user}</td>
+    <td><button onclick='viewHistory(${JSON.stringify(h)})'>ดู</button></td>
+    `;
+
+    tbody.appendChild(tr);
+
+  });
+
 }
 
 function viewDetail(code,name,type,qty,user,date){
@@ -1014,6 +1042,7 @@ async function submitRowTransfer(code, name){
 }
 function exportPDF() {
   alert("กำลังสร้าง PDF กรุณารอสักครู่...");
+  
 
   const title = document.getElementById("title")?.value || "รายงานประวัติการเบิก–คืนอุปกรณ์";
   const locationCount = document.getElementById("locationCount")?.value || "0";
