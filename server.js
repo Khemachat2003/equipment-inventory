@@ -429,7 +429,7 @@ if(!req.session.user){
 
     const { code, name, type } = req.body;
     const qty = parseInt(req.body.qty);
-    const user = req.session.user;
+    const user = req.session.user.username;
 console.log("Transfer by:", user);
     if (!qty || qty <= 0) {
       return res.json({ error: "จำนวนไม่ถูกต้อง" });
@@ -486,7 +486,7 @@ console.log("Transfer by:", user);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Transfer_Log!A1",
+      range: "Transfer_Log!A:H",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [[
@@ -505,7 +505,7 @@ console.log("Transfer by:", user);
     res.json({ success: true });
 
   } catch (err) {
-    console.error("Transfer error:", err.response?.data || err.message);
+    console.error("Transfer error:", err);
     res.status(500).json({ error: "Transfer error" });
   }
 });
@@ -1451,7 +1451,7 @@ app.get("/api/me", requireLogin, (req,res)=>{
   }
 
   res.json({
-    username: req.session.user
+    username: req.session.user.username
   });
 
 });

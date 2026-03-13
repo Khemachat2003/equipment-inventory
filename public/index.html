@@ -1455,37 +1455,6 @@ async function submitRowTransfer(code, name){
     }
 }
   
-    async function loadDashboardChart(){
-
-  const res = await fetch("/api/dashboard-stats");
-  const data = await res.json();
-
-  const labels = Object.keys(data).reverse();
-
-  const borrow = labels.map(d => data[d].borrow);
-  const ret = labels.map(d => data[d].return);
-
-  const ctx = document.getElementById("chart");
-
-  new Chart(ctx,{
-    type:"line",
-    data:{
-      labels:labels,
-      datasets:[
-        {
-          label:"เบิก",
-          data:borrow
-        },
-        {
-          label:"คืน",
-          data:ret
-        }
-      ]
-    }
-  });
-
-}
-
 function exportPDF(){
 
   alert("กำลังสร้าง PDF กรุณารอสักครู่...");
@@ -1698,7 +1667,6 @@ async function loadDashboardChart(){
 
 }
 
-loadDashboardChart();
 async function loadUser(){
 
 const res = await fetch("/api/me");
@@ -1708,59 +1676,13 @@ document.getElementById("currentUser").innerText = data.username;
 
 }
 
-loadUser();
-
-function loadChart(){
-
-const ctx = document.getElementById('chart');
-
-new Chart(ctx, {
-
-type: 'line',
-
-data: {
-
-labels: dates,
-
-datasets: [{
-label: 'การเบิกอุปกรณ์',
-data: values,
-tension:0.4
-}]
-
-},
-
-options: {
-
-responsive:true,
-
-plugins:{
-zoom:{
-zoom:{
-wheel:{enabled:true},
-pinch:{enabled:true},
-mode:'x'
-}
-}
-}
-
-}
-
-});
-
-}
-document.addEventListener("DOMContentLoaded", function(){
-
-loadChart();
-
-});
 async function loadCurrentUser(){
 
   try{
-    const res = await fetch("/api/me");
+    const res = await fetch("/api/me",{credentials:"include"});
     const data = await res.json();
 
-    document.getElementById("currentUser").textContent = data.username;
+    document.getElementById("currentUser").textContent = data.username || "Unknown";
 
   }catch(err){
     document.getElementById("currentUser").textContent = "Unknown";
