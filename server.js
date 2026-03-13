@@ -1418,7 +1418,7 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.get("/health",(req,res)=>{
-  res.json({status:"ok"});
+  res.json(200).send("ok");
 });
 
 app.listen(PORT, () => {
