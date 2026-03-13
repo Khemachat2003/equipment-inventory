@@ -677,20 +677,83 @@ async function loadDashboard(){
 }
 
 function renderChart(borrow, ret){
-    const ctx = document.getElementById("myChart");
-    if(chart) chart.destroy();
-    chart = new Chart(ctx,{
-        type:'bar',
-        data:{
-            labels:['เบิก','คืน'],
-            datasets:[{
-                label:'จำนวนวันนี้',
-                data:[borrow,ret]
-            }]
-        }
-    });
+
+const ctx = document.getElementById("myChart");
+
+if(chart) chart.destroy();
+
+chart = new Chart(ctx,{
+
+type:'bar',
+
+data:{
+labels:['เบิก','คืน'],
+
+datasets:[{
+
+label:'รายการวันนี้',
+
+data:[borrow,ret],
+
+backgroundColor:[
+'#3b82f6',
+'#10b981'
+],
+
+borderRadius:10,
+
+barThickness:60
+
+}]
+
+},
+
+options:{
+
+responsive:true,
+
+plugins:{
+
+legend:{
+display:false
+},
+
+tooltip:{
+backgroundColor:'#111827',
+titleColor:'#fff',
+bodyColor:'#fff',
+padding:10
 }
 
+},
+
+scales:{
+
+x:{
+grid:{
+display:false
+}
+},
+
+y:{
+beginAtZero:true,
+grid:{
+color:'#e5e7eb'
+}
+}
+
+},
+
+animation:{
+duration:1000,
+easing:'easeOutQuart'
+}
+
+}
+
+});
+
+}
 // ================= STOCK =================
 async function loadStock(){
     const res = await fetch("/api/stock");
@@ -800,58 +863,44 @@ async function editTotal(code, currentTotal){
 }
 
 // ================= HISTORY =================
-function loadHistory(){
+async function loadHistory(){
 
-  const start = document.getElementById("historyStart").value;
-  const end = document.getElementById("historyEnd").value;
+const start = document.getElementById("historyStart").value;
+const end = document.getElementById("historyEnd").value;
 
-  const history = JSON.parse(localStorage.getItem("history")) || [];
+let url = "/api/history";
 
-  const tbody = document.getElementById("historyBody");
-  tbody.innerHTML = "";
+if(start || end){
+url += `?start=${start}&end=${end}`;
+}
 
-  history.forEach(h=>{
+const res = await fetch(url);
 
-    if(!h.date) return;
+const history = await res.json();
 
-    // แยกวันที่
-    const [datePart] = h.date.split(" ");
-    const [day,month,yearBE] = datePart.split("/");
+const tbody = document.getElementById("historyBody");
 
-    const year = parseInt(yearBE) - 543;
+tbody.innerHTML="";
 
-    const d = new Date(year, month-1, day);
+history.forEach(h=>{
 
-    // filter start
-    if(start){
-      const s = new Date(start);
-      if(d < s) return;
-    }
+const tr=document.createElement("tr");
 
-    // filter end
-    if(end){
-      const e = new Date(end);
-      e.setHours(23,59,59);
-      if(d > e) return;
-    }
+tr.innerHTML=`
+<td>${h.date}</td>
+<td>${h.code}</td>
+<td>${h.name}</td>
+<td>${h.type}</td>
+<td>${h.qty}</td>
+<td>${h.user}</td>
+`;
 
-    const tr = document.createElement("tr");
+tbody.appendChild(tr);
 
-    tr.innerHTML = `
-    <td>${h.date}</td>
-    <td>${h.code}</td>
-    <td>${h.name}</td>
-    <td>${h.type}</td>
-    <td>${h.qty}</td>
-    <td>${h.user}</td>
-    <td><button onclick='viewHistory(${JSON.stringify(h)})'>ดู</button></td>
-    `;
+});
 
-    tbody.appendChild(tr);
-
-  });
-  if(tbody.innerHTML === ""){
-tbody.innerHTML = "<tr><td colspan='7'>ไม่พบข้อมูล</td></tr>";
+if(history.length===0){
+tbody.innerHTML="<tr><td colspan='6'>ไม่พบข้อมูล</td></tr>";
 }
 
 }

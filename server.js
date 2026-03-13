@@ -516,6 +516,9 @@ app.get("/api/history", requireLogin, async (req, res) => {
 
   try {
 
+    const startDate = req.query.start;
+    const endDate = req.query.end;
+
     const authClient = await backendAuth.getClient();
 
     const sheets = google.sheets({
@@ -530,7 +533,39 @@ app.get("/api/history", requireLogin, async (req, res) => {
 
     const logData = log.data.values || [];
 
-    const history = logData.reverse().map(row => ({
+    let filtered = logData;
+
+    // 🔎 filter ช่วงเวลา
+    if(startDate || endDate){
+
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+
+      filtered = logData.filter(row=>{
+
+        if(!row[0]) return false;
+
+        const [datePart] = row[0].split(" ");
+        const [day,month,yearBE] = datePart.split("/");
+
+        const year = parseInt(yearBE) - 543;
+
+        const rowDate = new Date(year,month-1,day);
+
+        if(start && rowDate < start) return false;
+
+        if(end){
+          end.setHours(23,59,59);
+          if(rowDate > end) return false;
+        }
+
+        return true;
+
+      });
+
+    }
+
+    const history = filtered.reverse().map(row => ({
       date: row[0],
       code: row[1],
       name: row[2],
@@ -547,6 +582,7 @@ app.get("/api/history", requireLogin, async (req, res) => {
     console.error("History error:", err);
     res.status(500).json({ error: "History error" });
   }
+
 });
 // =====================
 // DASHBOARD
