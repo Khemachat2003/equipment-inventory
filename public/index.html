@@ -51,16 +51,72 @@ body{
     background:#1d4ed8;
 }
 
-/* LOGIN */
+/* LOGIN PAGE */
 
 #loginBox{
-    max-width:350px;
+    width:360px;
     margin:120px auto;
-    padding:30px;
     background:white;
-    border-radius:10px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.1);
+    padding:40px;
+    border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.1);
     text-align:center;
+}
+
+/* TITLE */
+
+.login-title h1{
+    margin:0;
+    font-size:26px;
+}
+
+.login-title p{
+    margin-top:5px;
+    color:#666;
+    font-size:14px;
+}
+
+/* FORM */
+
+.login-form{
+    margin-top:30px;
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+
+/* INPUT */
+
+.login-form input{
+    padding:12px;
+    border-radius:8px;
+    border:1px solid #ddd;
+    font-size:14px;
+}
+
+/* BUTTON */
+
+.login-btn{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:12px;
+    border-radius:8px;
+    font-size:15px;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.login-btn:hover{
+    background:#1d4ed8;
+}
+
+/* ERROR */
+
+#loginError{
+    color:red;
+    font-size:13px;
+    margin-top:5px;
 }
 
 /* MAIN */
