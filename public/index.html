@@ -643,22 +643,36 @@ onkeyup="filterTable()">
 
 <h2>⚙️ Settings</h2>
 
-<div class="card" style="max-width:400px;">
+<div class="card" style="max-width:500px;">
 
-<h3>เปลี่ยนรหัสผ่าน</h3>
+<h3>👤 User Info</h3>
 
-<input type="password" id="newPassword" placeholder="New Password">
+<p>Username : <span id="currentUser"></span></p>
+<p>Status : Online</p>
 
-<br><br>
+<hr>
 
-<button onclick="changePassword()">
-บันทึก
+<h3>⚙️ System Info</h3>
+
+<p>Inventory System Version : 1.0</p>
+<p>Database : Google Sheets</p>
+<p>Server : Node.js</p>
+<h3>📊 Database</h3>
+
+<p>เปิดฐานข้อมูลของระบบ</p>
+
+<button onclick="openDatabase()">
+📊 Open Database
 </button>
+<hr>
+<h3>ℹ️ System</h3>
 
+<p>Inventory System Version : 1.0</p>
+<p>Database : Google Sheets</p>
+<p>Server : Node.js</p>
 </div>
 
 </div>
-
 </div>
 <script>
 
@@ -896,11 +910,6 @@ if (officeStock < 1) {
     <td>
     <input type="number" min="1" id="qty-${item.code}" 
         style="width:60px">
-
-    <input type="text" id="user-${item.code}" 
-        placeholder="ชื่อ"
-        style="width:100px">
-
     <select id="type-${item.code}">
         <option value="เบิก">เบิก</option>
         <option value="คืน">คืน</option>
@@ -1472,7 +1481,14 @@ document.addEventListener("DOMContentLoaded", function(){
 loadChart();
 
 });
+function openDatabase(){
 
+window.open(
+"https://docs.google.com/spreadsheets/d/1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE",
+"_blank"
+);
+
+}
 </script>
 
 <div id="returnModal" style="
