@@ -486,8 +486,8 @@ console.log("Transfer by:", user);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Transfer_Log!A:H",
-      valueInputOption: "RAW",
+      range: "Transfer_Log!A1",
+      valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [[
           new Date().toLocaleString("th-TH"),
@@ -505,7 +505,7 @@ console.log("Transfer by:", user);
     res.json({ success: true });
 
   } catch (err) {
-    console.error("Transfer error:", err);
+    console.error("Transfer error:", err.response?.data || err.message);
     res.status(500).json({ error: "Transfer error" });
   }
 });
@@ -1442,6 +1442,17 @@ app.get("/api/dashboard-stats", requireLogin, async (req, res) => {
   });
 
   res.json(stats);
+
+});
+app.get("/api/me", requireLogin, (req,res)=>{
+
+  if(!req.session.user){
+    return res.json({ username:"Unknown" });
+  }
+
+  res.json({
+    username: req.session.user
+  });
 
 });
 app.get("/dashboard", (req, res) => {

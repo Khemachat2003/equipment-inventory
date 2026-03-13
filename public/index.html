@@ -626,6 +626,15 @@ cursor:pointer;
 background:#2563eb;
 
 }
+#currentUser{
+    font-weight:600;
+    color:#111;
+}
+
+.user-status{
+    color:#16a34a;
+    font-weight:500;
+}
 </style>
 </head>
 
@@ -875,11 +884,8 @@ onkeyup="filterTable()">
 
 <h3>👤 User Info</h3>
 
-<p><b>Username</b></p>
-<p id="currentUser">Loading...</p>
-
-<p><b>Status</b></p>
-<p class="status-online">● Online</p>
+<p>Username : <span id="currentUser">Loading...</span></p>
+<p>Status : <span class="user-status">Online</span></p>
 
 </div>
 
@@ -1447,6 +1453,8 @@ async function submitRowTransfer(code, name){
         await loadDashboard();
         await loadHistory();
     }
+}
+  
     async function loadDashboardChart(){
 
   const res = await fetch("/api/dashboard-stats");
@@ -1477,7 +1485,7 @@ async function submitRowTransfer(code, name){
   });
 
 }
-}
+
 function exportPDF(){
 
   alert("กำลังสร้าง PDF กรุณารอสักครู่...");
@@ -1746,6 +1754,19 @@ document.addEventListener("DOMContentLoaded", function(){
 loadChart();
 
 });
+async function loadCurrentUser(){
+
+  try{
+    const res = await fetch("/api/me");
+    const data = await res.json();
+
+    document.getElementById("currentUser").textContent = data.username;
+
+  }catch(err){
+    document.getElementById("currentUser").textContent = "Unknown";
+  }
+
+}
 function openDatabase(){
 
 window.open(
