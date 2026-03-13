@@ -212,6 +212,7 @@ img.preview{
     padding:20px;
     border-radius:10px;
 }
+
 </style>
 </head>
 
@@ -219,11 +220,26 @@ img.preview{
 
 <!-- ================= LOGIN ================= -->
 <div id="loginBox">
-<h2>🔐 Login</h2>
-<input type="text" id="username" placeholder="Username"><br>
-<input type="password" id="password" placeholder="Password"><br>
-<button onclick="login()">เข้าสู่ระบบ</button>
-<p id="loginError" style="color:red;"></p>
+
+<div class="login-title">
+<h1>📦 Equipment System</h1>
+<p>ระบบจัดการการเบิกคืนอุปกรณ์</p>
+</div>
+
+<div class="login-form">
+
+<input type="text" id="username" placeholder="Username">
+
+<input type="password" id="password" placeholder="Password">
+
+<button class="login-btn" onclick="login()">
+เข้าสู่ระบบ
+</button>
+
+<p id="loginError"></p>
+
+</div>
+
 </div>
 
 <!-- ================= MAIN APP ================= -->
@@ -964,7 +980,6 @@ async function loadDashboardChart(){
 }
 
 loadDashboardChart();
-
 </script>
 
 <div id="returnModal" style="
