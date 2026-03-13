@@ -1418,8 +1418,9 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.get("/health",(req,res)=>{
-  res.json(200).send("ok");
-});
+  res.json(200).json({status:"ok",uptime:process.uptime()
+  });
+  });
 
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
