@@ -152,39 +152,99 @@ display:block;
 
 /* DASHBOARD CARD */
 
+/* ===== DASHBOARD GRID ===== */
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:20px;
+margin-top:20px;
+}
+
+/* ===== CARD ===== */
+
 .card{
 
-background:white;
-padding:25px;
-border-radius:14px;
-width:200px;
+background:linear-gradient(135deg,#ffffff,#f8fafc);
 
-box-shadow:0 8px 25px rgba(0,0,0,0.08);
+padding:20px;
 
-transition:0.2s;
+border-radius:16px;
+
+border:1px solid #e2e8f0;
+
+box-shadow:0 10px 30px rgba(0,0,0,0.05);
+
+transition:0.25s;
+
+position:relative;
+
+overflow:hidden;
 
 }
+
+/* hover effect */
 
 .card:hover{
 
-transform:translateY(-4px);
+transform:translateY(-6px);
 
-box-shadow:0 12px 30px rgba(0,0,0,0.12);
+box-shadow:0 20px 40px rgba(0,0,0,0.08);
 
 }
+.card::before{
+
+content:"";
+
+position:absolute;
+
+top:0;
+left:0;
+
+width:100%;
+height:4px;
+
+background:#2563eb;
+
+}
+
+/* title */
 
 .card h3{
+
 font-size:14px;
+
 color:#64748b;
+
 margin-bottom:8px;
+
+font-weight:500;
+
 }
+
+/* value */
 
 .card p{
-font-size:28px;
-font-weight:bold;
-color:#1e293b;
+
+font-size:32px;
+
+font-weight:700;
+
+color:#0f172a;
+
+margin:0;
+
 }
 
+/* optional small badge */
+
+.card span{
+
+font-size:12px;
+
+color:#94a3b8;
+
+}
 /* TABLE */
 
 table{
@@ -431,7 +491,7 @@ width:100%;
 
 <h3>📈 กราฟย้อนหลัง</h3>
 
-<canvas id="chart"></canvas>
+<canvas id="historyChart" height="120"></canvas>
 
 </div>
 
@@ -659,6 +719,7 @@ function initApp(){
     loadStock();
     loadDashboard();
     loadHistory();
+    loadHistoryChart();
     openTab("dashboard"); // ให้เปิดหน้า dashboard ก่อน
 }
 
@@ -675,37 +736,80 @@ async function loadDashboard(){
 
     renderChart(data.todayBorrow || 0, data.todayReturn || 0);
 }
+async function loadHistoryChart(){
 
-function renderChart(borrow, ret){
+    const res = await fetch("/api/history");
+    const data = await res.json();
 
-const ctx = document.getElementById("myChart");
+    const daily = {};
+
+    data.forEach(item=>{
+        const date = item.date.split(" ")[0];
+
+        if(!daily[date]){
+            daily[date] = {borrow:0,return:0};
+        }
+
+        if(item.type === "เบิก"){
+            daily[date].borrow += Number(item.qty);
+        }
+
+        if(item.type === "คืน"){
+            daily[date].return += Number(item.qty);
+        }
+    });
+
+    const labels = Object.keys(daily).slice(-7); // 7 วันล่าสุด
+    const borrowData = labels.map(d => daily[d].borrow);
+    const returnData = labels.map(d => daily[d].return);
+
+    renderHistoryChart(labels, borrowData, returnData);
+}
+function renderHistoryChart(labels, borrowData, returnData){
+
+const ctx = document.getElementById("historyChart").getContext("2d");
 
 if(chart) chart.destroy();
 
+const borrowGradient = ctx.createLinearGradient(0,0,0,300);
+borrowGradient.addColorStop(0,"rgba(37,99,235,0.5)");
+borrowGradient.addColorStop(1,"rgba(37,99,235,0)");
+
+const returnGradient = ctx.createLinearGradient(0,0,0,300);
+returnGradient.addColorStop(0,"rgba(16,185,129,0.5)");
+returnGradient.addColorStop(1,"rgba(16,185,129,0)");
+
 chart = new Chart(ctx,{
 
-type:'bar',
+type:"line",
 
 data:{
-labels:['เบิก','คืน'],
+labels:labels,
+datasets:[
 
-datasets:[{
+{
+label:"เบิก",
+data:borrowData,
+borderColor:"#2563eb",
+backgroundColor:borrowGradient,
+fill:true,
+tension:0.35,
+pointRadius:4,
+pointHoverRadius:6
+},
 
-label:'รายการวันนี้',
+{
+label:"คืน",
+data:returnData,
+borderColor:"#10b981",
+backgroundColor:returnGradient,
+fill:true,
+tension:0.35,
+pointRadius:4,
+pointHoverRadius:6
+}
 
-data:[borrow,ret],
-
-backgroundColor:[
-'#3b82f6',
-'#10b981'
-],
-
-borderRadius:10,
-
-barThickness:60
-
-}]
-
+]
 },
 
 options:{
@@ -713,40 +817,31 @@ options:{
 responsive:true,
 
 plugins:{
-
 legend:{
-display:false
+position:"top"
 },
 
-tooltip:{
-backgroundColor:'#111827',
-titleColor:'#fff',
-bodyColor:'#fff',
-padding:10
+zoom:{
+zoom:{
+wheel:{enabled:true},
+pinch:{enabled:true},
+mode:"x"
+},
+pan:{
+enabled:true,
+mode:"x"
+}
 }
 
 },
 
 scales:{
-
-x:{
-grid:{
-display:false
-}
-},
-
 y:{
 beginAtZero:true,
-grid:{
-color:'#e5e7eb'
+ticks:{
+precision:0
 }
 }
-
-},
-
-animation:{
-duration:1000,
-easing:'easeOutQuart'
 }
 
 }
