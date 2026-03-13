@@ -1,274 +1,321 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta charset="UTF-8">
 <title>ระบบเบิกคืนอุปกรณ์</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{
-    margin:0;
-    font-family: "Segoe UI", Tahoma, sans-serif;
-    background:#f4f6f9;
+*{
+box-sizing:border-box;
 }
+
 body{
-  visibility: hidden;
+margin:0;
+font-family:"Segoe UI",Tahoma,sans-serif;
+background:#f4f6f9;
+color:#1e293b;
 }
+
+body{
+visibility:hidden;
+}
+
 /* HEADER */
 
 .header{
-    background:#1e293b;
-    color:white;
-    padding:15px 30px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+background:#1e293b;
+color:white;
+padding:15px 20px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+flex-wrap:wrap;
 }
 
 .header h1{
-    margin:0;
-    font-size:20px;
+margin:0;
+font-size:20px;
 }
 
-/* NAVBAR */
+/* NAV */
 
 .nav{
-    background:white;
-    padding:10px 20px;
-    border-bottom:1px solid #ddd;
+background:white;
+padding:10px;
+border-bottom:1px solid #ddd;
+display:flex;
+gap:10px;
+flex-wrap:wrap;
 }
 
 .nav button{
-    background:#2563eb;
-    color:white;
-    border:none;
-    padding:8px 16px;
-    border-radius:6px;
-    cursor:pointer;
-    margin-right:6px;
+background:#2563eb;
+color:white;
+border:none;
+padding:10px 16px;
+border-radius:8px;
+cursor:pointer;
+font-size:14px;
 }
 
 .nav button:hover{
-    background:#1d4ed8;
+background:#1d4ed8;
 }
 
-/* LOGIN PAGE */
+/* LOGIN */
 
 #loginBox{
-    width:360px;
-    margin:120px auto;
-    background:white;
-    padding:40px;
-    border-radius:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.1);
-    text-align:center;
+width:360px;
+max-width:90%;
+margin:120px auto;
+background:white;
+padding:40px;
+border-radius:14px;
+box-shadow:0 10px 30px rgba(0,0,0,0.1);
+text-align:center;
 }
 
-/* TITLE */
-
 .login-title h1{
-    margin:0;
-    font-size:26px;
+margin:0;
+font-size:26px;
 }
 
 .login-title p{
-    margin-top:5px;
-    color:#666;
-    font-size:14px;
+margin-top:5px;
+color:#666;
+font-size:14px;
 }
-
-/* FORM */
 
 .login-form{
-    margin-top:30px;
-    display:flex;
-    flex-direction:column;
-    gap:15px;
+margin-top:30px;
+display:flex;
+flex-direction:column;
+gap:15px;
 }
-
-/* INPUT */
 
 .login-form input{
-    padding:12px;
-    border-radius:8px;
-    border:1px solid #ddd;
-    font-size:14px;
+padding:12px;
+border-radius:8px;
+border:1px solid #ddd;
+font-size:14px;
 }
 
-/* BUTTON */
-
 .login-btn{
-    background:#2563eb;
-    color:white;
-    border:none;
-    padding:12px;
-    border-radius:8px;
-    font-size:15px;
-    cursor:pointer;
-    transition:0.2s;
+background:#2563eb;
+color:white;
+border:none;
+padding:12px;
+border-radius:8px;
+font-size:15px;
+cursor:pointer;
+transition:0.2s;
 }
 
 .login-btn:hover{
-    background:#1d4ed8;
+background:#1d4ed8;
 }
-
-/* ERROR */
 
 #loginError{
-    color:red;
-    font-size:13px;
-    margin-top:5px;
+color:red;
+font-size:13px;
+margin-top:5px;
 }
 
-/* MAIN */
+/* MAIN TAB */
 
 .tab{
-    display:none;
-    padding:25px;
+display:none;
+padding:20px;
 }
 
 .tab.active{
-    display:block;
+display:block;
 }
 
-/* CARD */
+/* DASHBOARD CARD */
+
+.cards{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
 
 .card{
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    width:180px;
-    box-shadow:0 3px 10px rgba(0,0,0,0.08);
+background:white;
+padding:20px;
+border-radius:12px;
+width:180px;
+box-shadow:0 4px 15px rgba(0,0,0,0.05);
 }
 
 .card h3{
-    font-size:14px;
-    color:#666;
+font-size:14px;
+color:#64748b;
+margin-bottom:5px;
 }
 
 .card p{
-    font-size:26px;
-    font-weight:bold;
-}
-
-/* CARD CONTAINER */
-
-.cards{
-    display:flex;
-    gap:20px;
-    flex-wrap:wrap;
+font-size:28px;
+font-weight:bold;
 }
 
 /* TABLE */
 
 table{
-    width:100%;
-    border-collapse:collapse;
-    background:white;
-    border-radius:10px;
-    overflow:hidden;
+width:100%;
+border-collapse:collapse;
+background:white;
+border-radius:10px;
+overflow:hidden;
 }
 
 th{
-    background:#334155;
-    color:white;
-    padding:10px;
+background:#334155;
+color:white;
+padding:12px;
+font-size:14px;
 }
 
 td{
-    padding:10px;
-    border-bottom:1px solid #eee;
+padding:10px;
+border-bottom:1px solid #eee;
+font-size:14px;
 }
 
 tr:hover{
-    background:#f1f5f9;
+background:#f8fafc;
 }
 
 /* BUTTON */
 
 button{
-    border:none;
-    border-radius:6px;
-    padding:6px 12px;
-    cursor:pointer;
+border:none;
+border-radius:6px;
+padding:7px 12px;
+cursor:pointer;
+font-size:13px;
 }
 
 .logout-btn{
-    background:#ef4444;
-    color:white;
+background:#ef4444;
+color:white;
 }
 
 .edit-btn{
-    background:#f59e0b;
-    color:white;
+background:#f59e0b;
+color:white;
 }
 
 .view-btn{
-    background:#06b6d4;
-    color:white;
+background:#06b6d4;
+color:white;
 }
 
 /* INPUT */
 
-input, select{
-    padding:7px;
-    border-radius:6px;
-    border:1px solid #ccc;
+input,select{
+padding:8px;
+border-radius:6px;
+border:1px solid #ccc;
+font-size:14px;
 }
 
 /* ADD BOX */
 
 .add-box{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin-bottom:15px;
 }
 
 /* SEARCH */
 
 #search{
-    width:260px;
+width:260px;
+max-width:100%;
 }
 
 /* IMAGE */
 
 img.preview{
-    width:45px;
-    height:45px;
-    object-fit:cover;
-    border-radius:6px;
+width:45px;
+height:45px;
+object-fit:cover;
+border-radius:6px;
 }
 
 /* OUT STOCK */
 
 .out-stock{
-    background:#fee2e2;
+background:#fee2e2;
 }
 
 .out-text{
-    color:red;
-    font-weight:bold;
+color:red;
+font-weight:bold;
 }
 
 /* MODAL */
 
 .modal{
-    display:none;
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.4);
-    justify-content:center;
-    align-items:center;
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+justify-content:center;
+align-items:center;
+padding:15px;
 }
 
 .modal-box{
-    background:white;
-    padding:20px;
-    border-radius:10px;
+background:white;
+padding:20px;
+border-radius:12px;
+width:100%;
+max-width:400px;
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+.nav{
+justify-content:center;
+}
+
+.cards{
+justify-content:center;
+}
+
+.card{
+width:45%;
+}
+
+table{
+display:block;
+overflow-x:auto;
+}
+
+th,td{
+font-size:12px;
+padding:8px;
+}
+
+.add-box{
+flex-direction:column;
+}
+
+#search{
+width:100%;
+}
+
 }
 
 </style>
