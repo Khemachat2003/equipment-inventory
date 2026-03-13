@@ -348,157 +348,235 @@ width:100%;
 </div>
 
 <!-- ================= MAIN APP ================= -->
+<!-- ================= MAIN APP ================= -->
+
 <div id="mainApp" style="display:none;">
 
-<button class="logout-btn" onclick="logout()">Logout</button>
+<!-- HEADER -->
 
-<h1>ระบบเบิกคืนอุปกรณ์</h1>
+<div class="header">
+<h1>📦 Equipment Management System</h1>
+<button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<!-- NAVBAR -->
 
 <div class="nav">
-  <button onclick="openTab('dashboard')">📊 Dashboard</button>
-  <button onclick="openTab('stock')">📦 อุปกรณ์</button>
-  <button onclick="openTab('history')">📜 ประวัติ</button>
+
+<button onclick="openTab('dashboard')">📊 Dashboard</button>
+<button onclick="openTab('stock')">📦 Stock</button>
+<button onclick="openTab('history')">📜 History</button>
+<button onclick="openTab('report')">📄 Report</button>
+<button onclick="openTab('settings')">⚙️ Settings</button>
+
 </div>
 
 <!-- ================= DASHBOARD ================= -->
+
 <div id="dashboard" class="tab active">
-  <h2>📊 Dashboard</h2>
 
-  <div style="display:flex; gap:20px; flex-wrap:wrap;">
-    <div class="card"><h3>📦 รายการทั้งหมด</h3><p id="totalItems">0</p></div>
-    <div class="card"><h3>🏢 Office รวม</h3><p id="totalOffice">0</p></div>
-    <div class="card"><h3>🏗 Site รวม</h3><p id="totalSite">0</p></div>
-    <div class="card"><h3>🔄 เบิกวันนี้</h3><p id="todayBorrow">0</p></div>
-    <div class="card"><h3>🔁 คืนวันนี้</h3><p id="todayReturn">0</p></div>
-  </div>
+<h2>📊 Dashboard</h2>
 
-  <h3>📈 กราฟวันนี้</h3>
-  <canvas id="chart"></canvas>
-  <canvas id="myChart" height="100"></canvas>
+<div class="cards">
+
+<div class="card">
+<h3>📦 รายการทั้งหมด</h3>
+<p id="totalItems">0</p>
+</div>
+
+<div class="card">
+<h3>🏢 Office</h3>
+<p id="totalOffice">0</p>
+</div>
+
+<div class="card">
+<h3>🏗 Site</h3>
+<p id="totalSite">0</p>
+</div>
+
+<div class="card">
+<h3>🔄 เบิกวันนี้</h3>
+<p id="todayBorrow">0</p>
+</div>
+
+<div class="card">
+<h3>🔁 คืนวันนี้</h3>
+<p id="todayReturn">0</p>
+</div>
+
+</div>
+
+<h3>📈 กราฟย้อนหลัง</h3>
+
+<canvas id="chart"></canvas>
+
 </div>
 
 <!-- ================= STOCK ================= -->
+
 <div id="stock" class="tab">
-  <h2>📦 รายการอุปกรณ์</h2>
 
-  <!-- 🔎 ค้นหา -->
-  <input type="text" id="search" 
-         placeholder="ค้นหาด้วยรหัสหรือชื่อ..." 
-         onkeyup="filterTable()">
+<h2>📦 รายการอุปกรณ์</h2>
 
-  <br><br>
+<input type="text" id="search"
+placeholder="ค้นหาด้วยรหัสหรือชื่อ..."
+onkeyup="filterTable()">
+
+<br><br>
 
 <h3>➕ เพิ่มอุปกรณ์ใหม่</h3>
+
 <div class="add-box">
-  <input type="text" id="newCode" placeholder="รหัสอุปกรณ์">
-  <input type="text" id="newName" placeholder="ชื่ออุปกรณ์">
-  <input type="number" id="newQty" placeholder="จำนวน">
-  <input type="file" id="newImage" accept="image/*">
-  <button onclick="addItem()">บันทึก</button>
+
+<input type="text" id="newCode" placeholder="รหัสอุปกรณ์">
+
+<input type="text" id="newName" placeholder="ชื่ออุปกรณ์">
+
+<input type="number" id="newQty" placeholder="จำนวน">
+
+<input type="file" id="newImage" accept="image/*">
+
+<button onclick="addItem()">บันทึก</button>
+
 </div>
+
 <hr>
 
 <button onclick="openReturnModal()">
 🔁 คืนอุปกรณ์จาก Site ทั้งหมด
 </button>
 
-  <!-- 📋 ตาราง -->
-  <table>
-    <thead>
-      <tr>
-        <th>รหัส</th>
-        <th>รูป</th>
-        <th>ชื่อ</th>
-        <th>ทั้งหมด</th>
-        <th>Office</th>
-        <th>Site</th>
-        <th>แก้ไข</th>
-      </tr>
-    </thead>
-    <tbody id="stockBody"></tbody>
-  </table>
-</div>
-
-<!-- ================= HISTORY ================= -->
-<div id="history" class="tab">
-  <h2>📜 ประวัติการทำรายการ</h2>
-<!-- ===== ส่วนตั้งค่ารายงาน ===== -->
-
-<div style="margin-bottom:20px; padding:15px; border:1px solid #ccc; border-radius:8px;">
-
-  <h3>ตั้งค่ารายงาน</h3>
-
-  <input id="title" placeholder="หัวข้อรายงาน"
-    style="width:250px; margin-bottom:10px;">
-  <br>
-
-  <input id="locationsCount" placeholder="จำนวนสถานที่"
-    style="width:250px; margin-bottom:10px;">
-  <br>
-
-   <textarea id="locations"
-    placeholder="รายชื่อสถานที่ (บรรทัดละ 1 ที่)"
-    rows="4"
-    style="width:300px;"></textarea>
-    <br>
-
-  <input id="vehicle" placeholder="ยานพาหนะ"
-    style="width:250px; margin-bottom:10px;">
-  <br>
-
-  <label>ช่วงวันที่</label><br>
-  <input type="date" id="startDate">
-  <input type="date" id="endDate">
-  <br><br>
-
-  <input id="employeeCount" placeholder="จำนวนพนักงาน"
-    style="width:250px; margin-bottom:10px;">
-  <br>
-
-  <textarea id="employees"
-    placeholder="รายชื่อพนักงาน (บรรทัดละ 1 คน)"
-    rows="4"
-    style="width:300px;"></textarea>
-
-  <br><br>
-
-<label>ประเภทรายงาน</label><br>
-<select id="reportType">
-  <option value="all">รายการเบิกและคืน</option>
-  <option value="borrow">รายการเบิก</option>
-  <option value="return">รายการคืน</option>
-</select>
-
 <br><br>
 
-  <button onclick="exportPDF()" class="export-btn">
-    📄 Export PDF
-  </button>
-
-</div>
-
-
-<!-- ===== ตารางประวัติ ===== -->
-
 <table>
-  <thead>
-    <tr>
-      <th>วันที่</th>
-      <th>รหัส</th>
-      <th>ชื่อ</th>
-      <th>ประเภท</th>
-      <th>จำนวน</th>
-      <th>ผู้ทำ</th>
-      <th>ดู</th>
-    </tr>
-  </thead>
-  <tbody id="historyBody"></tbody>
+
+<thead>
+
+<tr>
+<th>รหัส</th>
+<th>รูป</th>
+<th>ชื่อ</th>
+<th>ทั้งหมด</th>
+<th>Office</th>
+<th>Site</th>
+<th>แก้ไข</th>
+</tr>
+
+</thead>
+
+<tbody id="stockBody"></tbody>
+
 </table>
 
 </div>
 
+<!-- ================= HISTORY ================= -->
+
+<div id="history" class="tab">
+
+<h2>📜 ประวัติการทำรายการ</h2>
+
+<label>เลือกช่วงวันที่</label>
+
+<br>
+
+<input type="date" id="historyStart">
+<input type="date" id="historyEnd">
+
+<button onclick="loadHistory()">ค้นหา</button>
+
+<br><br>
+
+<table>
+
+<thead>
+
+<tr>
+<th>วันที่</th>
+<th>รหัส</th>
+<th>ชื่อ</th>
+<th>ประเภท</th>
+<th>จำนวน</th>
+<th>ผู้ทำ</th>
+<th>ดู</th>
+</tr>
+
+</thead>
+
+<tbody id="historyBody"></tbody>
+
+</table>
+
 </div>
 
+<!-- ================= REPORT ================= -->
+
+<div id="report" class="tab">
+
+<h2>📄 รายงาน</h2>
+
+<div class="card" style="max-width:500px;">
+
+<h3>Export รายงาน PDF</h3>
+
+<input id="title" placeholder="หัวข้อรายงาน">
+
+<br><br>
+
+<input id="vehicle" placeholder="ยานพาหนะ">
+
+<br><br>
+
+<label>ช่วงวันที่</label>
+
+<br>
+
+<input type="date" id="startDate">
+<input type="date" id="endDate">
+
+<br><br>
+
+<select id="reportType">
+
+<option value="all">รายการเบิกและคืน</option>
+<option value="borrow">เฉพาะเบิก</option>
+<option value="return">เฉพาะคืน</option>
+
+</select>
+
+<br><br>
+
+<button onclick="exportPDF()">
+📄 Export PDF
+</button>
+
+</div>
+
+</div>
+
+<!-- ================= SETTINGS ================= -->
+
+<div id="settings" class="tab">
+
+<h2>⚙️ Settings</h2>
+
+<div class="card" style="max-width:400px;">
+
+<h3>เปลี่ยนรหัสผ่าน</h3>
+
+<input type="password" id="newPassword" placeholder="New Password">
+
+<br><br>
+
+<button onclick="changePassword()">
+บันทึก
+</button>
+
+</div>
+
+</div>
+
+</div>
 <script>
 
 let selectedCode = "";
@@ -736,27 +814,42 @@ function viewDetail(code,name,type,qty,user,date){
 // ================= TAB CONTROL =================
 function openTab(id){
 
+  // ตรวจสอบว่า tab มีอยู่จริงไหม
+  const target = document.getElementById(id);
+
+  if(!target){
+    console.error("ไม่พบ tab:", id);
+    return;
+  }
+
   // จำ tab ล่าสุด
   localStorage.setItem("activeTab", id);
 
+  // ปิด tab ทั้งหมด
   document.querySelectorAll(".tab").forEach(tab=>{
     tab.classList.remove("active");
   });
 
-  const target = document.getElementById(id);
-
-  if(target){
-      target.classList.add("active");
-  }else{
-      console.error("ไม่พบ tab:", id);
-  }
+  // เปิด tab ที่เลือก
+  target.classList.add("active");
 
 }
+
+
+// โหลดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function(){
 
-  const lastTab = localStorage.getItem("activeTab") || "dashboard";
+  // อ่าน tab จาก URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlTab = urlParams.get("tab");
 
-  openTab(lastTab);
+  // อ่าน tab ล่าสุดจาก localStorage
+  const lastTab = localStorage.getItem("activeTab");
+
+  // เลือก tab ที่จะเปิด
+  const startTab = urlTab || lastTab || "dashboard";
+
+  openTab(startTab);
 
 });
 async function addItem(){
