@@ -1416,7 +1416,7 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
 app.get("/health",(req,res)=>{
-  res.json(200).json({status:"ok",uptime:process.uptime()
+  res.status(200).json({status:"ok",uptime:process.uptime()
   });
   });
 const PORT = process.env.PORT || 3000;
