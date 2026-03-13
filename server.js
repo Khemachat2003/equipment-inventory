@@ -1415,13 +1415,11 @@ app.get("/dashboard", (req, res) => {
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
-const PORT = process.env.PORT || 3000;
-
 app.get("/health",(req,res)=>{
   res.json(200).json({status:"ok",uptime:process.uptime()
   });
   });
-
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
