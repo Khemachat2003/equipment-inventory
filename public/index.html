@@ -460,6 +460,11 @@ let chart;
 // ================= LOGIN =================
 async function login(){
 
+const btn = document.querySelector(".login-btn");
+btn.innerText = "กำลังเข้าสู่ระบบ...";
+btn.disabled = true;
+
+
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
 
@@ -479,10 +484,25 @@ async function login(){
     }else{
         document.getElementById("loginError").innerText="Username หรือ Password ไม่ถูกต้อง";
     }
+    btn.innerText = "เข้าสู่ระบบ";
+btn.disabled = false;
 }
 
-function logout(){
-    location.reload();
+async function logout(){
+
+  try{
+
+    await fetch("/api/logout",{
+      method:"POST",
+      credentials:"include"
+    });
+
+  }catch(e){
+    console.log("logout error",e);
+  }
+
+  location.reload();
+
 }
 
 function initApp(){
@@ -989,6 +1009,13 @@ async function checkAuth(){
 }
 
 window.onload = checkAuth;
+document.addEventListener("keydown",function(e){
+
+if(e.key === "Enter"){
+    login();
+}
+
+});
 
 async function loadDashboardChart(){
 
