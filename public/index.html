@@ -850,6 +850,9 @@ function loadHistory(){
     tbody.appendChild(tr);
 
   });
+  if(tbody.innerHTML === ""){
+tbody.innerHTML = "<tr><td colspan='7'>ไม่พบข้อมูล</td></tr>";
+}
 
 }
 
@@ -865,9 +868,7 @@ function viewDetail(code,name,type,qty,user,date){
 ผู้ทำรายการ: ${user}`
     );
 }
-if(tbody.innerHTML === ""){
-tbody.innerHTML = "<tr><td colspan='7'>ไม่พบข้อมูล</td></tr>";
-}
+
 // ================= TAB CONTROL =================
 function openTab(id){
 
