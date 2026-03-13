@@ -418,9 +418,10 @@ app.post("/api/add-stock", requireLogin, async (req, res) => {
 app.post("/api/transfer", requireLogin, async (req, res) => {
 
   try {
-
+if(!req.session.user){
+   return res.status(401).json({ error:"not login" });
+}
     const authClient = await backendAuth.getClient();
-
     const sheets = google.sheets({
       version: "v4",
       auth: authClient
@@ -428,8 +429,8 @@ app.post("/api/transfer", requireLogin, async (req, res) => {
 
     const { code, name, type } = req.body;
     const qty = parseInt(req.body.qty);
-    const user = req.session.user.username;
-
+    const user = req.session.user;
+console.log("Transfer by:", user);
     if (!qty || qty <= 0) {
       return res.json({ error: "จำนวนไม่ถูกต้อง" });
     }
