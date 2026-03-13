@@ -812,10 +812,28 @@ function loadHistory(){
 
   history.forEach(h=>{
 
-    const d = new Date(h.date);
+    if(!h.date) return;
 
-    if(start && d < new Date(start)) return;
-    if(end && d > new Date(end + "T23:59:59")) return;
+    // แยกวันที่
+    const [datePart] = h.date.split(" ");
+    const [day,month,yearBE] = datePart.split("/");
+
+    const year = parseInt(yearBE) - 543;
+
+    const d = new Date(year, month-1, day);
+
+    // filter start
+    if(start){
+      const s = new Date(start);
+      if(d < s) return;
+    }
+
+    // filter end
+    if(end){
+      const e = new Date(end);
+      e.setHours(23,59,59);
+      if(d > e) return;
+    }
 
     const tr = document.createElement("tr");
 
@@ -846,6 +864,9 @@ function viewDetail(code,name,type,qty,user,date){
 จำนวน: ${qty}
 ผู้ทำรายการ: ${user}`
     );
+}
+if(tbody.innerHTML === ""){
+tbody.innerHTML = "<tr><td colspan='7'>ไม่พบข้อมูล</td></tr>";
 }
 // ================= TAB CONTROL =================
 function openTab(id){
