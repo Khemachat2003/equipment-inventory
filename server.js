@@ -1447,7 +1447,7 @@ app.get("/api/dashboard-stats", requireLogin, async (req, res) => {
 app.get("/api/me", requireLogin, (req,res)=>{
 
   if(!req.session.user){
-    return res.json({ username:"Unknown" });
+    return res.json({ username:"Guest" });
   }
 
   res.json({
