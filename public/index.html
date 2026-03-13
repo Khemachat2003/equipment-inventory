@@ -6,7 +6,7 @@
 <title>ระบบเบิกคืนอุปกรณ์</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
 <style>
 *{
 box-sizing:border-box;
@@ -152,29 +152,37 @@ display:block;
 
 /* DASHBOARD CARD */
 
-.cards{
-display:flex;
-gap:20px;
-flex-wrap:wrap;
+.card{
+
+background:white;
+padding:25px;
+border-radius:14px;
+width:200px;
+
+box-shadow:0 8px 25px rgba(0,0,0,0.08);
+
+transition:0.2s;
+
 }
 
-.card{
-background:white;
-padding:20px;
-border-radius:12px;
-width:180px;
-box-shadow:0 4px 15px rgba(0,0,0,0.05);
+.card:hover{
+
+transform:translateY(-4px);
+
+box-shadow:0 12px 30px rgba(0,0,0,0.12);
+
 }
 
 .card h3{
 font-size:14px;
 color:#64748b;
-margin-bottom:5px;
+margin-bottom:8px;
 }
 
 .card p{
 font-size:28px;
 font-weight:bold;
+color:#1e293b;
 }
 
 /* TABLE */
@@ -1040,18 +1048,21 @@ async function submitRowTransfer(code, name){
 
 }
 }
-function exportPDF() {
+function exportPDF(){
+
   alert("กำลังสร้าง PDF กรุณารอสักครู่...");
-  
 
   const title = document.getElementById("title")?.value || "รายงานประวัติการเบิก–คืนอุปกรณ์";
   const locationCount = document.getElementById("locationCount")?.value || "0";
   const locations = document.getElementById("locations")?.value || "";
   const vehicle = document.getElementById("vehicle")?.value || "-";
+
   const startDate = document.getElementById("startDate")?.value || "";
   const endDate = document.getElementById("endDate")?.value || "";
+
   const employeeCount = document.getElementById("employeeCount")?.value || "0";
   const employees = document.getElementById("employees")?.value || "";
+
   const reportType = document.getElementById("reportType")?.value || "all";
 
   const form = document.createElement("form");
@@ -1072,7 +1083,7 @@ function exportPDF() {
     reportType
   };
 
-  for (const key in data) {
+  Object.keys(data).forEach(key => {
 
     const input = document.createElement("input");
 
@@ -1082,10 +1093,12 @@ function exportPDF() {
 
     form.appendChild(input);
 
-  }
+  });
 
   document.body.appendChild(form);
+
   form.submit();
+
   document.body.removeChild(form);
 
 }
@@ -1248,6 +1261,52 @@ async function loadDashboardChart(){
 }
 
 loadDashboardChart();
+
+function loadChart(){
+
+const ctx = document.getElementById('chart');
+
+new Chart(ctx, {
+
+type: 'line',
+
+data: {
+
+labels: dates,
+
+datasets: [{
+label: 'การเบิกอุปกรณ์',
+data: values,
+tension:0.4
+}]
+
+},
+
+options: {
+
+responsive:true,
+
+plugins:{
+zoom:{
+zoom:{
+wheel:{enabled:true},
+pinch:{enabled:true},
+mode:'x'
+}
+}
+}
+
+}
+
+});
+
+}
+document.addEventListener("DOMContentLoaded", function(){
+
+loadChart();
+
+});
+
 </script>
 
 <div id="returnModal" style="

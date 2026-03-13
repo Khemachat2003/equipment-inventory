@@ -766,7 +766,7 @@ if (reportType === "return") {
       const start = new Date(startY, startM - 1, startD, 0, 0, 0);
       const end = new Date(endY, endM - 1, endD, 23, 59, 59);
 
-      filteredData = dataRows.filter(row => {
+      filteredData = filteredData.filter(row => {
 
         if (!row[0]) return false;
 
@@ -915,9 +915,13 @@ doc.moveDown(0);
 // แปลงค่าประเภทรายงาน
 let reportTypeText = "รวมการเบิกและคืน";
 
-if (reportType === "borrow") reportTypeText = "รายการเบิก";
-if (reportType === "return") reportTypeText = "รายการคืน";
+if (reportType === "borrow") {
+  filteredData = filteredData.filter(row => row[4]?.trim() === "เบิก");
+}
 
+if (reportType === "return") {
+  filteredData = filteredData.filter(row => row[4]?.trim() === "คืน");
+}
 // แสดงใน PDF
 doc.fontSize(16);
 doc.text(`ตาราง: ${reportTypeText}`, {
