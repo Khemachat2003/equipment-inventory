@@ -12,7 +12,9 @@ body{
     font-family: "Segoe UI", Tahoma, sans-serif;
     background:#f4f6f9;
 }
-
+body{
+  visibility: hidden;
+}
 /* HEADER */
 
 .header{
@@ -686,19 +688,29 @@ function viewDetail(code,name,type,qty,user,date){
 }
 // ================= TAB CONTROL =================
 function openTab(id){
+
+  // จำ tab ล่าสุด
+  localStorage.setItem("activeTab", id);
+
   document.querySelectorAll(".tab").forEach(tab=>{
     tab.classList.remove("active");
   });
 
   const target = document.getElementById(id);
+
   if(target){
       target.classList.add("active");
   }else{
       console.error("ไม่พบ tab:", id);
   }
+
 }
 document.addEventListener("DOMContentLoaded", function(){
-    openTab("dashboard");
+
+  const lastTab = localStorage.getItem("activeTab") || "dashboard";
+
+  openTab(lastTab);
+
 });
 async function addItem(){
 
@@ -992,20 +1004,24 @@ async function checkAuth(){
     credentials:"include"
   });
 
-  if(!res.ok){
-    return;
+  if(res.ok){
+
+    const data = await res.json();
+
+    if(data.loggedIn){
+
+      document.getElementById("loginBox").style.display="none";
+      document.getElementById("mainApp").style.display="block";
+
+      initApp();
+
+    }
+
   }
 
-  const data = await res.json();
+  // แสดงหน้าเว็บหลังตรวจ auth เสร็จ
+  document.body.style.visibility = "visible";
 
-  if(!data.loggedIn){
-    return;
-  }
-
-  document.getElementById("loginBox").style.display="none";
-  document.getElementById("mainApp").style.display="block";
-
-  initApp();
 }
 
 window.onload = checkAuth;
