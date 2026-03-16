@@ -901,16 +901,22 @@ if (reportType === "all" || reportType === "borrow") {
 
   if (locations) {
 
-    const locationList = locations.split("\n").filter(l => l.trim() !== "");
+    const locationList = locations
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l !== "");
 
     doc.text(`สถานที่: ${locationList.length} ที่`, { width: contentWidth });
 
     locationList.forEach((loc, index) => {
+
       const clean = loc.replace(/^\d+\.\s*/, "");
+
       doc.text(`${index + 1}. ${clean}`, {
         width: contentWidth,
         indent: 20
       });
+
     });
 
   }
@@ -925,13 +931,20 @@ if (reportType === "all" || reportType === "borrow") {
 
     doc.moveDown(0.5);
 
-    employees.split("\n").forEach((name, index) => {
-      const clean = name.replace(/^\d+\.\s*/, "");
-      doc.text(`${index + 1}. ${clean}`, {
-        width: contentWidth,
-        indent: 20
+    employees
+      .split("\n")
+      .map(n => n.trim())
+      .filter(n => n !== "")
+      .forEach((name, index) => {
+
+        const clean = name.replace(/^\d+\.\s*/, "");
+
+        doc.text(`${index + 1}. ${clean}`, {
+          width: contentWidth,
+          indent: 20
+        });
+
       });
-    });
 
   }
 
@@ -969,7 +982,7 @@ doc.text(`ตาราง: ${reportTypeText}`, {
 
 doc.moveDown(0.5);
 
-// ================= ตาราง =================
+// ================= ตาราง ================
 let y = doc.y;
 const usableHeight = doc.page.height - doc.page.margins.bottom;
 
