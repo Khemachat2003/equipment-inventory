@@ -1461,7 +1461,6 @@ function exportPDF(){
   alert("กำลังสร้าง PDF กรุณารอสักครู่...");
 
   const title = document.getElementById("title")?.value || "รายงานประวัติการเบิก–คืนอุปกรณ์";
-  const locationCount = document.getElementById("locationCount")?.value || "0";
   const locations = document.getElementById("locations")?.value || "";
   const vehicle = document.getElementById("vehicle")?.value || "-";
 
@@ -1473,6 +1472,11 @@ function exportPDF(){
 
   const reportType = document.getElementById("reportType")?.value || "all";
 
+  if(!startDate || !endDate){
+    alert("กรุณาเลือกช่วงวันที่");
+    return;
+  }
+
   const form = document.createElement("form");
 
   form.method = "POST";
@@ -1481,7 +1485,6 @@ function exportPDF(){
 
   const data = {
     title,
-    locationCount,
     locations,
     vehicle,
     startDate,

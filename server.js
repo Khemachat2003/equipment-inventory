@@ -893,20 +893,17 @@ doc.pipe(stream);
       drawReportHeader();
     });
 
-    // ================= ข้อมูลก่อนตาราง =================
-    doc.fontSize(14);
+   doc.fontSize(14);
 doc.x = marginLeft;
 
-/* แสดงข้อมูลพวกสถานที่/รถ/พนักงาน เฉพาะตอนที่ไม่ใช่รายการคืน */
-if (reportType !== "return") {
+// ถ้าไม่ใช่รายงาน "คืน" ให้แสดงข้อมูลทั้งหมด
+if (reportType === "all" || reportType === "borrow") {
 
   if (locations) {
 
     const locationList = locations.split("\n").filter(l => l.trim() !== "");
 
     doc.text(`สถานที่: ${locationList.length} ที่`, { width: contentWidth });
-
-    doc.moveDown(0);
 
     locationList.forEach((loc, index) => {
       const clean = loc.replace(/^\d+\.\s*/, "");
@@ -918,13 +915,16 @@ if (reportType !== "return") {
 
   }
 
-  doc.moveDown(0);
+  doc.moveDown(0.5);
+
   doc.text(`ยานพาหนะ: ${vehicle}`, { width: contentWidth });
 
   doc.text(`จำนวนพนักงาน: ${employeeCount} คน`, { width: contentWidth });
 
   if (employees) {
-    doc.moveDown(0);
+
+    doc.moveDown(0.5);
+
     employees.split("\n").forEach((name, index) => {
       const clean = name.replace(/^\d+\.\s*/, "");
       doc.text(`${index + 1}. ${clean}`, {
@@ -932,34 +932,35 @@ if (reportType !== "return") {
         indent: 20
       });
     });
+
   }
 
 }
 
-/* ช่วงวันที่ต้องแสดงทุกแบบ */
+// ข้อมูลที่ต้องแสดงทุกแบบ
+doc.moveDown(0.5);
+
 doc.text(
   `ช่วงวันที่: ${formatDate(startDate)} - ${formatDate(endDate)}`,
   { width: contentWidth }
 );
 
-doc.moveDown(0);
-doc.text("วันที่ออกรายงาน: " + new Date().toLocaleString("th-TH"), {
-  width: contentWidth
-});
+doc.text(
+  "วันที่ออกรายงาน: " + new Date().toLocaleString("th-TH"),
+  { width: contentWidth }
+);
 
 doc.moveDown(0);
-
-// แปลงค่าประเภทรายงาน
-let reportTypeText = "รวมการเบิกและคืน";
+let reportTypeText = "รวมรายการเบิกและคืน";
 
 if (reportType === "borrow") {
-  filteredData = filteredData.filter(row => row[4]?.trim() === "เบิก");
+  reportTypeText = "รายการเบิก";
 }
 
 if (reportType === "return") {
-  filteredData = filteredData.filter(row => row[4]?.trim() === "คืน");
+  reportTypeText = "รายการคืน";
 }
-// แสดงใน PDF
+
 doc.fontSize(16);
 doc.text(`ตาราง: ${reportTypeText}`, {
   width: contentWidth,
