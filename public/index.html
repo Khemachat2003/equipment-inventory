@@ -547,7 +547,19 @@ border-radius:8px;
 cursor:pointer;
 
 }
+textarea{
+  width:100%;
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
 
+input{
+  width:100%;
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
 /* animation */
 
 @keyframes modalPop{
@@ -635,6 +647,7 @@ background:#2563eb;
     color:#16a34a;
     font-weight:500;
 }
+
 </style>
 </head>
 
@@ -837,6 +850,31 @@ onkeyup="filterTable()">
 <h3>Export รายงาน PDF</h3>
 
 <input id="title" placeholder="หัวข้อรายงาน">
+
+<br><br>
+<label>จำนวนสถานที่</label>
+<input type="number" id="locationCount" placeholder="จำนวนสถานที่">
+
+<br><br>
+
+<label>รายชื่อสถานที่ (ขึ้นบรรทัดใหม่ต่อสถานที่)</label>
+<textarea id="locations" rows="4" placeholder="เช่น
+โรงงาน A
+โกดัง B
+ไซต์งาน C"></textarea>
+
+<br><br>
+
+<label>จำนวนพนักงาน</label>
+<input type="number" id="employeeCount" placeholder="จำนวนพนักงาน">
+
+<br><br>
+
+<label>รายชื่อพนักงาน (ขึ้นบรรทัดใหม่ต่อคน)</label>
+<textarea id="employees" rows="4" placeholder="เช่น
+สมชาย
+สมหญิง
+สมปอง"></textarea>
 
 <br><br>
 
