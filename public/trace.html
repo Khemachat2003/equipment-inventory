@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Traceability</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Segoe UI,Arial,sans-serif;
+    background:linear-gradient(135deg,#eef4ff,#f7fbff);
+    min-height:100vh;
+    padding:40px;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+}
+
+.card{
+    background:white;
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.1);
+}
+
+h2{
+    text-align:center;
+    color:#1565c0;
+    margin-bottom:30px;
+}
+
+.search-box{
+    display:flex;
+    justify-content:center;
+    gap:15px;
+    flex-wrap:wrap;
+}
+
+input{
+    width:350px;
+    padding:15px;
+    border:none;
+    outline:none;
+    border-radius:12px;
+    background:#f2f5fa;
+    font-size:15px;
+}
+
+button{
+    border:none;
+    padding:15px 25px;
+    border-radius:12px;
+    background:#1565c0;
+    color:white;
+    font-size:15px;
+    cursor:pointer;
+    transition:.3s;
+}
+
+button:hover{
+    background:#0d47a1;
+}
+
+.timeline{
+    margin-top:40px;
+    position:relative;
+}
+
+.timeline::before{
+    content:"";
+    position:absolute;
+    left:20px;
+    top:0;
+    bottom:0;
+    width:3px;
+    background:#90caf9;
+}
+
+.item{
+    position:relative;
+    margin-left:50px;
+    margin-bottom:25px;
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 4px 15px rgba(0,0,0,.08);
+}
+
+.item::before{
+    content:"";
+    position:absolute;
+    left:-40px;
+    top:25px;
+    width:18px;
+    height:18px;
+    background:#1565c0;
+    border-radius:50%;
+}
+
+.date{
+    color:#777;
+    font-size:13px;
+    margin-bottom:10px;
+}
+
+.action{
+    font-size:20px;
+    font-weight:bold;
+    color:#1565c0;
+    margin-bottom:15px;
+}
+
+.detail{
+    margin-top:8px;
+    color:#444;
+    line-height:1.8;
+}
+
+.remark{
+    margin-top:15px;
+    background:#f4f8ff;
+    padding:12px;
+    border-radius:10px;
+    color:#555;
+}
+
+.empty{
+    text-align:center;
+    color:gray;
+    margin-top:30px;
+    font-size:16px;
+}
+
+@media(max-width:768px){
+
+    body{
+        padding:15px;
+    }
+
+    .card{
+        padding:20px;
+    }
+
+    input{
+        width:100%;
+    }
+
+    .search-box{
+        flex-direction:column;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+
+<h2>🔍 Asset Traceability</h2>
+
+<div class="search-box">
+
+<input
+id="serialInput"
+placeholder="ค้นหา Serial Number"
+onkeypress="if(event.key==='Enter'){loadHistory()}">
+
+<button onclick="loadHistory()">
+ค้นหา
+</button>
+
+</div>
+
+<div
+class="timeline"
+id="timeline">
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+function loadHistory(){
+
+    const serial =
+        document
+        .getElementById("serialInput")
+        .value
+        .trim();
+
+    if(serial===""){
+        alert("กรุณากรอก Serial Number");
+        return;
+    }
+
+    window.location.href =
+        `trace.html?serial=${encodeURIComponent(serial)}`;
+
+}
+async function loadHistoryFromURL(){
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const serial =
+        params.get("serial");
+
+    if(!serial){
+        return;
+    }
+
+    document
+        .getElementById("serialInput")
+        .value = serial;
+
+    try{
+
+        const response =
+            await fetch(
+                `/api/asset-history/${serial}`
+            );
+
+        const data =
+            await response.json();
+
+        if(data.length===0){
+
+            document
+                .getElementById("timeline")
+                .innerHTML =
+                `
+                <div class="empty">
+                    ไม่พบประวัติของ Serial Number นี้
+                </div>
+                `;
+
+            return;
+        }
+
+        let html="";
+
+        data.forEach(item=>{
+
+            html += `
+
+            <div class="item">
+
+                <div class="date">
+                    📅 ${item.date}
+                </div>
+
+                <div class="action">
+                    ${item.action}
+                </div>
+
+                <div class="detail">
+                    📍 ต้นทาง : ${item.from}
+                </div>
+
+                <div class="detail">
+                    🚩 ปลายทาง : ${item.to}
+                </div>
+
+                <div class="detail">
+                    👤 ผู้ดำเนินการ : ${item.user}
+                </div>
+
+                <div class="remark">
+                    📝 ${item.remark}
+                </div>
+
+            </div>
+
+            `;
+
+        });
+
+        document
+            .getElementById("timeline")
+            .innerHTML =
+            html;
+
+    }
+    catch(error){
+
+        console.error(error);
+
+    }
+
+}
+window.onload = loadHistoryFromURL;
+</script>
+
+</body>
+</html>

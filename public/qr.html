@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>QR Code Generator</title>
+
+<style>
+
+body{
+    font-family:Segoe UI;
+    background:#f4f7fb;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.card{
+
+    width:500px;
+
+    background:white;
+
+    padding:40px;
+
+    border-radius:20px;
+
+    text-align:center;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+
+}
+
+h2{
+
+    color:#1565c0;
+
+}
+
+img{
+
+    margin-top:20px;
+    margin-bottom:20px;
+
+    width:250px;
+
+}
+
+button{
+
+    padding:12px 20px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:#1565c0;
+
+    color:white;
+
+    cursor:pointer;
+
+    margin:10px;
+
+}
+
+button:hover{
+
+    background:#0d47a1;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h2 id="serialTitle">
+
+Serial Number
+
+</h2>
+
+<img id="qrImage">
+
+<br>
+
+<button onclick="downloadQR()">
+
+Download QR
+
+</button>
+
+<button onclick="window.print()">
+
+Print
+
+</button>
+
+</div>
+
+<script>
+
+let qrImageData="";
+
+async function loadQR(){
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const serial =
+        params.get("serial");
+
+    if(!serial){
+
+        return;
+
+    }
+
+    document
+        .getElementById("serialTitle")
+        .innerText=serial;
+
+    const response =
+        await fetch(
+            `/api/qrcode/${serial}`
+        );
+
+    const data =
+        await response.json();
+
+    qrImageData=data.qrImage;
+
+    document
+        .getElementById("qrImage")
+        .src=data.qrImage;
+
+}
+
+function downloadQR(){
+
+    const link=document.createElement("a");
+
+    link.href=qrImageData;
+
+    link.download="QR.png";
+
+    link.click();
+
+}
+
+loadQR();
+
+</script>
+
+</body>
+</html>

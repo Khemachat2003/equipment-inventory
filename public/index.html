@@ -8,6 +8,65 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
 <style>
+  .traceBtn,
+.qrBtn{
+    display:inline-block;
+    padding:8px 14px;
+    border-radius:10px;
+    color:white;
+    text-decoration:none;
+    font-size:13px;
+    font-weight:600;
+    transition:.2s;
+}
+
+.traceBtn{
+    background:#17a2b8;
+}
+
+.traceBtn:hover{
+    background:#138496;
+    transform:translateY(-2px);
+}
+
+.qrBtn{
+    background:#28a745;
+}
+
+.qrBtn:hover{
+    background:#218838;
+    transform:translateY(-2px);
+}
+
+.transferBtn{
+
+    background:#4e73df;
+
+    color:white;
+
+    border:none;
+
+    border-radius:10px;
+
+    padding:8px 14px;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+}
+
+.transferBtn:hover{
+
+    background:#2e59d9;
+
+    transform:translateY(-2px);
+
+}
 *{
 box-sizing:border-box;
 }
@@ -875,10 +934,22 @@ onkeyup="filterTable()">
 
     <table>
         <thead>
-            <tr>
-                <th>Asset ID</th><th>Code</th><th>Name</th><th>Part Number</th><th>Serial Number</th>
-                <th>Status</th><th>Location</th><th>Site Name</th><th>User</th><th>จัดการ</th>
-            </tr>
+           <tr>
+    <th>Asset ID</th>
+    <th>Code</th>
+    <th>Name</th>
+    <th>Part Number</th>
+    <th>Serial Number</th>
+    <th>Status</th>
+    <th>Location</th>
+    <th>Site Name</th>
+    <th>User</th>
+
+    <th>History</th>
+    <th>QR Code</th>
+
+    <th>จัดการ</th>
+</tr>
         </thead>
         <tbody id="assetBody"></tbody> </table>
 </div> 
@@ -899,7 +970,13 @@ onkeyup="filterTable()">
         <thead>
             <tr style="background-color: #4e73df; color: white;">
                 <th>Asset ID</th><th>Code</th><th>Name</th><th>Part Number</th><th>Serial Number</th>
-                <th>Status</th><th>Location</th><th>Site Name</th><th>User</th><th>จัดการ</th>
+                <th>Status</th>
+<th>Location</th>
+<th>Site Name</th>
+<th>User</th>
+<th>Trace</th>
+<th>QR</th>
+<th>จัดการ</th>
             </tr>
         </thead>
         <tbody id="monitorAssetBody"></tbody> </table>
@@ -1802,29 +1879,92 @@ async function loadAssets() {
 
         // สร้าง HTML แถวตาราง
         assetData.forEach(item => {
-            const serial = item.serialNumber || '';
-            html += `
-            <tr>
-                <td>${item.assetId || '-'}</td>
-                <td>${item.code || '-'}</td>
-                <td>${item.name || '-'}</td>
-                <td>${item.partNumber || '-'}</td>
-                <td>
-                    <a href="javascript:void(0)" style="color: #007bff; text-decoration: underline;" 
-                       onclick="viewAssetHistory('${serial}')">${serial || 'ไม่มี Serial'}</a>
-                </td>
-                <td>${item.status || '-'}</td>
-                <td>${item.location || '-'}</td>
-                <td>${item.siteName || '-'}</td>
-                <td>${item.user || '-'}</td>
-                <td>
-                    <button onclick="openTransferModal('${serial}', '${item.status}', '${item.location}', '${item.siteName}', '${item.user}')" 
-                            style="background-color: #4e73df; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
-                            🚚 โอนย้าย
-                    </button>
-                </td>
-            </tr>`;
-        });
+
+    const serial = item.serialNumber || '';
+
+    html += `
+    <tr>
+
+        <td>${item.assetId || '-'}</td>
+
+        <td>${item.code || '-'}</td>
+
+        <td>${item.name || '-'}</td>
+
+        <td>${item.partNumber || '-'}</td>
+
+        <td>
+            <a
+                href="javascript:void(0)"
+                onclick="viewAssetHistory('${serial}')"
+                style="
+                    color:#007bff;
+                    font-weight:bold;
+                    text-decoration:underline;
+                ">
+                ${serial || 'ไม่มี Serial'}
+            </a>
+        </td>
+
+        <td>${item.status || '-'}</td>
+
+        <td>${item.location || '-'}</td>
+
+        <td>${item.siteName || '-'}</td>
+
+        <td>${item.user || '-'}</td>
+
+        <!-- Trace -->
+        <td>
+
+            <a
+                href="/trace.html?serial=${encodeURIComponent(serial)}"
+                target="_blank"
+                class="traceBtn">
+
+                📜 Trace
+
+            </a>
+
+        </td>
+
+        <!-- QR -->
+        <td>
+
+            <a
+                href="/qr.html?serial=${encodeURIComponent(serial)}"
+                target="_blank"
+                class="qrBtn">
+
+                📷 QR
+
+            </a>
+
+        </td>
+
+        <!-- Transfer -->
+        <td>
+
+            <button
+                class="transferBtn"
+                onclick="openTransferModal(
+                    '${serial}',
+                    '${item.status}',
+                    '${item.location}',
+                    '${item.siteName}',
+                    '${item.user}'
+                )">
+
+                🚚 โอนย้าย
+
+            </button>
+
+        </td>
+
+    </tr>
+    `;
+
+});
 
         // 1. พ่นลงตารางหลัก (Asset Tracking)
         if(document.getElementById("assetBody")) {
