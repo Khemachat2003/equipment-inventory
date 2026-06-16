@@ -234,8 +234,8 @@ async function loadHistoryFromURL(){
 
         const response =
             await fetch(
-                `/api/asset-history/${serial}`
-            );
+    `/api/public-asset-history/${serial}`
+);
 
         const data =
             await response.json();

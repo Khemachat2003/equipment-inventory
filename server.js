@@ -1593,6 +1593,53 @@ app.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
     res.status(500).json([]);
   }
 });
+// ==========================================
+// PUBLIC TRACE API (สำหรับ QR)
+// ==========================================
+app.get("/api/public-asset-history/:serial", async (req, res) => {
+  try {
+
+    const serialNumber = req.params.serial;
+
+    const authClient = await backendAuth.getClient();
+
+    const sheets = google.sheets({
+      version: "v4",
+      auth: authClient
+    });
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_History!A2:G"
+    });
+
+    const rows = response.data.values || [];
+
+    const filteredHistory = rows
+      .filter(row =>
+        row[1] &&
+        row[1].trim() === serialNumber.trim()
+      )
+      .map(row => ({
+        date: row[0] || "-",
+        serialNumber: row[1] || "-",
+        action: row[2] || "-",
+        from: row[3] || "-",
+        to: row[4] || "-",
+        user: row[5] || "-",
+        remark: row[6] || "-"
+      }));
+
+    res.json(filteredHistory.reverse());
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json([]);
+
+  }
+});
 app.get("/api/dashboard-stats", requireLogin, async (req, res) => {
 
   const authClient = await backendAuth.getClient();
