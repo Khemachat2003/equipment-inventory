@@ -77,14 +77,12 @@ app.use("/image", express.static(path.join(__dirname, "image")));
 /* =========================
    AUTH MIDDLEWARE
 ========================= */
-
 function requireLogin(req, res, next) {
   if (!req.session.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 }
-
 /* =========================
    GOOGLE LOGIN
 ========================= */
@@ -164,10 +162,9 @@ const backendAuth = new google.auth.GoogleAuth({
    LOGIN API
 ========================= */
 
+// 🔑 3. โค้ดรับส่งข้อมูลเข้าสู่ระบบของคุณ (ดั้งเดิมไม่มีการแก้ไคลอจิกภายใน)
 app.post("/api/login", async (req, res) => {
-
   try {
-
     const username = req.body?.username || "";
     const password = req.body?.password || "";
 
@@ -176,7 +173,6 @@ app.post("/api/login", async (req, res) => {
     }
 
     const authClient = await backendAuth.getClient();
-
     const sheets = google.sheets({
       version: "v4",
       auth: authClient
@@ -190,8 +186,9 @@ app.post("/api/login", async (req, res) => {
     const users = userRes.data.values || [];
 
     console.log("SHEET DATA:", users);
-console.log("LOGIN INPUT:", username, password);
-console.log("SHEET USERS:", users);
+    console.log("LOGIN INPUT:", username, password);
+    console.log("SHEET USERS:", users);
+    
     const user = users.find(u =>
       u[0]?.trim() === username.trim() &&
       u[1]?.trim() === password.trim()
@@ -211,17 +208,14 @@ console.log("SHEET USERS:", users);
     });
 
   } catch (err) {
-
     console.error("LOGIN ERROR:", err);
-
     res.status(500).json({
       error: "Server error",
       message: err.message
     });
-
   }
-
 });
+
 /* =========================
    AUTH CHECK
 ========================= */
@@ -1410,6 +1404,128 @@ app.post("/api/return-selected-site", requireLogin, async (req,res)=>{
   }
 
 });
+// =====================
+// 🟢 GET ALL ASSETS + AUTO LOCK INITIAL HISTORY (ทั้งเพิ่มผ่านเว็บ และ พิมพ์มือใน Sheet)
+// =====================
+app.get("/api/assets", requireLogin, async (req, res) => {
+  try {
+    const authClient = await backendAuth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: authClient });
+
+    // 1. ดึงข้อมูลจากหน้ารวมหลัก Asset_List
+    const assetResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!A2:J" // A=Asset_ID, B=Code, C=Name, D=Part_Number, E=Serial_Number, F=Status, G=Location, H=Site_Name, I=User, J=Date
+    });
+    const assetRows = assetResponse.data.values || [];
+
+    // 2. ดึงข้อมูลจากหน้าประวัติ Asset_History มาตรวจสอบล็อก
+    const historyResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_History!A2:B" // ดึงมาแค่คอลัมน์ Date และ Serial_Number เพื่อตรวจสอบ
+    });
+    const historyRows = historyResponse.data.values || [];
+    
+    // สร้างลิสต์ของ Serial Number ทั้งหมดที่ "เคยถูกบันทึกประวัติไปแล้ว"
+    const loggedSerials = historyRows.map(hRow => hRow[1] ? hRow[1].trim() : "");
+
+    const newHistoryEntries = [];
+    const currentDate = new Date().toLocaleString("th-TH");
+
+    // จัดฟอร์แมตข้อมูลเตรียมส่งหน้าบ้าน
+    const assets = assetRows.map(row => {
+      const serial = row[4] ? row[4].trim() : "";
+
+      // 🔥 [จุดสำคัญ] ถ้าพบอุปกรณ์ที่มี Serial แต่ยัง "ไม่เคยมีประวัติฝังในแท็บ Asset_History เลย"
+      // (รองรับทั้งเคสกดเพิ่มผ่านเว็บ และเคสที่คุณแอบไปพิมพ์มือเพิ่มใน Sheet เอง)
+      if (serial && !loggedSerials.includes(serial)) {
+        
+        // สั่งสร้างข้อมูลประวัติศาสตร์แถวแรกสุดลงในแท็บ Asset_History ทันที!
+        // โครงสร้างคอลัมน์ประวัติ: Date | Serial_Number | Action | From | To | User | Remark
+        newHistoryEntries.push([
+          row[9] || currentDate,                        // Date (ยึดวันที่กรอกวันแรกจากหน้าหลัก หรือถ้าไม่มีให้ใช้วันนี้)
+          serial,                                       // Serial_Number
+          "ลงทะเบียนอุปกรณ์ใหม่",                            // Action
+          "-",                                          // From (เริ่มต้นยังไม่มีที่มา)
+          `${row[7] || "-"} (${row[6] || "-"})`,        // To (ระบุตำแหน่งวันแรก: Site_Name + Location)
+          row[8] || "System (Auto Sync)",               // User (ผู้ใช้งานคนแรกที่ครองครอง หรือระบบ)
+          `บันทึกประวัติเริ่มต้นจริงเข้าระบบสำหรับอุปกรณ์: ${row[2] || "-"}` // Remark
+        ]);
+      }
+
+      return {
+        assetId: row[0] || "-",
+        code: row[1] || "-",
+        name: row[2] || "-",
+        partNumber: row[3] || "-",
+        serialNumber: row[4] || "-",
+        status: row[5] || "-",
+        location: row[6] || "-",
+        siteName: row[7] || "-",
+        user: row[8] || "-"
+      };
+    });
+
+    // 3. ถ้าตรวจสอบแล้วมีตัวที่ยังไม่ถูกล็อกประวัติ ให้ทำการ append บันทึกถาวรลงในชีตจริงทันที!
+    if (newHistoryEntries.length > 0) {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_History!A:G",
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: newHistoryEntries // บันทึกลง Google Sheets จริงแบบถาวร
+        }
+      });
+      console.log(`🔒 ล็อกประวัติเริ่มต้นลงใน Asset_History เรียบร้อยจำนวน ${newHistoryEntries.length} รายการ`);
+    }
+
+    // ส่งอาเรย์กลับหน้าบ้านไปแสดงผลตารางอย่างถูกต้อง ปลอดภัย 100%
+    res.json(assets);
+
+  } catch (error) {
+    console.error("❌ Get Assets Error:", error);
+    res.status(500).json([]); // ส่งอาเรย์เปล่ากลับหากเกิดข้อผิดพลาด ป้องกันหน้าบ้านพังค้าง
+  }
+});
+
+// =====================
+// 🟢 GET ASSET HISTORY BY SERIAL NUMBER
+// =====================
+app.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
+  try {
+    const serialNumber = req.params.serial;
+    const authClient = await backendAuth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: authClient });
+
+    // ดึงข้อมูลประวัติแท้ ๆ จากแท็บ Asset_History 
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_History!A2:G" // Date, Serial_Number, Action, From, To, User, Remark
+    });
+
+    const rows = response.data.values || [];
+    
+    // กรองประวัติตาม Serial Number อย่างแม่นยำ
+    const filteredHistory = rows
+      .filter(row => row[1] && row[1].trim() === serialNumber.trim())
+      .map(row => ({
+        date: row[0] || "-",
+        serialNumber: row[1] || "-",
+        action: row[2] || "-",
+        from: row[3] || "-",
+        to: row[4] || "-",
+        user: row[5] || "-",
+        remark: row[6] || "-"
+      }));
+
+    // ส่งประวัติกลับหน้าบ้าน (reverse เพื่อให้ประวัติใหม่ล่าสุดอยู่บนสุดใน Popup)
+    res.json(filteredHistory.reverse());
+
+  } catch (error) {
+    console.error("❌ Get Asset History Error:", error);
+    res.status(500).json([]);
+  }
+});
 app.get("/api/dashboard-stats", requireLogin, async (req, res) => {
 
   const authClient = await backendAuth.getClient();
@@ -1458,6 +1574,56 @@ app.get("/api/dashboard-stats", requireLogin, async (req, res) => {
   res.json(stats);
 
 });
+
+app.post("/api/add-asset", requireLogin, async (req, res) => {
+  try {
+    // 1. รับข้อมูลจากฝั่งหน้าบ้าน
+    const { assetId, code, name, partNumber, serialNumber, status, location, siteName, user } = req.body;
+
+    // 2. เรียกเปิดการเชื่อมต่อกับ Google Sheets
+    const authClient = await backendAuth.getClient();
+    const sheets = google.sheets({
+      version: "v4",
+      auth: authClient
+    });
+
+    // 3. สร้างวันที่ปัจจุบันในรูปแบบของไทย (วัน/เดือน/ปีพศ. วันที่และเวลา เช่น 16/6/2569 09:21:22)
+    const currentDate = new Date().toLocaleString("th-TH");
+
+    // 4. จัดเรียงข้อมูลลงอาเรย์ตามคอลัมน์ใน Sheet ของคุณ (A ถึง J)
+    const rowValues = [
+      assetId,       // คอลัมน์ A: Asset_ID
+      code,          // คอลัมน์ B: Code
+      name,          // คอลัมน์ C: Name
+      partNumber,    // คอลัมน์ D: Part_Number
+      serialNumber,  // คอลัมน์ E: Serial_Number
+      status,        // คอลัมน์ F: Status
+      location,      // คอลัมน์ G: Location
+      siteName,      // คอลัมน์ H: Site_Name
+      user,          // คอลัมน์ I: User
+      currentDate    // คอลัมน์ J: Date (ระบบจะแสตมป์เวลาให้อัตโนมัติเมื่อกดบันทึก)
+    ];
+
+    // 5. สั่งให้เขียนต่อท้ายแถวใหม่ในแท็บที่ชื่อ "Asset"
+    // ⚠️ (อย่าลืมเช็กช่วงคอลัมน์ ขยับเป็น A:J เพื่อให้รองรับคอลัมน์ Date ที่เพิ่มเข้ามาครับ)
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!A:J", 
+      valueInputOption: "USER_ENTERED", 
+      requestBody: {
+        values: [rowValues]
+      }
+    });
+
+    console.log(`✅ เพิ่ม Asset ใหม่พร้อมบันทึกวันที่เรียบร้อย: ${assetId} - ${name}`);
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error("❌ Add Asset Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get("/api/me", requireLogin, (req,res)=>{
 
   if(!req.session.user){
@@ -1486,6 +1652,97 @@ app.get("/health",(req,res)=>{
   });
   });
 const PORT = process.env.PORT || 3000;
+app.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
+  try {
+    const serialNumber = req.params.serial;
+    const authClient = await backendAuth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: authClient });
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_History!A2:G" 
+    });
+
+    const rows = response.data.values || [];
+    const filteredHistory = rows
+      .filter(row => row[1] && row[1].trim() === serialNumber.trim())
+      .map(row => ({
+        date: row[0] || "-",
+        serialNumber: row[1] || "-",
+        action: row[2] || "-",
+        from: row[3] || "-",
+        to: row[4] || "-",
+        user: row[5] || "-",
+        remark: row[6] || "-"
+      }));
+
+    res.json(filteredHistory.reverse());
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "ไม่สามารถโหลดประวัติได้" });
+  }
+});
+// ==========================================
+// 🚀 API: อัปเดตสถานะหน้าหลัก + บันทึกประวัติการย้ายชิ้นใหม่
+// ==========================================
+app.post("/api/update-asset-status", requireLogin, async (req, res) => {
+  try {
+    const { serialNumber, action, status, location, siteName, user, remark, fromLocation } = req.body;
+    const authClient = await backendAuth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: authClient });
+    const currentDate = new Date().toLocaleString("th-TH");
+
+    // 1. ดึงข้อมูลจากหน้าหลักเพื่อหาพิกัดแถว (Row Index) ของ Serial ตัวนี้
+    const assetResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!A2:E" // อ่านถึงคอลัมน์ E (Serial_Number) เพื่อค้นหาตำแหน่ง
+    });
+    const assetRows = assetResponse.data.values || [];
+    
+    // ค้นหาตำแหน่งแถว (บวก 2 เพราะอาร์เรย์เริ่มที่ 0 และในชีตเริ่มที่แถว 2)
+    const rowIndex = assetRows.findIndex(row => row[4] && row[4].trim() === serialNumber.trim()) + 2;
+
+    if (rowIndex === 1) { // ดัชนีหาไม่เจอคืนค่า -1 + 2 = 1
+      return res.status(400).json({ success: false, error: "ไม่พบข้อมูล Serial Number นี้ในหน้าหลัก (Asset_List)" });
+    }
+
+    // 2. สั่งแก้ไขข้อมูลปัจจุบันในตารางหลัก Asset_List (คอลัมน์ F ถึง J)
+    // F=Status, G=Location, H=Site_Name, I=User, J=Date
+    const updateValues = [status, location, siteName, user, currentDate];
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `Asset_List!F${rowIndex}:J${rowIndex}`, // พ่นข้อมูลลงช่องแถวที่เจอตรงๆ เช่น F5:J5
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [updateValues] }
+    });
+
+    // 3. สั่งเขียนบันทึกกิจกรรมต่อท้าย (Append) แถวใหม่ถาวรลงใน Asset_History
+    // คอลัมน์: Date, Serial_Number, Action, From, To, User, Remark
+    const historyValues = [
+      currentDate,
+      serialNumber,
+      action,
+      fromLocation,                // ดึงค่าก่อนย้ายมาแสตมป์ช่อง From
+      `${siteName} (${location})`,   // ดึงค่าใหม่มาแสตมป์ช่อง To
+      req.session.user ? req.session.user.username : "System", // ชื่อผู้ใช้ที่ระบบจำล็อกอินไว้
+      remark
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_History!A:G",
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [historyValues] }
+    });
+
+    console.log(`📊 ระบบบันทึกการเคลื่อนย้ายสำเร็จสำหรับ Serial: ${serialNumber}`);
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error("❌ Update Asset Status Backend Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });

@@ -697,6 +697,8 @@ background:#2563eb;
 <button onclick="openTab('stock')">📦 Stock</button>
 <button onclick="openTab('history')">📜 History</button>
 <button onclick="openTab('report')">📄 Report</button>
+<button onclick="openTab('asset')">📟 Asset Tracking</button>
+<button class="tab-link" onclick="openTab('farmMonitorTab')">📊 Monitor แยกฟาร์ม</button>
 <button onclick="openTab('settings')">⚙️ Settings</button>
 
 </div>
@@ -778,6 +780,8 @@ onkeyup="filterTable()">
 
 <br><br>
 
+<br><br>
+
 <table>
 
 <thead>
@@ -838,7 +842,68 @@ onkeyup="filterTable()">
 </table>
 
 </div>
+<div id="asset" class="tab">
+    <h2>📟 Asset List</h2>
+    <h3>➕ เพิ่ม Asset ใหม่</h3>
+    <div class="add-box">
+        <input type="text" id="newAssetId" placeholder="Asset ID (เช่น AST001)">
+        <input type="text" id="newAssetCode" placeholder="Code (รหัสอุปกรณ์)">
+        <input type="text" id="newAssetName" placeholder="Name (ชื่ออุปกรณ์)">
+        <input type="text" id="newAssetPart" placeholder="Part Number">
+        <input type="text" id="newAssetSerial" placeholder="Serial Number">
+        
+        <select id="newAssetStatus">
+            <option value="ใช้งานได้">🟢 ใช้งานได้</option>
+            <option value="นำเข้า">🟢 นำเข้า</option>
+            <option value="สำรอง">🟡 สำรอง</option>
+            <option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
+            <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+        </select>
+        
+        <input type="text" id="newAssetLocation" placeholder="Location (สถานที่)">
+        <input type="text" id="newAssetSite" placeholder="Site (ไซต์งาน)">
+        <input type="text" id="newAssetUser" placeholder="User (ผู้ใช้งาน)">
+        
+        <button class="btn-primary" onclick="addAsset()">บันทึก Asset</button>
+    </div>
 
+    <hr>
+
+    <input type="text" id="assetSearch" placeholder="ค้นหา Asset ID, Code, Name หรือ Serial Number" onkeyup="filterAsset()">
+
+    <br><br>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Asset ID</th><th>Code</th><th>Name</th><th>Part Number</th><th>Serial Number</th>
+                <th>Status</th><th>Location</th><th>Site Name</th><th>User</th><th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="assetBody"></tbody> </table>
+</div> 
+
+<div id="farmMonitorTab" class="tab" style="display:none;">
+    <h2 style="margin-top: 20px;">📊 Monitor อุปกรณ์แยกตามฟาร์ม</h2>
+    <p style="color: #858796; margin-bottom: 20px;">ส่องดูจำนวนและรายการอุปกรณ์ทั้งหมดที่ติดตั้งประจำอยู่ในแต่ละพื้นที่แบบเรียลไทม์</p>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e3e6f0;">
+        <div id="monitorTabsContainer"></div> <div style="padding-top: 12px; border-top: 1px dashed #ccc; margin-top: 15px; font-size: 15px; font-weight: bold; color: #1cc88a;">
+            📊 ฟาร์มที่เลือกปัจจุบันมีอุปกรณ์รวมทั้งสิ้น: <span id="monitorAssetCountLabel" style="font-size: 18px; color: #e74a3b; font-weight: bold;">0</span> ชิ้น
+        </div>
+    </div>
+
+    <input type="text" id="monitorAssetSearch" onkeyup="filterMonitorAsset()" placeholder="ค้นหาในฟาร์ม...">
+
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #4e73df; color: white;">
+                <th>Asset ID</th><th>Code</th><th>Name</th><th>Part Number</th><th>Serial Number</th>
+                <th>Status</th><th>Location</th><th>Site Name</th><th>User</th><th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="monitorAssetBody"></tbody> </table>
+</div>
 <!-- ================= REPORT ================= -->
 
 <div id="report" class="tab">
@@ -980,6 +1045,7 @@ onkeyup="filterTable()">
 let selectedCode = "";
 let selectedName = "";
 let stockData = [];
+let assetData = [];
 let chart;
 
 // ================= LOGIN =================
@@ -1034,6 +1100,7 @@ function initApp(){
     loadStock();
     loadDashboard();
     loadHistory();
+    loadAssets();
     loadHistoryChart();
     loadCurrentUser();
     openTab("dashboard"); // ให้เปิดหน้า dashboard ก่อน
@@ -1049,8 +1116,6 @@ async function loadDashboard(){
     document.getElementById("totalSite").innerText = data.totalSite || 0;
     document.getElementById("todayBorrow").innerText = data.todayBorrow || 0;
     document.getElementById("todayReturn").innerText = data.todayReturn || 0;
-
-    renderChart(data.todayBorrow || 0, data.todayReturn || 0);
 }
 async function loadHistoryChart(){
 
@@ -1325,6 +1390,9 @@ function viewDetail(code,name,type,qty,user,date){
 }
 
 // ================= TAB CONTROL =================
+// ==========================================
+// 🔄 ฟังก์ชันสลับแท็บ (เวอร์ชันปรับปรุงให้รองรับแท็บใหม่ + ดึงข้อมูลอัตโนมัติ)
+// ==========================================
 function openTab(id){
 
   // ตรวจสอบว่า tab มีอยู่จริงไหม
@@ -1332,24 +1400,38 @@ function openTab(id){
 
   if(!target){
     console.error("ไม่พบ tab:", id);
+    // ถ้าหาไม่พบ (เช่นเพิ่งเปิดเว็บครั้งแรกแล้วหาค่าเดิมไม่เจอ) ให้เด้งไปหน้า dashboard ก่อน
+    const dashboard = document.getElementById("dashboard");
+    if(dashboard) {
+        openTab("dashboard");
+    }
     return;
   }
 
-  // จำ tab ล่าสุด
+  // จำ tab ล่าสุดลงในเครื่อง
   localStorage.setItem("activeTab", id);
 
-  // ปิด tab ทั้งหมด
+  // 1. ซ่อนแท็บทั้งหมดในระบบด้วยการถอดคลาส active และสั่งซ่อนแบบเด็ดขาด (display = 'none')
   document.querySelectorAll(".tab").forEach(tab=>{
     tab.classList.remove("active");
+    tab.style.display = "none"; 
   });
 
-  // เปิด tab ที่เลือก
+  // 2. เปิดแสดงผลแท็บที่เลือก (display = 'block') และใส่คลาส active
   target.classList.add("active");
+  target.style.display = "block";
 
+  // 3. 🔥 สั่งโหลดข้อมูลใหม่ลงตารางทุกครั้งเมื่อเปิดหน้า Asset หรือหน้า Monitor แยกฟาร์ม
+  if(id === "asset" || id === "farmMonitorTab") {
+      if (typeof loadAssets === "function") {
+          loadAssets();
+      }
+  }
 }
 
-
-// โหลดหน้าเว็บ
+// ==========================================
+// 📥 โหลดหน้าเว็บและเรียกแท็บล่าสุดขึ้นมาแสดงผล
+// ==========================================
 document.addEventListener("DOMContentLoaded", function(){
 
   // อ่าน tab จาก URL
@@ -1359,9 +1441,10 @@ document.addEventListener("DOMContentLoaded", function(){
   // อ่าน tab ล่าสุดจาก localStorage
   const lastTab = localStorage.getItem("activeTab");
 
-  // เลือก tab ที่จะเปิด
+  // เลือก tab ที่จะเปิด (หากเป็นหน้ามอนิเตอร์ให้เปิด farmMonitorTab)
   const startTab = urlTab || lastTab || "dashboard";
 
+  // สั่งรันเปิดแท็บเริ่มต้น
   openTab(startTab);
 
 });
@@ -1708,7 +1791,59 @@ async function loadDashboardChart(){
   });
 
 }
+async function loadAssets() {
+    try {
+        console.log("กำลังโหลดข้อมูลจาก /api/assets...");
+        const res = await fetch("/api/assets");
+        if (!res.ok) throw new Error(`เซิร์ฟเวอร์ตอบกลับรหัส: ${res.status}`);
+        
+        const assetData = await res.json();
+        let html = "";
 
+        // สร้าง HTML แถวตาราง
+        assetData.forEach(item => {
+            const serial = item.serialNumber || '';
+            html += `
+            <tr>
+                <td>${item.assetId || '-'}</td>
+                <td>${item.code || '-'}</td>
+                <td>${item.name || '-'}</td>
+                <td>${item.partNumber || '-'}</td>
+                <td>
+                    <a href="javascript:void(0)" style="color: #007bff; text-decoration: underline;" 
+                       onclick="viewAssetHistory('${serial}')">${serial || 'ไม่มี Serial'}</a>
+                </td>
+                <td>${item.status || '-'}</td>
+                <td>${item.location || '-'}</td>
+                <td>${item.siteName || '-'}</td>
+                <td>${item.user || '-'}</td>
+                <td>
+                    <button onclick="openTransferModal('${serial}', '${item.status}', '${item.location}', '${item.siteName}', '${item.user}')" 
+                            style="background-color: #4e73df; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                            🚚 โอนย้าย
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        // 1. พ่นลงตารางหลัก (Asset Tracking)
+        if(document.getElementById("assetBody")) {
+            document.getElementById("assetBody").innerHTML = html;
+        }
+        
+        // 2. พ่นลงตาราง Monitor แยกฟาร์ม (ใช้ ID ใหม่ที่เราตั้งไว้)
+        if(document.getElementById("monitorAssetBody")) {
+            document.getElementById("monitorAssetBody").innerHTML = html;
+            
+            // 3. สร้าง Dropdown เมนูฟาร์มเฉพาะหน้า Monitor
+            // ต้องมั่นใจว่าฟังก์ชันนี้ใช้ ID ใหม่ใน HTML ด้วย (monitorTabsContainer)
+            generateMonitorTabs(); 
+        }
+
+    } catch (err) {
+        console.error("❌ Error loading assets:", err);
+    }
+}
 async function loadUser(){
 
 const res = await fetch("/api/me");
@@ -1739,6 +1874,323 @@ window.open(
 );
 
 }
+// ฟังก์ชันค้นหาดั้งเดิมที่ปรับปรุงใหม่ (ปุ่มโอนย้ายไม่หาย และนับยอดถูกต้อง)
+function filterAsset() {
+    const input = document.getElementById("assetSearch").value.toLowerCase().trim();
+    const rows = document.querySelectorAll("#assetBody tr");
+    let matchCounter = 0;
+
+    // ดึงค่าฟาร์มที่เลือกจาก Dropdown ปัจจุบันมาเช็กด้วย (ถ้ามี)
+    const farmSelect = document.getElementById("farmSelectMonitor");
+    const selectedFarm = farmSelect ? farmSelect.value : "ALL";
+
+    rows.forEach(row => {
+        // ดึงข้อความจากคอลัมน์ต่างๆ มาทำตัวเล็กเพื่อค้นหา
+        const idCell = row.cells[0] ? row.cells[0].innerText.toLowerCase() : "";
+        const codeCell = row.cells[1] ? row.cells[1].innerText.toLowerCase() : "";
+        const nameCell = row.cells[2] ? row.cells[2].innerText.toLowerCase() : "";
+        const serialCell = row.cells[4] ? row.cells[4].innerText.toLowerCase() : "";
+        const siteCell = row.cells[7] ? row.cells[7].innerText.trim() : ""; // คอลัมน์ Site
+
+        // เช็กว่าแถวนี้ตรงกับคำค้นหาไหม
+        const isMatchedSearch = idCell.includes(input) || 
+                                codeCell.includes(input) || 
+                                nameCell.includes(input) || 
+                                serialCell.includes(input);
+
+        // เช็กว่าแถวนี้ตรงกับฟาร์มที่เลือกใน Dropdown ไหม
+        const isMatchedFarm = (selectedFarm === "ALL" || siteCell === selectedFarm);
+
+        // ถ้าตรงทั้งคำค้นหา และตรงกับฟาร์มที่เลือก -> ให้แสดงผล
+        if (isMatchedSearch && isMatchedFarm) {
+            row.style.display = "";
+            matchCounter++;
+        } else {
+            row.style.display = "none";
+        }
+    });
+
+    // อัปเดตตัวเลขยอดรวมให้ขยับตามคำที่พิมพ์ค้นหาจริง
+    const countLabel = document.getElementById("farmAssetCountLabel");
+    if (countLabel) {
+        countLabel.innerText = matchCounter;
+    }
+}
+async function addAsset() {
+    // 1. ดึงค่าจากช่องอินพุตต่าง ๆ
+    const assetId = document.getElementById("newAssetId").value.trim();
+    const code = document.getElementById("newAssetCode").value.trim();
+    const name = document.getElementById("newAssetName").value.trim();
+    const partNumber = document.getElementById("newAssetPart").value.trim();
+    const serialNumber = document.getElementById("newAssetSerial").value.trim();
+    const status = document.getElementById("newAssetStatus").value;
+    const location = document.getElementById("newAssetLocation").value.trim();
+    const siteName = document.getElementById("newAssetSite").value.trim();
+    const user = document.getElementById("newAssetUser").value.trim();
+
+    // 2. ตรวจสอบข้อมูลเบื้องต้น (อย่างน้อยต้องมี Asset ID และชื่ออุปกรณ์)
+    if (!assetId || !name) {
+        alert("กรุณากรอกข้อมูล Asset ID และ ชื่ออุปกรณ์ เป็นอย่างน้อย");
+        return;
+    }
+
+    try {
+        // 3. ยิง API ส่งข้อมูลไปให้หลังบ้าน Node.js (สมมติชื่อเส้นทาง /api/add-asset)
+        const response = await fetch("/api/add-asset", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                assetId,
+                code,
+                name,
+                partNumber,
+                serialNumber,
+                status,
+                location,
+                siteName,
+                user
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert("เพิ่มข้อมูล Asset สำเร็จแล้ว!");
+            
+            // 4. ล้างข้อมูลในฟอร์มเพื่อให้พร้อมกรอกตัวถัดไป
+            clearAssetForm();
+            
+            // 5. โหลดตาราง Asset ใหม่เพื่ออัปเดตข้อมูลบนหน้าจอทันที
+            await loadAssets(); 
+        } else {
+            alert("เกิดข้อผิดพลาดจากระบบ: " + (result.error || "ไม่สามารถบันทึกได้"));
+        }
+
+    } catch (err) {
+        console.error("Add Asset Error:", err);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+    }
+}
+
+// ฟังก์ชันสำหรับล้างข้อมูลในช่องกรอกหลังบันทึกสำเร็จ
+function clearAssetForm() {
+    document.getElementById("newAssetId").value = "";
+    document.getElementById("newAssetCode").value = "";
+    document.getElementById("newAssetName").value = "";
+    document.getElementById("newAssetPart").value = "";
+    document.getElementById("newAssetSerial").value = "";
+    document.getElementById("newAssetStatus").selectedIndex = 0;
+    document.getElementById("newAssetLocation").value = "";
+    document.getElementById("newAssetSite").value = "";
+    document.getElementById("newAssetUser").value = "";
+}
+// ฟังก์ชันเมื่อกดปุ่ม "โอนย้าย" ในตาราง
+function openTransferModal(serial, status, location, site, user) {
+    document.getElementById("transferSerialTitle").innerText = serial;
+    document.getElementById("transferStatus").value = status;
+    document.getElementById("transferLocation").value = location;
+    document.getElementById("transferSite").value = site;
+    document.getElementById("transferUser").value = user;
+    
+    // บันทึกค่าเดิมล็อกไว้เพื่อทำประวัติ From
+    document.getElementById("oldSiteName").value = site;
+    document.getElementById("oldLocation").value = location;
+    
+    document.getElementById("transferRemark").value = "";
+    document.getElementById("transferModal").style.display = "block";
+}
+
+function closeTransferModal() {
+    document.getElementById("transferModal").style.display = "none";
+}
+
+// ฟังก์ชันยิง API ส่งข้อมูลโอนย้ายไปหลังบ้าน
+async function submitTransferAction() {
+    const serialNumber = document.getElementById("transferSerialTitle").innerText;
+    const action = document.getElementById("transferAction").value;
+    const status = document.getElementById("transferStatus").value;
+    const location = document.getElementById("transferLocation").value.trim();
+    const siteName = document.getElementById("transferSite").value.trim();
+    const user = document.getElementById("transferUser").value.trim();
+    const remark = document.getElementById("transferRemark").value.trim();
+    
+    const oldSite = document.getElementById("oldSiteName").value;
+    const oldLoc = document.getElementById("oldLocation").value;
+    const fromLocation = `${oldSite} (${oldLoc})`; // รวมร่างสถานที่เดิม
+
+    if(!siteName) {
+        alert("กรุณากรอกระบุไซต์งานปลายทางด้วยครับ");
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/update-asset-status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                serialNumber, action, status, location, siteName, user, remark, fromLocation
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert("🚀 บันทึกประวัติและโอนย้ายอุปกรณ์เรียบร้อย!");
+            closeTransferModal();
+            await loadAssets(); // โหลดตารางหน้า Monitor ใหม่ทันที
+        } else {
+            alert("เกิดข้อผิดพลาดจากระบบ: " + result.error);
+        }
+    } catch (err) {
+        console.error(err);
+        alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์หลังบ้านได้");
+    }
+}
+// ======================================================================
+// 🧠 JavaScript ส่วนที่ 3: ฟังก์ชันดึงชื่อฟาร์มมาสร้างปุ่ม และระบายสีคัดกรองตาราง
+// ======================================================================
+
+// 3.1 ฟังก์ชันสแกนตารางเพื่อดึงชื่อ Site ทั้งหมดมาหล่อเป็นปุ่มกดให้แบบอัตโนมัติ
+// ฟังก์ชันสแกนตารางแล้วนำชื่อฟาร์มมาทำเป็นกล่อง Dropdown อัตโนมัติ (รองรับฟาร์มจำนวนมาก)
+// 🟢 3.1 ฟังก์ชันสร้าง Dropdown โดยสแกนหาชื่อไซต์งาน (อิงจากตารางฝั่งฟาร์ม)
+// 🟢 1. ฟังก์ชันสร้าง Dropdown (เปลี่ยนจาก farmTabs เป็น monitorTabs)
+function generateMonitorTabs() {
+    const rows = document.querySelectorAll("#monitorAssetBody tr"); // เปลี่ยน ID ตาราง
+    const siteSet = new Set();
+
+    rows.forEach(row => {
+        const siteName = row.cells[7] ? row.cells[7].innerText.trim() : "";
+        if (siteName && siteName !== "-" && siteName !== "") {
+            siteSet.add(siteName);
+        }
+    });
+
+    let selectHtml = `
+    <div style="display: flex; align-items: center; gap: 10px; font-family: sans-serif;">
+        <label style="font-weight: bold; color: #4e73df; font-size: 14px;">📍 เลือกฟาร์มที่ต้องการดู:</label>
+        <select id="monitorSelect" onchange="filterByMonitorFarm(this.value)" 
+                style="padding: 8px 15px; border-radius: 4px; border: 1px solid #ccc; background-color: #fff; font-size: 14px; font-weight: bold; color: #4e73df; min-width: 220px; cursor: pointer;">
+                <option value="ALL">🌐 ทั้งหมด (แสดงทุกฟาร์ม)</option>`;
+
+    siteSet.forEach(farmName => {
+        selectHtml += `<option value="${farmName}">🐷 ฟาร์ม: ${farmName}</option>`;
+    });
+
+    selectHtml += `</select></div>`;
+
+    if(document.getElementById("monitorTabsContainer")){
+        document.getElementById("monitorTabsContainer").innerHTML = selectHtml;
+    }
+    if(document.getElementById("monitorAssetCountLabel")){
+        document.getElementById("monitorAssetCountLabel").innerText = rows.length;
+    }
+}
+
+// 🟢 2. ฟังก์ชันคัดกรองแถว (เปลี่ยนจาก filterByFarm เป็น filterByMonitorFarm)
+function filterByMonitorFarm(selectedFarm) {
+    if(document.getElementById("monitorAssetSearch")) {
+        document.getElementById("monitorAssetSearch").value = "";
+    }
+    
+    const rows = document.querySelectorAll("#monitorAssetBody tr");
+    let matchCounter = 0;
+
+    rows.forEach(row => {
+        const siteCell = row.cells[7] ? row.cells[7].innerText.trim() : "";
+
+        if (selectedFarm === "ALL" || siteCell === selectedFarm) {
+            row.style.display = ""; 
+            matchCounter++;
+        } else {
+            row.style.display = "none"; 
+        }
+    });
+
+    if(document.getElementById("monitorAssetCountLabel")) {
+        document.getElementById("monitorAssetCountLabel").innerText = matchCounter;
+    }
+}
+
+// 🟢 3. ฟังก์ชันค้นหาในหน้า Monitor (เปลี่ยนจาก filterAssetInFarmTab เป็น filterMonitorAsset)
+function filterMonitorAsset() {
+    const searchInput = document.getElementById("monitorAssetSearch");
+    const monitorSelect = document.getElementById("monitorSelect");
+    
+    if(!searchInput || !monitorSelect) return;
+
+    const input = searchInput.value.toLowerCase().trim();
+    const rows = document.querySelectorAll("#monitorAssetBody tr");
+    const selectedFarm = monitorSelect.value;
+    let matchCounter = 0;
+
+    rows.forEach(row => {
+        const idCell = row.cells[0] ? row.cells[0].innerText.toLowerCase() : "";
+        const codeCell = row.cells[1] ? row.cells[1].innerText.toLowerCase() : "";
+        const nameCell = row.cells[2] ? row.cells[2].innerText.toLowerCase() : "";
+        const serialCell = row.cells[4] ? row.cells[4].innerText.toLowerCase() : "";
+        const siteCell = row.cells[7] ? row.cells[7].innerText.trim() : "";
+
+        const isMatchedSearch = idCell.includes(input) || codeCell.includes(input) || nameCell.includes(input) || serialCell.includes(input);
+        const isMatchedFarm = (selectedFarm === "ALL" || siteCell === selectedFarm);
+
+        if (isMatchedSearch && isMatchedFarm) {
+            row.style.display = "";
+            matchCounter++;
+        } else {
+            row.style.display = "none";
+        }
+    });
+
+    if(document.getElementById("monitorAssetCountLabel")) {
+        document.getElementById("monitorAssetCountLabel").innerText = matchCounter;
+    }
+}
+// ฟังก์ชันสำหรับเปิดประวัติ
+async function viewAssetHistory(serial) {
+    if (!serial || serial === 'ไม่มี Serial') {
+        alert("ไม่พบ Serial Number");
+        return;
+    }
+
+    try {
+        console.log("กำลังดึงประวัติของ:", serial);
+        const res = await fetch(`/api/asset-history/${encodeURIComponent(serial)}`);
+        const historyData = await res.json();
+
+        // 1. ใส่ชื่อ Serial ลงใน Modal
+        document.getElementById("modalSerialTitle").innerText = serial;
+
+        // 2. สร้าง HTML รายการประวัติ
+        let html = "";
+        historyData.forEach(entry => {
+            html += `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding:10px;">${entry.date || '-'}</td>
+                    <td style="padding:10px;">${entry.action || '-'}</td>
+                    <td style="padding:10px;">${entry.from || '-'}</td>
+                    <td style="padding:10px;">${entry.to || '-'}</td>
+                    <td style="padding:10px;">${entry.user || '-'}</td>
+                    <td style="padding:10px;">${entry.remark || '-'}</td>
+                </tr>`;
+        });
+
+        // 3. พ่นใส่ตารางใน Modal
+        document.getElementById("historyModalBody").innerHTML = html;
+
+        // 4. แสดง Modal
+        document.getElementById("historyModal").style.display = "block";
+
+    } catch (err) {
+        console.error("❌ Error loading history:", err);
+        alert("ไม่สามารถโหลดประวัติได้");
+    }
+}
+
+// ฟังก์ชันสำหรับปิด Modal
+function closeHistoryModal() {
+    document.getElementById("historyModal").style.display = "none";
+}
 </script>
 
 <div id="returnModal" class="modal">
@@ -1767,6 +2219,91 @@ window.open(
 </div>
 
 </div>
+</div>
+<div id="historyModal" style="display:none; position:fixed; z-index:999; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
+  <div style="background-color:#fff; margin:10% auto; padding:20px; border:1px solid #888; width:70%; max-height: 70vh; overflow-y: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+      <h3 style="margin:0;">📜 ประวัติการเปลี่ยนแปลงอุปกรณ์</h3>
+      <button onclick="closeHistoryModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+    </div>
+    
+    <p><strong>Serial Number:</strong> <span id="modalSerialTitle">-</span></p>
+
+    <table style="width:100%; border-collapse: collapse; margin-top:15px;">
+      <thead>
+        <tr style="background-color:#f2f2f2; border-bottom: 1px solid #ddd;">
+          <th style="padding:10px; text-align:left;">วันที่</th>
+          <th style="padding:10px; text-align:left;">Action (การกระทำ)</th>
+          <th style="padding:10px; text-align:left;">จาก (From)</th>
+          <th style="padding:10px; text-align:left;">ไปที่ (To)</th>
+          <th style="padding:10px; text-align:left;">ผู้ทำรายการ</th>
+          <th style="padding:10px; text-align:left;">หมายเหตุ (Remark)</th>
+        </tr>
+      </thead>
+      <tbody id="historyModalBody">
+        </tbody>
+    </table>
+  </div>
+</div>
+<div id="transferModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
+  <div style="background-color:#fff; margin:5% auto; padding:20px; border-radius:8px; width:420px; max-height: 85vh; overflow-y: auto; box-shadow:0 4px 12px rgba(0,0,0,0.3); font-family: sans-serif; box-sizing: border-box;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">
+        <h3 style="margin:0; color: #4e73df; font-size: 18px;">🚚 ทำรายการโอนย้ายอุปกรณ์</h3>
+        <button onclick="closeTransferModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#aaa;">&times;</button>
+    </div>
+
+    <p style="margin-top:0;"><strong>Serial Number:</strong> <span id="transferSerialTitle" style="color:#e74a3b; font-weight:bold;">-</span></p>
+    
+    <input type="hidden" id="oldSiteName">
+    <input type="hidden" id="oldLocation">
+
+    <div style="margin-bottom: 12px;">
+        <label style="font-weight:bold; display:block; margin-bottom:5px; font-size:14px;">ประเภทการโอนย้าย (Action):</label>
+        <select id="transferAction" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; box-sizing: border-box;">
+            <option value="ย้ายตำแหน่งอุปกรณ์">🚚 ย้ายตำแหน่งอุปกรณ์</option>
+            <option value="ส่งซ่อมภายนอก">🔧 ส่งซ่อมภายนอก</option>
+            <option value="โอนย้ายผู้รับผิดชอบ">👤 โอนย้ายผู้รับผิดชอบ</option>
+            <option value="คืนคลังสินค้า">📦 คืนคลังสินค้า</option>
+        </select>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+        <label style="font-weight:bold; display:block; margin-bottom:5px; font-size:14px;">สถานะใหม่ (Status):</label>
+        <select id="transferStatus" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; box-sizing: border-box;">
+            <option value="ใช้งานได้">🟢 ใช้งานได้</option>
+            <option value="สำรอง">🟡 สำรอง</option>
+            <option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
+            <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+        </select>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+        <label style="font-weight:bold; display:block; margin-bottom:5px; font-size:14px;">ไซต์งานใหม่ (Site Name):</label>
+        <input type="text" id="transferSite" placeholder="ระบุชื่อไซต์ปลายทาง..." style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; box-sizing: border-box;">
+    </div>
+
+    <div style="margin-bottom: 12px;">
+        <label style="font-weight:bold; display:block; margin-bottom:5px; font-size:14px;">สถานที่ตั้งย่อยใหม่ (Location):</label>
+        <input type="text" id="transferLocation" placeholder="เช่น ห้องคอนโทรล, ชั้น 3..." style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; box-sizing: border-box;">
+    </div>
+
+    <div style="margin-bottom: 12px;">
+        <label style="font-weight:bold; display:block; margin-bottom:5px; font-size:14px;">ผู้รับผิดชอบ/ผู้ใช้งานใหม่ (User):</label>
+        <input type="text" id="transferUser" placeholder="ระบุชื่อคนถืออุปกรณ์ล่าสุด..." style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; box-sizing: border-box;">
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <label style="font-weight:bold; display:block; margin-bottom:5px; font-size:14px;">หมายเหตุ (Remark):</label>
+        <input type="text" id="transferRemark" placeholder="เหตุผลการย้าย..." style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; box-sizing: border-box;">
+    </div>
+
+    <div style="text-align:right; border-top: 1px solid #eee; padding-top: 15px;">
+        <button type="button" onclick="closeTransferModal()" style="background:#858796; color:#fff; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; margin-right:8px; font-weight:bold;">ยกเลิก</button>
+        <button type="button" onclick="submitTransferAction()" style="background:#1cc88a; color:#fff; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:bold;">💾 ยืนยันโอนย้าย</button>
+    </div>
+  </div>
 </div>
 </body>
 </html>
