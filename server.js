@@ -1914,6 +1914,54 @@ app.get("/api/qrcode/:serial", requireLogin, async (req, res) => {
 
   }
 });
+app.get("/api/public/asset/:code", async (req, res) => {
+  try {
+    const code = req.params.code;
+    const authClient = await backendAuth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: authClient });
+
+    const assetRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!A2:J"
+    });
+
+    const rows = assetRes.data.values || [];
+    const row = rows.find(r => r[4] && r[4].trim() === code.trim());
+
+    if (!row) {
+      return res.status(404).json({ error: "not found" });
+    }
+
+    // Generate QR image for public view
+    const qrUrl = `${req.protocol}://${req.get("host")}/trace.html?serial=${encodeURIComponent(code)}`;
+    const qrImage = await QRCode.toDataURL(qrUrl);
+
+    res.json({
+      assetId:      row[0] || "-",
+      code:         row[1] || "-",
+      name:         row[2] || "-",
+      partNumber:   row[3] || "-",
+      serialNumber: row[4] || "-",
+      status:       row[5] || "-",
+      location:     row[6] || "-",
+      siteName:     row[7] || "-",
+      user:         row[8] || "-",
+      date:         row[9] || "-",
+      qr:           qrImage,
+      traceUrl:     qrUrl
+    });
+
+  } catch (err) {
+    console.error("Public asset error:", err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+app.use(express.static('public'));
+
+// หน้า asset แบบ production URL
+app.get('/a/:code', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/asset.html'));
+});
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
