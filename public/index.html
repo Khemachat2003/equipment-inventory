@@ -2286,44 +2286,87 @@ function filterMonitorAsset() {
         document.getElementById("monitorAssetCountLabel").innerText = matchCounter;
     }
 }
-// ฟังก์ชันสำหรับเปิดประวัติ
+// ── helper: dot class by action
+function _dotClass(action=""){
+  const a=action.toLowerCase();
+  if(a.includes("ลงทะเบียน")||a.includes("เพิ่ม")) return {cls:"hm-dot-register",icon:"✦"};
+  if(a.includes("ซ่อม"))  return {cls:"hm-dot-repair",icon:"🔧"};
+  if(a.includes("คืน"))   return {cls:"hm-dot-return",icon:"↩"};
+  return {cls:"hm-dot-move",icon:"→"};
+}
+function _initials(name=""){
+  const p=name.trim().split(" ").filter(Boolean);
+  if(!p.length) return "?";
+  return p.length>1?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0].slice(0,2).toUpperCase();
+}
+
+// ฟังก์ชันสำหรับเปิดประวัติ (timeline version)
 async function viewAssetHistory(serial) {
     if (!serial || serial === 'ไม่มี Serial') {
         alert("ไม่พบ Serial Number");
         return;
     }
+    const modal = document.getElementById("historyModal");
+    document.getElementById("modalSerialTitle").innerText = serial;
+    document.getElementById("hmCounter").innerText = "";
+    document.getElementById("hmExtLink").href = `/trace.html?serial=${encodeURIComponent(serial)}`;
+    document.getElementById("historyModalBody").innerHTML =
+      '<div style="text-align:center;padding:30px 0"><div class="hm-spinner"></div><p style="color:#6b7280;margin-top:10px;font-size:14px">กำลังโหลด...</p></div>';
+    modal.style.display = "block";
 
     try {
-        console.log("กำลังดึงประวัติของ:", serial);
         const res = await fetch(`/api/asset-history/${encodeURIComponent(serial)}`);
-        const historyData = await res.json();
+        const data = await res.json();
 
-        // 1. ใส่ชื่อ Serial ลงใน Modal
-        document.getElementById("modalSerialTitle").innerText = serial;
+        document.getElementById("hmCounter").innerText = `${data.length} รายการ`;
 
-        // 2. สร้าง HTML รายการประวัติ
-        let html = "";
-        historyData.forEach(entry => {
-            html += `
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding:10px;">${entry.date || '-'}</td>
-                    <td style="padding:10px;">${entry.action || '-'}</td>
-                    <td style="padding:10px;">${entry.from || '-'}</td>
-                    <td style="padding:10px;">${entry.to || '-'}</td>
-                    <td style="padding:10px;">${entry.user || '-'}</td>
-                    <td style="padding:10px;">${entry.remark || '-'}</td>
-                </tr>`;
+        if(!data.length){
+          document.getElementById("historyModalBody").innerHTML =
+            '<div style="text-align:center;padding:40px;color:#9ca3af;font-size:15px">📭 ยังไม่มีประวัติในระบบ</div>';
+          return;
+        }
+
+        let html = `<div class="hm-timeline">`;
+        data.forEach((e,idx)=>{
+          const isFirst = idx===0;
+          const {cls,icon} = isFirst ? {cls:"hm-dot-current",icon:"📍"} : _dotClass(e.action);
+          const init = _initials(e.user||"");
+
+          const routeHTML = (e.from&&e.from!=="-")
+            ? `<div class="hm-route">
+                <span class="hm-chip">${e.from}</span>
+                <span class="hm-arrow">→</span>
+                <span class="hm-chip hm-chip-dest">${e.to||"-"}</span>
+               </div>`
+            : (e.to&&e.to!=="-")?`<div class="hm-route"><span class="hm-chip hm-chip-dest">📍 ${e.to}</span></div>`:"";
+
+          const remarkHTML = (e.remark&&e.remark!=="-")
+            ? `<div class="hm-remark"><span class="hm-remark-label">หมายเหตุ</span>${e.remark}</div>`:"";
+
+          html += `
+          <div class="hm-entry">
+            <div class="hm-dot ${cls}">${icon}</div>
+            <div class="hm-card ${isFirst?"hm-card-active":""}">
+              <div class="hm-card-top">
+                <div class="hm-action">${e.action||"-"}${isFirst?'<span class="hm-latest-tag">ล่าสุด</span>':""}</div>
+                <div class="hm-date">📅 ${e.date||"-"}</div>
+              </div>
+              ${routeHTML}
+              <div class="hm-user-row">
+                <div class="hm-avatar">${init}</div>
+                <span style="color:#6b7280;font-size:13px">${e.user||"System"}</span>
+              </div>
+              ${remarkHTML}
+            </div>
+          </div>`;
         });
-
-        // 3. พ่นใส่ตารางใน Modal
+        html += "</div>";
         document.getElementById("historyModalBody").innerHTML = html;
-
-        // 4. แสดง Modal
-        document.getElementById("historyModal").style.display = "block";
 
     } catch (err) {
         console.error("❌ Error loading history:", err);
-        alert("ไม่สามารถโหลดประวัติได้");
+        document.getElementById("historyModalBody").innerHTML =
+          '<div style="text-align:center;padding:30px;color:#ef4444">⚠️ ไม่สามารถโหลดประวัติได้</div>';
     }
 }
 
@@ -2360,30 +2403,180 @@ function closeHistoryModal() {
 
 </div>
 </div>
-<div id="historyModal" style="display:none; position:fixed; z-index:999; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
-  <div style="background-color:#fff; margin:10% auto; padding:20px; border:1px solid #888; width:70%; max-height: 70vh; overflow-y: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-      <h3 style="margin:0;">📜 ประวัติการเปลี่ยนแปลงอุปกรณ์</h3>
-      <button onclick="closeHistoryModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
-    </div>
-    
-    <p><strong>Serial Number:</strong> <span id="modalSerialTitle">-</span></p>
+<!-- ===================== HISTORY MODAL (Timeline) ===================== -->
+<style>
+/* History Modal Styles */
+#historyModal{display:none;position:fixed;z-index:999;left:0;top:0;width:100%;height:100%;background:rgba(17,24,39,.55);backdrop-filter:blur(2px)}
+.hm-box{
+  background:#fff;
+  margin:4% auto;
+  width:min(680px,94vw);
+  max-height:88vh;
+  border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.18),0 8px 20px rgba(0,0,0,.1);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.hm-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:18px 24px;
+  border-bottom:1px solid #e5e7eb;
+  flex-shrink:0;
+  background:#fff;
+}
+.hm-title{font-size:16px;font-weight:700;color:#111827;display:flex;align-items:center;gap:8px}
+.hm-serial-chip{
+  font-size:12px;font-weight:600;font-family:monospace;letter-spacing:.3px;
+  background:#eff6ff;color:#1e40af;
+  border:1px solid #bfdbfe;
+  padding:3px 10px;border-radius:20px;
+}
+.hm-close-btn{
+  width:32px;height:32px;
+  border-radius:50%;background:#f9fafb;
+  border:1px solid #e5e7eb;
+  cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  color:#6b7280;transition:.15s;
+}
+.hm-close-btn:hover{background:#f3f4f6;color:#111827}
 
-    <table style="width:100%; border-collapse: collapse; margin-top:15px;">
-      <thead>
-        <tr style="background-color:#f2f2f2; border-bottom: 1px solid #ddd;">
-          <th style="padding:10px; text-align:left;">วันที่</th>
-          <th style="padding:10px; text-align:left;">Action (การกระทำ)</th>
-          <th style="padding:10px; text-align:left;">จาก (From)</th>
-          <th style="padding:10px; text-align:left;">ไปที่ (To)</th>
-          <th style="padding:10px; text-align:left;">ผู้ทำรายการ</th>
-          <th style="padding:10px; text-align:left;">หมายเหตุ (Remark)</th>
-        </tr>
-      </thead>
-      <tbody id="historyModalBody">
-        </tbody>
-    </table>
+.hm-action-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 24px;
+  border-bottom:1px solid #f3f4f6;
+  flex-shrink:0;
+  background:#f9fafb;
+  gap:10px;flex-wrap:wrap;
+}
+.hm-counter{font-size:13px;color:#6b7280}
+.hm-ext-link{
+  font-size:13px;color:#2563eb;text-decoration:none;font-weight:600;
+  display:flex;align-items:center;gap:4px;
+  padding:5px 12px;border-radius:8px;border:1px solid #bfdbfe;
+  background:#eff6ff;transition:.15s;
+}
+.hm-ext-link:hover{background:#dbeafe}
+
+.hm-body{overflow-y:auto;padding:20px 24px;flex:1}
+
+/* spinner */
+.hm-spinner{
+  width:32px;height:32px;
+  border:3px solid #bfdbfe;border-top-color:#2563eb;
+  border-radius:50%;animation:hm-spin .7s linear infinite;
+  margin:0 auto;
+}
+@keyframes hm-spin{to{transform:rotate(360deg)}}
+
+/* Timeline */
+.hm-timeline{position:relative;padding-left:40px}
+.hm-timeline::before{
+  content:"";
+  position:absolute;left:14px;top:20px;bottom:20px;
+  width:2px;
+  background:linear-gradient(to bottom,#2563eb,#bfdbfe);
+  border-radius:2px;
+}
+.hm-entry{position:relative;margin-bottom:14px}
+.hm-entry:last-child{margin-bottom:0}
+
+.hm-dot{
+  position:absolute;left:-40px;top:14px;
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;z-index:1;
+  box-shadow:0 0 0 3px #f9fafb;
+}
+.hm-dot-register{background:#f0fdf4;border:2px solid #4ade80;color:#166534}
+.hm-dot-move{background:#eff6ff;border:2px solid #2563eb;color:#1e40af}
+.hm-dot-repair{background:#fef2f2;border:2px solid #f87171;color:#991b1b}
+.hm-dot-return{background:#fffbeb;border:2px solid #fbbf24;color:#92400e}
+.hm-dot-current{background:#2563eb;border:2px solid #93c5fd;color:#fff;box-shadow:0 0 0 3px #dbeafe}
+
+.hm-card{
+  background:#fff;border:1px solid #e5e7eb;
+  border-radius:10px;padding:12px 16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.05);
+  transition:.15s;
+}
+.hm-card:hover{box-shadow:0 4px 10px rgba(0,0,0,.07);border-color:#d1d5db}
+.hm-card-active{border-color:#bfdbfe;background:#fafcff}
+
+.hm-card-top{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:10px;flex-wrap:wrap;margin-bottom:8px;
+}
+.hm-action{font-size:14px;font-weight:700;color:#111827;line-height:1.4}
+.hm-latest-tag{
+  display:inline-block;margin-left:6px;
+  background:#2563eb;color:#fff;
+  font-size:9px;font-weight:700;letter-spacing:.4px;
+  padding:2px 7px;border-radius:20px;vertical-align:middle;
+}
+.hm-date{
+  font-size:11px;color:#9ca3af;
+  background:#f9fafb;padding:3px 9px;border-radius:20px;
+  border:1px solid #e5e7eb;white-space:nowrap;flex-shrink:0;
+}
+
+.hm-route{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0}
+.hm-chip{
+  padding:3px 10px;border-radius:6px;font-size:12px;font-weight:500;
+  background:#f9fafb;border:1px solid #e5e7eb;color:#374151;
+}
+.hm-chip-dest{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.hm-arrow{color:#9ca3af;font-size:13px}
+
+.hm-user-row{display:flex;align-items:center;gap:7px;margin-top:8px}
+.hm-avatar{
+  width:22px;height:22px;border-radius:50%;
+  background:#eff6ff;color:#2563eb;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid #bfdbfe;flex-shrink:0;
+}
+
+.hm-remark{
+  margin-top:8px;
+  background:#f9fafb;
+  border-left:3px solid #2563eb;
+  padding:7px 10px;
+  border-radius:0 6px 6px 0;
+  font-size:12px;color:#4b5563;
+}
+.hm-remark-label{
+  display:block;font-size:10px;font-weight:700;
+  color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;
+}
+
+@media(max-width:600px){
+  .hm-box{margin:0;width:100%;max-height:100vh;border-radius:0}
+  .hm-body{padding:14px 16px}
+  .hm-header{padding:14px 16px}
+  .hm-action-bar{padding:8px 16px}
+  .hm-timeline{padding-left:34px}
+  .hm-dot{left:-34px;width:20px;height:20px;font-size:10px}
+  .hm-timeline::before{left:12px}
+}
+</style>
+
+<div id="historyModal">
+  <div class="hm-box">
+    <div class="hm-header">
+      <div class="hm-title">
+        📋 ประวัติอุปกรณ์
+        <span class="hm-serial-chip" id="modalSerialTitle">-</span>
+      </div>
+      <button class="hm-close-btn" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div class="hm-action-bar">
+      <span class="hm-counter" id="hmCounter"></span>
+      <a class="hm-ext-link" id="hmExtLink" href="#" target="_blank">📋 ดูหน้าเต็ม →</a>
+    </div>
+    <div class="hm-body">
+      <div id="historyModalBody"></div>
+    </div>
   </div>
 </div>
 <div id="transferModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">

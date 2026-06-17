@@ -1,165 +1,232 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>QR Code Generator</title>
-
+<title>QR Code — Asset Traceability</title>
 <style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --blue:#1e3a8a;
+  --blue-mid:#2563eb;
+  --blue-light:#eff6ff;
+  --blue-border:#bfdbfe;
+  --gray-border:#e5e7eb;
+  --text-primary:#111827;
+  --text-secondary:#6b7280;
+  --text-muted:#9ca3af;
+  --white:#ffffff;
+}
 
 body{
-    font-family:Segoe UI;
-    background:#f4f7fb;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
+  font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+  background:#f1f5f9;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
 }
 
 .card{
-
-    width:500px;
-
-    background:white;
-
-    padding:40px;
-
-    border-radius:20px;
-
-    text-align:center;
-
-    box-shadow:0 10px 30px rgba(0,0,0,.15);
-
+  background:var(--white);
+  border-radius:20px;
+  box-shadow:0 10px 40px rgba(0,0,0,.1),0 4px 12px rgba(0,0,0,.06);
+  overflow:hidden;
+  width:100%;
+  max-width:420px;
 }
 
-h2{
+.card-header{
+  background:linear-gradient(135deg,var(--blue) 0%,#1d4ed8 100%);
+  padding:24px 28px;
+  text-align:center;
+}
+.header-icon{font-size:32px;margin-bottom:8px}
+.header-title{color:#fff;font-size:18px;font-weight:700;margin-bottom:4px}
+.header-sub{color:rgba(255,255,255,.65);font-size:13px}
 
-    color:#1565c0;
-
+.card-body{
+  padding:28px;
+  text-align:center;
 }
 
-img{
+.serial-display{
+  background:var(--blue-light);
+  border:1.5px solid var(--blue-border);
+  border-radius:10px;
+  padding:10px 16px;
+  margin-bottom:24px;
+}
+.serial-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:2px}
+.serial-value{font-size:16px;font-weight:700;color:var(--blue);font-family:monospace;letter-spacing:.5px}
 
-    margin-top:20px;
-    margin-bottom:20px;
+/* QR wrapper */
+.qr-wrap{
+  width:220px;
+  height:220px;
+  margin:0 auto 24px;
+  border-radius:12px;
+  border:2px solid var(--gray-border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:#fff;
+  padding:8px;
+}
+.qr-wrap img{width:100%;height:100%;object-fit:contain}
 
-    width:250px;
+/* skeleton loading */
+.qr-skeleton{
+  width:200px;height:200px;
+  background:linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.2s infinite;
+  border-radius:8px;
+}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 
+/* buttons */
+.btn-row{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.btn{
+  padding:10px 20px;
+  border-radius:10px;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  border:1.5px solid transparent;
+  transition:.15s;
+  display:flex;align-items:center;gap:6px;
+  text-decoration:none;
+}
+.btn-primary{background:var(--blue-mid);color:#fff;border-color:var(--blue-mid)}
+.btn-primary:hover{background:#1d4ed8}
+.btn-outline{background:var(--white);color:var(--text-primary);border-color:var(--gray-border)}
+.btn-outline:hover{background:#f9fafb;border-color:#9ca3af}
+.btn-teal{background:#0d9488;color:#fff;border-color:#0d9488}
+.btn-teal:hover{background:#0f766e}
+
+.card-footer{
+  border-top:1px solid var(--gray-border);
+  padding:14px 28px;
+  text-align:center;
+  font-size:12px;
+  color:var(--text-muted);
 }
 
-button{
-
-    padding:12px 20px;
-
-    border:none;
-
-    border-radius:10px;
-
-    background:#1565c0;
-
-    color:white;
-
-    cursor:pointer;
-
-    margin:10px;
-
+.error-box{
+  background:#fef2f2;
+  border:1px solid #fecaca;
+  border-radius:10px;
+  padding:16px;
+  color:#991b1b;
+  font-size:14px;
+  margin-bottom:20px;
 }
 
-button:hover{
-
-    background:#0d47a1;
-
+@media print{
+  body{background:#fff;padding:0;justify-content:flex-start;padding-top:20px}
+  .btn-row,.card-footer{display:none}
+  .card{box-shadow:none;border:1px solid #e5e7eb;max-width:360px;margin:auto}
 }
-
 </style>
-
 </head>
-
 <body>
 
 <div class="card">
+  <div class="card-header">
+    <div class="header-icon">📷</div>
+    <div class="header-title">QR Code สำหรับสแกน</div>
+    <div class="header-sub">สแกนเพื่อดูประวัติอุปกรณ์</div>
+  </div>
 
-<h2 id="serialTitle">
+  <div class="card-body">
+    <div class="serial-display" id="serialDisplay" style="display:none">
+      <div class="serial-label">Serial Number</div>
+      <div class="serial-value" id="serialValue">-</div>
+    </div>
 
-Serial Number
+    <div id="errorBox" class="error-box" style="display:none">
+      ⚠️ ไม่พบ Serial Number กรุณาปิดและเปิดใหม่อีกครั้ง
+    </div>
 
-</h2>
+    <div class="qr-wrap" id="qrWrap">
+      <div class="qr-skeleton" id="skeleton"></div>
+    </div>
 
-<img id="qrImage">
+    <div class="btn-row" id="btnRow" style="display:none">
+      <button class="btn btn-primary" onclick="downloadQR()">⬇️ ดาวน์โหลด</button>
+      <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์</button>
+      <a class="btn btn-teal" id="traceLink" href="#" target="_blank">📋 ดูประวัติ</a>
+    </div>
+  </div>
 
-<br>
-
-<button onclick="downloadQR()">
-
-Download QR
-
-</button>
-
-<button onclick="window.print()">
-
-Print
-
-</button>
-
+  <div class="card-footer" id="footerText">กำลังโหลด QR Code...</div>
 </div>
 
 <script>
-
-let qrImageData="";
+let qrImageData = "";
 
 async function loadQR(){
+  const params = new URLSearchParams(window.location.search);
+  const serial = params.get("serial");
 
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
+  if(!serial){
+    document.getElementById("skeleton").style.display = "none";
+    document.getElementById("errorBox").style.display = "block";
+    document.getElementById("footerText").textContent = "ไม่พบ Serial Number";
+    return;
+  }
 
-    const serial =
-        params.get("serial");
+  document.getElementById("serialDisplay").style.display = "block";
+  document.getElementById("serialValue").textContent = serial;
+  document.getElementById("traceLink").href = `/trace.html?serial=${encodeURIComponent(serial)}`;
 
-    if(!serial){
+  try {
+    const res  = await fetch(`/api/qrcode/${encodeURIComponent(serial)}`);
+    const data = await res.json();
 
-        return;
-
+    if(!data.success || !data.qrImage){
+      throw new Error("QR generation failed");
     }
 
-    document
-        .getElementById("serialTitle")
-        .innerText=serial;
+    qrImageData = data.qrImage;
 
-    const response =
-        await fetch(
-            `/api/qrcode/${serial}`
-        );
+    const img = document.createElement("img");
+    img.src = data.qrImage;
+    img.alt = `QR Code — ${serial}`;
 
-    const data =
-        await response.json();
+    document.getElementById("skeleton").remove();
+    document.getElementById("qrWrap").appendChild(img);
+    document.getElementById("btnRow").style.display = "flex";
+    document.getElementById("footerText").textContent = `พร้อมใช้งาน · ${serial}`;
 
-    qrImageData=data.qrImage;
-
-    document
-        .getElementById("qrImage")
-        .src=data.qrImage;
-
+  } catch(err) {
+    console.error(err);
+    document.getElementById("skeleton").style.display = "none";
+    document.getElementById("errorBox").style.display = "block";
+    document.getElementById("footerText").textContent = "เกิดข้อผิดพลาด";
+  }
 }
 
 function downloadQR(){
-
-    const link=document.createElement("a");
-
-    link.href=qrImageData;
-
-    link.download="QR.png";
-
-    link.click();
-
+  if(!qrImageData) return;
+  const serial = new URLSearchParams(window.location.search).get("serial") || "qr";
+  const a = document.createElement("a");
+  a.href = qrImageData;
+  a.download = `QR-${serial}.png`;
+  a.click();
 }
 
 loadQR();
-
 </script>
-
 </body>
 </html>
