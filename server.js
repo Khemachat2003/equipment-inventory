@@ -1863,29 +1863,56 @@ app.get("/api/qrcode/:serial", requireLogin, async (req, res) => {
 
     const serial = req.params.serial;
 
+    const authClient = await backendAuth.getClient();
+    const sheets = google.sheets({ version: "v4", auth: authClient });
+
+    // 1. generate QR URL
     const url =
       `${req.protocol}://${req.get("host")}/trace.html?serial=${encodeURIComponent(serial)}`;
 
     const qrImage = await QRCode.toDataURL(url);
 
+    // 2. ดึง Asset_List มาเพื่อหา partNumber + name
+    const assetRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!A2:J"
+    });
+
+    const rows = assetRes.data.values || [];
+
+    const assetRow = rows.find(r =>
+      r[4] && r[4].trim() === serial.trim()
+    );
+
+    const asset = assetRow ? {
+      assetId: assetRow[0],
+      code: assetRow[1],
+      name: assetRow[2],
+      partNumber: assetRow[3],
+      serialNumber: assetRow[4],
+      status: assetRow[5],
+      location: assetRow[6],
+      siteName: assetRow[7],
+      user: assetRow[8]
+    } : null;
+
     res.json({
       success: true,
       serial,
       url,
-      qrImage
+      qrImage,
+      asset
     });
 
-  }
-  catch (error) {
+  } catch (error) {
 
-    console.error("QR Error :", error);
+    console.error("QR Error:", error);
 
     res.status(500).json({
       success: false
     });
 
   }
-
 });
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);

@@ -4,229 +4,284 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QR Code — Asset Traceability</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
 
-:root{
-  --blue:#1e3a8a;
-  --blue-mid:#2563eb;
-  --blue-light:#eff6ff;
-  --blue-border:#bfdbfe;
-  --gray-border:#e5e7eb;
-  --text-primary:#111827;
-  --text-secondary:#6b7280;
-  --text-muted:#9ca3af;
-  --white:#ffffff;
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+
+/* =========================
+   PRINT FIX
+========================= */
+@media print {
+
+  body {
+    background: white !important;
+  }
+
+  .card-header,
+  .btn-row,
+  .footer {
+    display: none !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  #printArea {
+    background: white !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 
+/* =========================
+   NORMAL STYLE
+========================= */
+*{box-sizing:border-box;margin:0;padding:0}
+
 body{
-  font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+  font-family:"Segoe UI",sans-serif;
   background:#f1f5f9;
-  min-height:100vh;
   display:flex;
-  flex-direction:column;
-  align-items:center;
   justify-content:center;
   padding:24px;
 }
 
 .card{
-  background:var(--white);
-  border-radius:20px;
-  box-shadow:0 10px 40px rgba(0,0,0,.1),0 4px 12px rgba(0,0,0,.06);
-  overflow:hidden;
+  background:#fff;
   width:100%;
-  max-width:420px;
+  max-width:650px;
+  border-radius:20px;
+  box-shadow:0 10px 40px rgba(0,0,0,.1);
+  overflow:hidden;
 }
 
 .card-header{
-  background:linear-gradient(135deg,var(--blue) 0%,#1d4ed8 100%);
-  padding:24px 28px;
+  background:linear-gradient(135deg,#1e3a8a,#1d4ed8);
+  color:#fff;
   text-align:center;
-}
-.header-icon{font-size:32px;margin-bottom:8px}
-.header-title{color:#fff;font-size:18px;font-weight:700;margin-bottom:4px}
-.header-sub{color:rgba(255,255,255,.65);font-size:13px}
-
-.card-body{
-  padding:28px;
-  text-align:center;
+  padding:20px;
 }
 
-.serial-display{
-  background:var(--blue-light);
-  border:1.5px solid var(--blue-border);
-  border-radius:10px;
-  padding:10px 16px;
-  margin-bottom:24px;
-}
-.serial-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:2px}
-.serial-value{font-size:16px;font-weight:700;color:var(--blue);font-family:monospace;letter-spacing:.5px}
+.card-body{padding:24px}
 
-/* QR wrapper */
+/* =========================
+   EXPORT AREA (สำคัญ)
+========================= */
+#printArea{
+  background:#fff;
+  padding:10px;
+}
+
+/* layout */
+.main{
+  display:flex;
+  gap:20px;
+}
+
+.qr-section{
+  flex:0 0 220px;
+}
+
 .qr-wrap{
   width:220px;
   height:220px;
-  margin:0 auto 24px;
-  border-radius:12px;
-  border:2px solid var(--gray-border);
+  border:2px solid #e5e7eb;
   display:flex;
   align-items:center;
   justify-content:center;
-  overflow:hidden;
   background:#fff;
-  padding:8px;
 }
-.qr-wrap img{width:100%;height:100%;object-fit:contain}
 
-/* skeleton loading */
-.qr-skeleton{
-  width:200px;height:200px;
-  background:linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%);
-  background-size:200% 100%;
-  animation:shimmer 1.2s infinite;
-  border-radius:8px;
+.qr-wrap img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
 }
-@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+
+.info-section{flex:1}
+
+.serial-box{
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+
+.serial-value{
+  font-family:monospace;
+  font-weight:700;
+  color:#1e3a8a;
+}
+
+.info-row{
+  display:flex;
+  justify-content:space-between;
+  padding:6px 0;
+  border-bottom:1px dashed #e5e7eb;
+}
 
 /* buttons */
 .btn-row{
+  margin-top:20px;
   display:flex;
   gap:10px;
-  justify-content:center;
-  flex-wrap:wrap;
 }
-.btn{
-  padding:10px 20px;
-  border-radius:10px;
-  font-size:14px;
-  font-weight:600;
-  cursor:pointer;
-  border:1.5px solid transparent;
-  transition:.15s;
-  display:flex;align-items:center;gap:6px;
-  text-decoration:none;
-}
-.btn-primary{background:var(--blue-mid);color:#fff;border-color:var(--blue-mid)}
-.btn-primary:hover{background:#1d4ed8}
-.btn-outline{background:var(--white);color:var(--text-primary);border-color:var(--gray-border)}
-.btn-outline:hover{background:#f9fafb;border-color:#9ca3af}
-.btn-teal{background:#0d9488;color:#fff;border-color:#0d9488}
-.btn-teal:hover{background:#0f766e}
 
-.card-footer{
-  border-top:1px solid var(--gray-border);
-  padding:14px 28px;
+.btn{
+  padding:10px 14px;
+  border-radius:10px;
+  border:0;
+  cursor:pointer;
+}
+
+.btn-primary{background:#2563eb;color:#fff}
+.btn-outline{background:#fff;border:1px solid #ddd}
+.btn-teal{background:#0d9488;color:#fff}
+
+.footer{
   text-align:center;
   font-size:12px;
-  color:var(--text-muted);
+  color:#6b7280;
+  padding:12px;
 }
 
-.error-box{
-  background:#fef2f2;
-  border:1px solid #fecaca;
-  border-radius:10px;
-  padding:16px;
+.error{
+  background:#fee2e2;
+  padding:10px;
+  border-radius:8px;
   color:#991b1b;
-  font-size:14px;
-  margin-bottom:20px;
+  margin-bottom:10px;
 }
 
-@media print{
-  body{background:#fff;padding:0;justify-content:flex-start;padding-top:20px}
-  .btn-row,.card-footer{display:none}
-  .card{box-shadow:none;border:1px solid #e5e7eb;max-width:360px;margin:auto}
-}
 </style>
 </head>
+
 <body>
 
 <div class="card">
+
   <div class="card-header">
-    <div class="header-icon">📷</div>
-    <div class="header-title">QR Code สำหรับสแกน</div>
-    <div class="header-sub">สแกนเพื่อดูประวัติอุปกรณ์</div>
+    QR Code Asset
   </div>
 
   <div class="card-body">
-    <div class="serial-display" id="serialDisplay" style="display:none">
-      <div class="serial-label">Serial Number</div>
-      <div class="serial-value" id="serialValue">-</div>
+
+    <div id="errorBox" class="error" style="display:none">
+      ไม่พบ Serial Number
     </div>
 
-    <div id="errorBox" class="error-box" style="display:none">
-      ⚠️ ไม่พบ Serial Number กรุณาปิดและเปิดใหม่อีกครั้ง
+    <!-- 🔥 THIS IS THE IMPORTANT PART -->
+    <div id="printArea">
+
+      <div class="main">
+
+        <div class="qr-section">
+          <div class="qr-wrap" id="qrWrap">Loading...</div>
+        </div>
+
+        <div class="info-section">
+
+          <div class="serial-box">
+            Serial:
+            <div class="serial-value" id="serialValue">-</div>
+          </div>
+
+          <div class="info-row">
+            <span>Part Number</span>
+            <span id="partNumber">-</span>
+          </div>
+
+          <div class="info-row">
+            <span>Name</span>
+            <span id="assetName">-</span>
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
 
-    <div class="qr-wrap" id="qrWrap">
-      <div class="qr-skeleton" id="skeleton"></div>
-    </div>
-
+    <!-- buttons (NOT EXPORT) -->
     <div class="btn-row" id="btnRow" style="display:none">
-      <button class="btn btn-primary" onclick="downloadQR()">⬇️ ดาวน์โหลด</button>
-      <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์</button>
-      <a class="btn btn-teal" id="traceLink" href="#" target="_blank">📋 ดูประวัติ</a>
+      <button class="btn btn-primary" onclick="downloadQR()">Download</button>
+      <button class="btn btn-outline" onclick="window.print()">Print</button>
+      <a class="btn btn-teal" id="traceLink">History</a>
     </div>
+
   </div>
 
-  <div class="card-footer" id="footerText">กำลังโหลด QR Code...</div>
+  <div class="footer" id="footerText">Loading...</div>
+
 </div>
 
 <script>
-let qrImageData = "";
+
+let currentSerial = "";
 
 async function loadQR(){
-  const params = new URLSearchParams(window.location.search);
-  const serial = params.get("serial");
+
+  const serial = new URLSearchParams(window.location.search).get("serial");
+  currentSerial = serial;
 
   if(!serial){
-    document.getElementById("skeleton").style.display = "none";
-    document.getElementById("errorBox").style.display = "block";
-    document.getElementById("footerText").textContent = "ไม่พบ Serial Number";
+    document.getElementById("errorBox").style.display="block";
     return;
   }
 
-  document.getElementById("serialDisplay").style.display = "block";
   document.getElementById("serialValue").textContent = serial;
-  document.getElementById("traceLink").href = `/trace.html?serial=${encodeURIComponent(serial)}`;
+  document.getElementById("traceLink").href = `/trace.html?serial=${serial}`;
 
-  try {
-    const res  = await fetch(`/api/qrcode/${encodeURIComponent(serial)}`);
-    const data = await res.json();
+  const res = await fetch(`/api/qrcode/${serial}`);
+  const data = await res.json();
 
-    if(!data.success || !data.qrImage){
-      throw new Error("QR generation failed");
-    }
+  const img = document.createElement("img");
+  img.src = data.qrImage;
 
-    qrImageData = data.qrImage;
+  const qrWrap = document.getElementById("qrWrap");
+  qrWrap.innerHTML = "";
+  qrWrap.appendChild(img);
 
-    const img = document.createElement("img");
-    img.src = data.qrImage;
-    img.alt = `QR Code — ${serial}`;
+  const assetRes = await fetch("/api/assets");
+  const assets = await assetRes.json();
+  const asset = assets.find(a => a.serialNumber === serial);
 
-    document.getElementById("skeleton").remove();
-    document.getElementById("qrWrap").appendChild(img);
-    document.getElementById("btnRow").style.display = "flex";
-    document.getElementById("footerText").textContent = `พร้อมใช้งาน · ${serial}`;
+  document.getElementById("partNumber").textContent = asset?.partNumber || "-";
+  document.getElementById("assetName").textContent = asset?.name || "-";
 
-  } catch(err) {
-    console.error(err);
-    document.getElementById("skeleton").style.display = "none";
-    document.getElementById("errorBox").style.display = "block";
-    document.getElementById("footerText").textContent = "เกิดข้อผิดพลาด";
-  }
+  document.getElementById("btnRow").style.display = "flex";
+  document.getElementById("footerText").textContent = "Ready";
 }
 
-function downloadQR(){
-  if(!qrImageData) return;
-  const serial = new URLSearchParams(window.location.search).get("serial") || "qr";
-  const a = document.createElement("a");
-  a.href = qrImageData;
-  a.download = `QR-${serial}.png`;
-  a.click();
+/* =========================
+   FIXED DOWNLOAD
+========================= */
+async function downloadQR(){
+
+  const el = document.getElementById("printArea");
+
+  const canvas = await html2canvas(el, {
+    backgroundColor: "#ffffff",
+    scale: 2,
+    useCORS: true
+  });
+
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = `QR-${currentSerial}.png`;
+  link.click();
 }
 
 loadQR();
+
 </script>
+
 </body>
 </html>
