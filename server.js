@@ -13,11 +13,16 @@ const PDFDocument = require("pdfkit");
 const rateLimit = require("express-rate-limit");
 const NodeCache = require("node-cache");
 const { body, validationResult } = require("express-validator");
+const os = require("os");
 
 // -------------------- CONFIG --------------------
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const PORT = process.env.PORT || 3000;
-const CACHE_TTL = parseInt(process.env.CACHE_TTL) || 300;
+const CACHE_TTL = parseInt(process.env.CACHE_TTL) || 300; // 5 นาที
+const CACHE_TTL_HISTORY = parseInt(process.env.CACHE_TTL_HISTORY) || 60; // 1 นาที
+
+console.log("Spreadsheet:", process.env.SPREADSHEET_ID);
+console.log("ENV GOOGLE_OAUTH:", process.env.GOOGLE_OAUTH ? "present" : "missing");
 
 // -------------------- CACHE --------------------
 const cache = new NodeCache({ stdTTL: CACHE_TTL, checkperiod: 60 });
@@ -25,14 +30,13 @@ const cache = new NodeCache({ stdTTL: CACHE_TTL, checkperiod: 60 });
 // -------------------- RATE LIMIT --------------------
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
 });
 
 // -------------------- GOOGLE OAUTH --------------------
-console.log("ENV GOOGLE_OAUTH:", process.env.GOOGLE_OAUTH ? "present" : "missing");
 let credentials = null;
 if (process.env.GOOGLE_OAUTH) {
   try {
@@ -61,19 +65,24 @@ if (process.env.GOOGLE_CREDENTIALS_ACCOUNT) {
 }
 const backendAuth = new google.auth.GoogleAuth({
   credentials: serviceAccount,
-  scopes: ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"],
+  scopes: [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+  ],
 });
 
 // -------------------- EXPRESS APP --------------------
 const app = express();
 
-// Trust proxy (for rate limit behind reverse proxy)
 app.set("trust proxy", 1);
 
-// CORS
-app.use(cors({ origin: true, credentials: true }));
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 
-// Session
 app.use(
   session({
     name: "borrow-session",
@@ -83,21 +92,19 @@ app.use(
     cookie: {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
 
-// Body parser
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Static files
 app.use(express.static("public"));
 app.use("/image", express.static(path.join(__dirname, "image")));
 
-// -------------------- RATE LIMIT (apply to all API routes) --------------------
+// -------------------- RATE LIMIT --------------------
 app.use("/api", limiter);
 
 // -------------------- MIDDLEWARE --------------------
@@ -108,7 +115,6 @@ function requireLogin(req, res, next) {
   next();
 }
 
-// Validation error handler
 function validate(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -124,23 +130,53 @@ app.use((err, req, res, next) => {
 });
 
 // -------------------- GOOGLE SHEETS HELPERS --------------------
+let sheetsClient = null;
 async function getSheetsClient() {
-  const authClient = await backendAuth.getClient();
-  return google.sheets({ version: "v4", auth: authClient });
+  if (!sheetsClient) {
+    const authClient = await backendAuth.getClient();
+    sheetsClient = google.sheets({ version: "v4", auth: authClient });
+  }
+  return sheetsClient;
 }
 
-// Save asset history (with retry logic?)
-async function saveAssetHistory(serialNumber, action, fromLocation, toLocation, username, remark) {
+async function saveAssetHistory(
+  serialNumber,
+  action,
+  fromLocation,
+  toLocation,
+  username,
+  remark
+) {
   const sheets = await getSheetsClient();
   const currentDate = new Date().toLocaleString("th-TH");
+  const historyValues = [
+    currentDate,
+    serialNumber,
+    action,
+    fromLocation,
+    toLocation,
+    username,
+    remark,
+  ];
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
     range: "Asset_History!A:G",
     valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[currentDate, serialNumber, action, fromLocation, toLocation, username, remark]],
-    },
+    requestBody: { values: [historyValues] },
   });
+}
+
+// Clear cache functions
+function clearStockCache() {
+  cache.del("stockData");
+  cache.del("dashboardData");
+  cache.del("dashboardStats");
+  cache.del("siteItems");
+}
+
+function clearAssetCache() {
+  cache.del("assetData");
+  // ไม่ clear history cache เพราะประวัติเก่าไม่เปลี่ยน
 }
 
 // -------------------- SYNC ASSET HISTORY (ONCE) --------------------
@@ -149,10 +185,10 @@ async function syncInitialAssetHistory() {
   if (syncDone) return;
   try {
     const sheets = await getSheetsClient();
-    const assetResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Asset_List!A2:J",
-    });
+   const assetResponse = await sheets.spreadsheets.values.get({
+  spreadsheetId: SPREADSHEET_ID,
+  range: "Asset_List!A2:M", 
+});
     const assetRows = assetResponse.data.values || [];
 
     const historyResponse = await sheets.spreadsheets.values.get({
@@ -160,7 +196,9 @@ async function syncInitialAssetHistory() {
       range: "Asset_History!A2:B",
     });
     const historyRows = historyResponse.data.values || [];
-    const loggedSerials = new Set(historyRows.map(row => (row[1] ? row[1].trim() : "")));
+    const loggedSerials = new Set(
+      historyRows.map((row) => (row[1] ? row[1].trim() : ""))
+    );
 
     for (const row of assetRows) {
       const serial = row[4] ? row[4].trim() : "";
@@ -182,8 +220,7 @@ async function syncInitialAssetHistory() {
   }
 }
 
-// -------------------- ROUTES --------------------
-// AUTH
+// -------------------- GOOGLE LOGIN --------------------
 app.get("/auth/google", (req, res) => {
   const state = JSON.stringify({ user: req.session.user || null });
   const url = oAuth2Client.generateAuthUrl({
@@ -214,7 +251,7 @@ app.get("/auth/google/callback", async (req, res) => {
   }
 });
 
-// LOGIN
+// -------------------- LOGIN API --------------------
 app.post(
   "/api/login",
   [
@@ -232,7 +269,9 @@ app.post(
       });
       const users = userRes.data.values || [];
       const user = users.find(
-        (u) => u[0]?.trim() === username.trim() && u[1]?.trim() === password.trim()
+        (u) =>
+          u[0]?.trim() === username.trim() &&
+          u[1]?.trim() === password.trim()
       );
       if (!user) {
         return res.status(401).json({ error: "Username หรือ Password ไม่ถูกต้อง" });
@@ -248,20 +287,25 @@ app.post(
 
 app.get("/api/check-auth", (req, res) => {
   if (!req.session.user) return res.json({ loggedIn: false });
-  res.json({ loggedIn: true, username: req.session.user.username, role: req.session.user.role });
+  res.json({
+    loggedIn: true,
+    username: req.session.user.username,
+    role: req.session.user.role,
+  });
 });
 
 app.post("/api/logout", (req, res) => {
   req.session.destroy(() => res.json({ success: true }));
 });
 
-// -------------------- STOCK (with cache) --------------------
+// =====================
+// STOCK
+// =====================
 app.get("/api/stock", requireLogin, async (req, res) => {
   const cacheKey = "stockData";
   let stock = cache.get(cacheKey);
-  if (stock) {
-    return res.json(stock);
-  }
+  if (stock) return res.json(stock);
+
   try {
     const sheets = await getSheetsClient();
     const master = await sheets.spreadsheets.values.get({
@@ -303,7 +347,10 @@ app.get("/api/stock", requireLogin, async (req, res) => {
 app.post(
   "/api/update-total",
   requireLogin,
-  [body("code").trim().notEmpty(), body("newTotal").isInt({ min: 0 })],
+  [
+    body("code").trim().notEmpty(),
+    body("newTotal").isInt({ min: 0 }),
+  ],
   validate,
   async (req, res) => {
     if (req.session.user.role !== "admin") {
@@ -325,7 +372,7 @@ app.post(
         valueInputOption: "RAW",
         requestBody: { values: [[parseInt(newTotal)]] },
       });
-      cache.del("stockData");
+      clearStockCache();
       res.json({ success: true });
     } catch (err) {
       console.error("Update total error:", err);
@@ -337,7 +384,10 @@ app.post(
 app.post(
   "/api/add-stock",
   requireLogin,
-  [body("code").trim().notEmpty(), body("qty").isInt({ min: 1 })],
+  [
+    body("code").trim().notEmpty(),
+    body("qty").isInt({ min: 1 }),
+  ],
   validate,
   async (req, res) => {
     if (req.session.user.role !== "admin") {
@@ -362,7 +412,7 @@ app.post(
         valueInputOption: "RAW",
         requestBody: { values: [[newTotal]] },
       });
-      cache.del("stockData");
+      clearStockCache();
       res.json({ success: true });
     } catch (err) {
       console.error("Add stock error:", err);
@@ -450,7 +500,7 @@ app.post(
           ],
         },
       });
-      cache.del("stockData");
+      clearStockCache();
       res.json({ success: true });
     } catch (err) {
       console.error("Transfer error:", err);
@@ -459,10 +509,16 @@ app.post(
   }
 );
 
-// HISTORY
+// =====================
+// HISTORY (with cache)
+// =====================
 app.get("/api/history", requireLogin, async (req, res) => {
   try {
     const { start, end } = req.query;
+    const cacheKey = `history_${start || ""}_${end || ""}`;
+    let cached = cache.get(cacheKey);
+    if (cached) return res.json(cached);
+
     const sheets = await getSheetsClient();
     const log = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -499,6 +555,7 @@ app.get("/api/history", requireLogin, async (req, res) => {
       to: row[6],
       user: row[7],
     }));
+    cache.set(cacheKey, history, CACHE_TTL_HISTORY);
     res.json(history);
   } catch (err) {
     console.error("History error:", err);
@@ -506,7 +563,9 @@ app.get("/api/history", requireLogin, async (req, res) => {
   }
 });
 
+// =====================
 // DASHBOARD (with cache)
+// =====================
 app.get("/api/dashboard", requireLogin, async (req, res) => {
   const cacheKey = "dashboardData";
   let dash = cache.get(cacheKey);
@@ -556,7 +615,9 @@ app.get("/api/dashboard", requireLogin, async (req, res) => {
   }
 });
 
+// =====================
 // ADD ITEM
+// =====================
 app.post(
   "/api/add-item",
   requireLogin,
@@ -571,7 +632,7 @@ app.post(
     if (req.session.user.role !== "admin") {
       return res.status(403).json({ error: "ไม่มีสิทธิ์" });
     }
-    const { code, name, total, office, site, ext } = req.body;
+    const { code, name, total, ext } = req.body;
     try {
       const sheets = await getSheetsClient();
       const imageUrl = `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image/images/${code}.${ext}`;
@@ -583,7 +644,7 @@ app.post(
           values: [[code, name, `=IMAGE("${imageUrl}")`, "", "", total]],
         },
       });
-      cache.del("stockData");
+      clearStockCache();
       res.json({ success: true });
     } catch (error) {
       console.error("Add item error:", error);
@@ -592,7 +653,6 @@ app.post(
   }
 );
 
-// UPLOAD IMAGE
 app.post(
   "/upload-image",
   [
@@ -630,7 +690,18 @@ app.post(
   }
 );
 
-// EXPORT HISTORY PDF
+// =====================
+// EXPORT HISTORY PDF (ใช้ os.tmpdir)
+// =====================
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 app.post(
   "/api/export-history",
   requireLogin,
@@ -702,24 +773,46 @@ app.post(
       }
 
       const fileName = `Report-${new Date().toISOString().slice(0, 10)}.pdf`;
-      const doc = new PDFDocument({ size: "A4", margins: { top: 100, bottom: 60, left: 60, right: 60 } });
-      const filePath = `/tmp/${fileName}`;
+      const doc = new PDFDocument({
+        size: "A4",
+        margins: { top: 100, bottom: 60, left: 60, right: 60 },
+      });
+      const filePath = path.join(os.tmpdir(), fileName);
       const stream = fs.createWriteStream(filePath);
       doc.pipe(stream);
-      doc.registerFont("THSarabun", path.join(__dirname, "fonts", "THSarabunNew.ttf"));
-      doc.font("THSarabun").fontSize(14);
+
+      // ตรวจสอบฟอนต์
+      const fontPath = path.join(__dirname, "fonts", "THSarabunNew.ttf");
+      if (fs.existsSync(fontPath)) {
+        doc.registerFont("THSarabun", fontPath);
+        doc.font("THSarabun").fontSize(14);
+      } else {
+        doc.font("Helvetica").fontSize(12);
+        console.warn("⚠️ Font THSarabunNew.ttf not found, using Helvetica");
+      }
 
       const marginLeft = doc.page.margins.left;
       const marginRight = doc.page.margins.right;
       const contentWidth = doc.page.width - marginLeft - marginRight;
 
       function drawReportHeader() {
-        doc.image(path.join(__dirname, "logo.png"), marginLeft, 40, { width: 70 });
+        const logoPath = path.join(__dirname, "logo.png");
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, marginLeft, 40, { width: 70 });
+        }
         doc.y = 45;
-        doc.fontSize(20).text("บริษัท อินทนิล ออโตเมชั่น จำกัด", { align: "center", width: contentWidth });
-        doc.fontSize(16).text(title, { align: "center", width: contentWidth });
+        doc.fontSize(20).text("บริษัท อินทนิล ออโตเมชั่น จำกัด", {
+          align: "center",
+          width: contentWidth,
+        });
+        doc.fontSize(16).text(title, {
+          align: "center",
+          width: contentWidth,
+        });
         doc.moveDown(0.5);
-        doc.moveTo(marginLeft, doc.y).lineTo(doc.page.width - marginRight, doc.y).stroke();
+        doc.moveTo(marginLeft, doc.y)
+          .lineTo(doc.page.width - marginRight, doc.y)
+          .stroke();
         doc.moveDown(1);
       }
       drawReportHeader();
@@ -727,13 +820,20 @@ app.post(
 
       doc.fontSize(14);
       doc.x = marginLeft;
+
       if (reportType === "all" || reportType === "borrow") {
         if (locations) {
-          const locationList = locations.split("\n").map((l) => l.trim()).filter((l) => l !== "");
+          const locationList = locations
+            .split("\n")
+            .map((l) => l.trim())
+            .filter((l) => l !== "");
           doc.text(`สถานที่: ${locationList.length} ที่`, { width: contentWidth });
           locationList.forEach((loc, index) => {
             const clean = loc.replace(/^\d+\.\s*/, "");
-            doc.text(`${index + 1}. ${clean}`, { width: contentWidth, indent: 20 });
+            doc.text(`${index + 1}. ${clean}`, {
+              width: contentWidth,
+              indent: 20,
+            });
           });
         }
         doc.moveDown(0.5);
@@ -741,30 +841,37 @@ app.post(
         doc.text(`จำนวนพนักงาน: ${employeeCount} คน`, { width: contentWidth });
         if (employees) {
           doc.moveDown(0.5);
-          employees.split("\n").map((n) => n.trim()).filter((n) => n !== "").forEach((name, index) => {
-            const clean = name.replace(/^\d+\.\s*/, "");
-            doc.text(`${index + 1}. ${clean}`, { width: contentWidth, indent: 20 });
-          });
+          employees
+            .split("\n")
+            .map((n) => n.trim())
+            .filter((n) => n !== "")
+            .forEach((name, index) => {
+              const clean = name.replace(/^\d+\.\s*/, "");
+              doc.text(`${index + 1}. ${clean}`, {
+                width: contentWidth,
+                indent: 20,
+              });
+            });
         }
       }
+
       doc.moveDown(0.5);
-      function formatDate(dateStr) {
-        if (!dateStr) return "-";
-        const d = new Date(dateStr);
-        const day = String(d.getDate()).padStart(2, "0");
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
-      }
-      doc.text(`ช่วงวันที่: ${formatDate(startDate)} - ${formatDate(endDate)}`, { width: contentWidth });
-      doc.text("วันที่ออกรายงาน: " + new Date().toLocaleString("th-TH"), { width: contentWidth });
+      doc.text(`ช่วงวันที่: ${formatDate(startDate)} - ${formatDate(endDate)}`, {
+        width: contentWidth,
+      });
+      doc.text("วันที่ออกรายงาน: " + new Date().toLocaleString("th-TH"), {
+        width: contentWidth,
+      });
       doc.moveDown(0);
 
       let reportTypeText = "รวมรายการเบิกและคืน";
       if (reportType === "borrow") reportTypeText = "รายการเบิก";
       if (reportType === "return") reportTypeText = "รายการคืน";
       doc.fontSize(16);
-      doc.text(`ตาราง: ${reportTypeText}`, { width: contentWidth, align: "center" });
+      doc.text(`ตาราง: ${reportTypeText}`, {
+        width: contentWidth,
+        align: "center",
+      });
       doc.moveDown(0.5);
 
       let y = doc.y;
@@ -778,17 +885,20 @@ app.post(
       ];
 
       function drawTableHeader() {
-        doc.font("THSarabun").fontSize(14);
+        doc.fontSize(14);
         const headerHeight = 25;
         if (y + headerHeight > usableHeight) {
           doc.addPage();
           y = doc.y;
-          doc.font("THSarabun").fontSize(14);
         }
         let x = doc.page.margins.left;
         columns.forEach((col) => {
-          doc.rect(x, y, col.width, headerHeight).fillAndStroke("#f2f2f2", "black");
-          doc.fillColor("black").text(col.header, x + 5, y + 7, { width: col.width - 10, align: "center" });
+          doc.rect(x, y, col.width, headerHeight)
+            .fillAndStroke("#f2f2f2", "black");
+          doc.fillColor("black").text(col.header, x + 5, y + 7, {
+            width: col.width - 10,
+            align: "center",
+          });
           x += col.width;
         });
         y += headerHeight;
@@ -799,21 +909,25 @@ app.post(
         let maxHeight = 0;
         columns.forEach((col, i) => {
           const cellText = row[i] || "-";
-          const textHeight = doc.heightOfString(cellText, { width: col.width - 10 });
+          const textHeight = doc.heightOfString(cellText, {
+            width: col.width - 10,
+          });
           if (textHeight > maxHeight) maxHeight = textHeight;
         });
         const rowHeight = maxHeight + 10;
         if (y + rowHeight > usableHeight) {
           doc.addPage();
           y = doc.y;
-          doc.font("THSarabun").fontSize(14);
           drawTableHeader();
         }
         let x = doc.page.margins.left;
         columns.forEach((col, i) => {
           const cellText = row[i] || "-";
           doc.rect(x, y, col.width, rowHeight).stroke();
-          doc.text(cellText, x + 5, y + 5, { width: col.width - 10, align: i === 2 ? "center" : "left" });
+          doc.text(cellText, x + 5, y + 5, {
+            width: col.width - 10,
+            align: i === 2 ? "center" : "left",
+          });
           x += col.width;
         });
         y += rowHeight;
@@ -824,14 +938,32 @@ app.post(
       const leftX = marginLeft;
       const rightX = marginLeft + (pageWidth - marginLeft - marginRight) / 2;
       const today = new Date().toLocaleDateString("th-TH");
-      doc.text("ผู้ทำรายการ", leftX, doc.y, { width: (pageWidth - marginLeft - marginRight) / 2, align: "center" });
-      doc.text("ผู้ตรวจสอบ", rightX, doc.y - 14, { width: (pageWidth - marginLeft - marginRight) / 2, align: "center" });
+      doc.text("ผู้ทำรายการ", leftX, doc.y, {
+        width: (pageWidth - marginLeft - marginRight) / 2,
+        align: "center",
+      });
+      doc.text("ผู้ตรวจสอบ", rightX, doc.y - 14, {
+        width: (pageWidth - marginLeft - marginRight) / 2,
+        align: "center",
+      });
       doc.moveDown(2);
-      doc.text("(....................................)", leftX, doc.y, { width: (pageWidth - marginLeft - marginRight) / 2, align: "center" });
-      doc.text("(....................................)", rightX, doc.y - 14, { width: (pageWidth - marginLeft - marginRight) / 2, align: "center" });
+      doc.text("(....................................)", leftX, doc.y, {
+        width: (pageWidth - marginLeft - marginRight) / 2,
+        align: "center",
+      });
+      doc.text("(....................................)", rightX, doc.y - 14, {
+        width: (pageWidth - marginLeft - marginRight) / 2,
+        align: "center",
+      });
       doc.moveDown(1);
-      doc.text(`วันที่ ${today}`, leftX, doc.y, { width: (pageWidth - marginLeft - marginRight) / 2, align: "center" });
-      doc.text(`วันที่ ${today}`, rightX, doc.y - 14, { width: (pageWidth - marginLeft - marginRight) / 2, align: "center" });
+      doc.text(`วันที่ ${today}`, leftX, doc.y, {
+        width: (pageWidth - marginLeft - marginRight) / 2,
+        align: "center",
+      });
+      doc.text(`วันที่ ${today}`, rightX, doc.y - 14, {
+        width: (pageWidth - marginLeft - marginRight) / 2,
+        align: "center",
+      });
 
       doc.end();
       stream.on("finish", () => {
@@ -849,8 +981,14 @@ app.post(
   }
 );
 
-// SITE ITEMS
+// =====================
+// SITE ITEMS (with cache)
+// =====================
 app.get("/api/get-site-items", requireLogin, async (req, res) => {
+  const cacheKey = "siteItems";
+  let cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
   try {
     const sheets = await getSheetsClient();
     const siteRes = await sheets.spreadsheets.values.get({
@@ -865,13 +1003,18 @@ app.get("/api/get-site-items", requireLogin, async (req, res) => {
       const qty = parseInt(r[2] || 0);
       if (qty > 0) items.push({ code, name, qty });
     });
-    res.json({ items });
+    const result = { items };
+    cache.set(cacheKey, result, CACHE_TTL_HISTORY);
+    res.json(result);
   } catch (err) {
     console.error("get-site-items error:", err);
     res.status(500).json({ items: [] });
   }
 });
 
+// =====================
+// RETURN ALL SITE
+// =====================
 app.post("/api/return-all-site", requireLogin, async (req, res) => {
   try {
     const sheets = await getSheetsClient();
@@ -898,8 +1041,14 @@ app.post("/api/return-all-site", requireLogin, async (req, res) => {
         if (officeIndex === -1) continue;
         let officeQty = parseInt(officeData[officeIndex][2] || 0);
         officeQty += siteQty;
-        updates.push({ range: `Stock_Office!C${officeIndex + 2}`, values: [[officeQty]] });
-        updates.push({ range: `Stock_Site!C${i + 2}`, values: [[0]] });
+        updates.push({
+          range: `Stock_Office!C${officeIndex + 2}`,
+          values: [[officeQty]],
+        });
+        updates.push({
+          range: `Stock_Site!C${i + 2}`,
+          values: [[0]],
+        });
         logs.push([
           new Date().toLocaleString("th-TH"),
           code,
@@ -926,7 +1075,8 @@ app.post("/api/return-all-site", requireLogin, async (req, res) => {
         requestBody: { values: logs },
       });
     }
-    cache.del("stockData");
+    clearStockCache();
+    cache.del("siteItems");
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -934,6 +1084,9 @@ app.post("/api/return-all-site", requireLogin, async (req, res) => {
   }
 });
 
+// =====================
+// RETURN SELECTED SITE
+// =====================
 app.post(
   "/api/return-selected-site",
   requireLogin,
@@ -968,8 +1121,14 @@ app.post(
         if (siteQty < qty) continue;
         officeQty += qty;
         siteQty -= qty;
-        updates.push({ range: `Stock_Office!C${officeIndex + 2}`, values: [[officeQty]] });
-        updates.push({ range: `Stock_Site!C${siteIndex + 2}`, values: [[siteQty]] });
+        updates.push({
+          range: `Stock_Office!C${officeIndex + 2}`,
+          values: [[officeQty]],
+        });
+        updates.push({
+          range: `Stock_Site!C${siteIndex + 2}`,
+          values: [[siteQty]],
+        });
         logs.push([
           new Date().toLocaleString("th-TH"),
           code,
@@ -995,7 +1154,8 @@ app.post(
           requestBody: { values: logs },
         });
       }
-      cache.del("stockData");
+      clearStockCache();
+      cache.del("siteItems");
       res.json({ success: true });
     } catch (err) {
       console.error(err);
@@ -1004,13 +1164,14 @@ app.post(
   }
 );
 
-// ASSETS
+// =====================
+// ASSETS (with cache)
+// =====================
 app.get("/api/assets", requireLogin, async (req, res) => {
   const cacheKey = "assetData";
   let assets = cache.get(cacheKey);
-  if (assets) {
-    return res.json(assets);
-  }
+  if (assets) return res.json(assets);
+
   try {
     await syncInitialAssetHistory();
     const sheets = await getSheetsClient();
@@ -1020,16 +1181,19 @@ app.get("/api/assets", requireLogin, async (req, res) => {
     });
     const assetRows = assetResponse.data.values || [];
     assets = assetRows.map((row) => ({
-      assetId: row[0] || "-",
-      code: row[1] || "-",
-      name: row[2] || "-",
-      partNumber: row[3] || "-",
-      serialNumber: row[4] || "-",
-      status: row[5] || "-",
-      location: row[6] || "-",
-      siteName: row[7] || "-",
-      user: row[8] || "-",
-    }));
+  assetId: row[0] || "-",
+  code: row[1] || "-",
+  name: row[2] || "-",
+  partNumber: row[3] || "-",
+  serialNumber: row[4] || "-",
+  status: row[5] || "-",
+  location: row[6] || "-",
+  siteName: row[7] || "-",
+  user: row[8] || "-",
+  farmType: row[10] || "-",   // ✅ เพิ่ม
+  houseId: row[11] || "-",    // ✅ เพิ่ม
+  houseName: row[12] || "-",  // ✅ เพิ่ม
+}));
     cache.set(cacheKey, assets);
     res.json(assets);
   } catch (error) {
@@ -1038,9 +1202,16 @@ app.get("/api/assets", requireLogin, async (req, res) => {
   }
 });
 
+// =====================
+// ASSET HISTORY (with cache)
+// =====================
 app.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
   try {
     const serialNumber = req.params.serial;
+    const cacheKey = `assetHistory_${serialNumber}`;
+    let cached = cache.get(cacheKey);
+    if (cached) return res.json(cached);
+
     const sheets = await getSheetsClient();
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -1058,16 +1229,25 @@ app.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
         user: row[5] || "-",
         remark: row[6] || "-",
       }));
-    res.json(filteredHistory.reverse());
+    const result = filteredHistory.reverse();
+    cache.set(cacheKey, result, CACHE_TTL_HISTORY);
+    res.json(result);
   } catch (error) {
     console.error("❌ Get Asset History Error:", error);
     res.status(500).json([]);
   }
 });
 
+// =====================
+// PUBLIC ASSET HISTORY
+// =====================
 app.get("/api/public-asset-history/:serial", async (req, res) => {
   try {
     const serialNumber = req.params.serial;
+    const cacheKey = `publicAssetHistory_${serialNumber}`;
+    let cached = cache.get(cacheKey);
+    if (cached) return res.json(cached);
+
     const sheets = await getSheetsClient();
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -1085,13 +1265,18 @@ app.get("/api/public-asset-history/:serial", async (req, res) => {
         user: row[5] || "-",
         remark: row[6] || "-",
       }));
-    res.json(filteredHistory.reverse());
+    const result = filteredHistory.reverse();
+    cache.set(cacheKey, result, CACHE_TTL_HISTORY);
+    res.json(result);
   } catch (error) {
     console.error(error);
     res.status(500).json([]);
   }
 });
 
+// =====================
+// DASHBOARD STATS (with cache)
+// =====================
 app.get("/api/dashboard-stats", requireLogin, async (req, res) => {
   const cacheKey = "dashboardStats";
   let stats = cache.get(cacheKey);
@@ -1132,6 +1317,9 @@ app.get("/api/dashboard-stats", requireLogin, async (req, res) => {
   }
 });
 
+// =====================
+// ADD ASSET (single)
+// =====================
 app.post(
   "/api/add-asset",
   requireLogin,
@@ -1188,7 +1376,7 @@ app.post(
         user,
         `บันทึกประวัติเริ่มต้นจริงเข้าระบบสำหรับอุปกรณ์: ${name}`
       );
-      cache.del("assetData");
+      clearAssetCache();
       res.json({ success: true });
     } catch (error) {
       console.error("❌ Add Asset Error:", error);
@@ -1201,6 +1389,9 @@ app.get("/api/me", requireLogin, (req, res) => {
   res.json({ username: req.session.user.username });
 });
 
+// =====================
+// UPDATE ASSET STATUS (original)
+// =====================
 app.post(
   "/api/update-asset-status",
   requireLogin,
@@ -1235,11 +1426,15 @@ app.post(
         range: "Asset_List!A2:E",
       });
       const assetRows = assetResponse.data.values || [];
-      const rowIndex = assetRows.findIndex(
-        (row) => row[4] && row[4].trim() === serialNumber.trim()
-      ) + 2;
+      const rowIndex =
+        assetRows.findIndex(
+          (row) => row[4] && row[4].trim() === serialNumber.trim()
+        ) + 2;
       if (rowIndex === 1) {
-        return res.status(400).json({ success: false, error: "ไม่พบข้อมูล Serial Number นี้ในหน้าหลัก (Asset_List)" });
+        return res.status(400).json({
+          success: false,
+          error: "ไม่พบข้อมูล Serial Number นี้ในหน้าหลัก (Asset_List)",
+        });
       }
 
       const updateValues = [status, location, siteName, user, currentDate];
@@ -1265,7 +1460,9 @@ app.post(
         valueInputOption: "USER_ENTERED",
         requestBody: { values: [historyValues] },
       });
-      cache.del("assetData");
+      clearAssetCache();
+      cache.del(`assetHistory_${serialNumber}`);
+      cache.del(`publicAssetHistory_${serialNumber}`);
       res.json({ success: true });
     } catch (error) {
       console.error("❌ Update Asset Status Backend Error:", error);
@@ -1274,11 +1471,16 @@ app.post(
   }
 );
 
+// =====================
+// QR CODE
+// =====================
 app.get("/api/qrcode/:serial", requireLogin, async (req, res) => {
   try {
     const serial = req.params.serial;
     const sheets = await getSheetsClient();
-    const url = `${req.protocol}://${req.get("host")}/trace.html?serial=${encodeURIComponent(serial)}`;
+    const url = `${req.protocol}://${req.get("host")}/trace.html?serial=${encodeURIComponent(
+      serial
+    )}`;
     const qrImage = await QRCode.toDataURL(url);
 
     const assetRes = await sheets.spreadsheets.values.get({
@@ -1308,22 +1510,29 @@ app.get("/api/qrcode/:serial", requireLogin, async (req, res) => {
   }
 });
 
+// =====================
+// PUBLIC ASSET VIEW
+// =====================
 app.get("/api/public/asset/:code", async (req, res) => {
   try {
     const code = req.params.code;
+    const cacheKey = `publicAsset_${code}`;
+    let cached = cache.get(cacheKey);
+    if (cached) return res.json(cached);
+
     const sheets = await getSheetsClient();
     const assetRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Asset_List!A2:J",
+      range: "Asset_List!A2:M",
     });
     const rows = assetRes.data.values || [];
     const row = rows.find((r) => r[4] && r[4].trim() === code.trim());
-    if (!row) {
-      return res.status(404).json({ error: "not found" });
-    }
-    const qrUrl = `${req.protocol}://${req.get("host")}/trace.html?serial=${encodeURIComponent(code)}`;
+    if (!row) return res.status(404).json({ error: "not found" });
+
+    const qrUrl = `${req.protocol}://${req.get("host")}/a/${encodeURIComponent(code)}`;
     const qrImage = await QRCode.toDataURL(qrUrl);
-    res.json({
+
+    const result = {
       assetId: row[0] || "-",
       code: row[1] || "-",
       name: row[2] || "-",
@@ -1334,36 +1543,483 @@ app.get("/api/public/asset/:code", async (req, res) => {
       siteName: row[7] || "-",
       user: row[8] || "-",
       date: row[9] || "-",
+      farmType: row[10] || "-",
+      houseId: row[11] || "-",
+      houseName: row[12] || "-",
       qr: qrImage,
       traceUrl: qrUrl,
-    });
+    };
+    cache.set(cacheKey, result, CACHE_TTL_HISTORY);
+    res.json(result);
   } catch (err) {
     console.error("Public asset error:", err);
     res.status(500).json({ error: "server error" });
   }
 });
 
-// -------------------- FRONTEND ROUTES --------------------
+// =====================================================
+// FARM SITES (with cache)
+// =====================================================
+app.get("/api/farm-sites", requireLogin, async (req, res) => {
+  const cacheKey = "farmSites";
+  let sites = cache.get(cacheKey);
+  if (sites) return res.json(sites);
+
+  try {
+    const sheets = await getSheetsClient();
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Farm_Sites!A2:F",
+    });
+    const rows = r.data.values || [];
+    sites = rows.map((row) => ({
+      siteId: row[0] || "",
+      siteName: row[1] || "",
+      farmType: row[2] || "",
+      province: row[3] || "",
+      manager: row[4] || "",
+      note: row[5] || "",
+    }));
+    cache.set(cacheKey, sites);
+    res.json(sites);
+  } catch (e) {
+    console.error("Farm sites error:", e);
+    res.status(500).json([]);
+  }
+});
+
+// =====================================================
+// FARM HOUSES (with cache per site)
+// =====================================================
+app.get("/api/farm-houses/:siteId", requireLogin, async (req, res) => {
+  try {
+    const siteId = req.params.siteId;
+    const cacheKey = `farmHouses_${siteId}`;
+    let houses = cache.get(cacheKey);
+    if (houses) return res.json(houses);
+
+    const sheets = await getSheetsClient();
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Farm_Houses!A2:F",
+    });
+    const rows = r.data.values || [];
+    houses = rows
+      .filter((row) => row[1] && row[1].trim() === siteId.trim())
+      .map((row) => ({
+        houseId: row[0] || "",
+        siteId: row[1] || "",
+        houseName: row[2] || "",
+        houseType: row[3] || "",
+        capacity: row[4] || "",
+        note: row[5] || "",
+      }));
+    cache.set(cacheKey, houses);
+    res.json(houses);
+  } catch (e) {
+    console.error("Farm houses error:", e);
+    res.status(500).json([]);
+  }
+});
+
+// =====================================================
+// PART CATALOG (with cache)
+// =====================================================
+app.get("/api/part-catalog", requireLogin, async (req, res) => {
+  const cacheKey = "partCatalog";
+  let parts = cache.get(cacheKey);
+  if (parts) return res.json(parts);
+
+  try {
+    const sheets = await getSheetsClient();
+    const [catRes, assetRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Part_Catalog!A2:G",
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_List!A2:M",
+      }),
+    ]);
+    const catRows = catRes.data.values || [];
+    const assetRows = assetRes.data.values || [];
+
+    parts = catRows.map((row) => {
+      const pn = row[0] || "";
+      const count = assetRows.filter((a) => a[3] && a[3].trim() === pn.trim())
+        .length;
+      return {
+        partNumber: pn,
+        partName: row[1] || "",
+        category: row[2] || "",
+        description: row[3] || "",
+        unit: row[4] || "",
+        totalQty: count,
+        lastUpdated: row[6] || "",
+      };
+    });
+    cache.set(cacheKey, parts);
+    res.json(parts);
+  } catch (e) {
+    console.error("Part catalog error:", e);
+    res.status(500).json([]);
+  }
+});
+
+// =====================================================
+// PART CATALOG — ADD new part
+// =====================================================
+app.post(
+  "/api/add-part",
+  requireLogin,
+  [
+    body("partNumber").trim().notEmpty(),
+    body("partName").trim().notEmpty(),
+    body("category").optional().isString(),
+    body("description").optional().isString(),
+    body("unit").optional().isString(),
+  ],
+  validate,
+  async (req, res) => {
+    if (req.session.user.role !== "admin") {
+      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
+    }
+    try {
+      const { partNumber, partName, category, description, unit } = req.body;
+      const sheets = await getSheetsClient();
+      const date = new Date().toLocaleString("th-TH");
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Part_Catalog!A:G",
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [
+            [
+              partNumber,
+              partName,
+              category || "",
+              description || "",
+              unit || "ชิ้น",
+              0,
+              date,
+            ],
+          ],
+        },
+      });
+      cache.del("partCatalog");
+      res.json({ success: true });
+    } catch (e) {
+      console.error("Add part error:", e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  }
+);
+
+// =====================================================
+// BULK ADD ASSET
+// =====================================================
+app.post(
+  "/api/bulk-add-asset",
+  requireLogin,
+  [
+    body("partNumber").trim().notEmpty(),
+    body("partName").trim().notEmpty(),
+    body("qty").isInt({ min: 1 }),
+    body("status").optional().isString(),
+    body("siteName").optional().isString(),
+    body("location").optional().isString(),
+    body("user").optional().isString(),
+    body("farmType").optional().isString(),
+    body("houseId").optional().isString(),
+    body("houseName").optional().isString(),
+  ],
+  validate,
+  async (req, res) => {
+    if (req.session.user.role !== "admin") {
+      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
+    }
+    try {
+      const {
+        partNumber,
+        partName,
+        qty,
+        status,
+        siteName,
+        location,
+        user,
+        farmType,
+        houseId,
+        houseName,
+      } = req.body;
+      const sheets = await getSheetsClient();
+
+      // ── สร้าง date string DDMMYYYY
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      const dateStr = `${dd}${mm}${yyyy}`;
+      const prefix = `SN-${partNumber}-${dateStr}`;
+
+      // ── หา running number ล่าสุดของ prefix นี้
+      const assetRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_List!A2:M",
+      });
+      const existingRows = assetRes.data.values || [];
+      const existingSerials = existingRows
+        .map((r) => r[4] || "")
+        .filter((s) => s.startsWith(prefix));
+      let maxNum = 0;
+      existingSerials.forEach((s) => {
+        const parts = s.split("-");
+        const num = parseInt(parts[parts.length - 1]);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      });
+
+      // ── สร้าง Asset ID running
+      const assetIdRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_List!A2:A",
+      });
+      const existingIds = (assetIdRes.data.values || []).map((r) => parseInt(r[0]) || 0);
+      let lastId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+
+      const currentDate = new Date().toLocaleString("th-TH");
+      const newRows = [];
+      const historyRows = [];
+
+      for (let i = 0; i < qty; i++) {
+        const runNum = String(maxNum + i + 1).padStart(4, "0");
+        const serial = `${prefix}-${runNum}`;
+        lastId += 1;
+        const assetId = String(lastId).padStart(4, "0");
+
+        newRows.push([
+          assetId,
+          partNumber,
+          partName,
+          partNumber,
+          serial,
+          status || "ใช้งานได้",
+          location || "-",
+          siteName || "-",
+          user || req.session.user.username,
+          currentDate,
+          farmType || "-",
+          houseId || "-",
+          houseName || "-",
+        ]);
+
+        historyRows.push([
+          currentDate,
+          serial,
+          "ลงทะเบียนอุปกรณ์ใหม่",
+          "-",
+          `${siteName || "-"} (${location || "-"})`,
+          req.session.user.username,
+          `Bulk Add: ${partName} (${partNumber}) จำนวน ${qty} ชิ้น`,
+        ]);
+      }
+
+      // บันทึก Asset_List
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_List!A:M",
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: newRows },
+      });
+
+      // บันทึก Asset_History
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_History!A:G",
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: historyRows },
+      });
+
+      // อัปเดต Part_Catalog totalQty
+      const catRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Part_Catalog!A2:G",
+      });
+      const catRows = catRes.data.values || [];
+      const catIdx = catRows.findIndex(
+        (r) => r[0] && r[0].trim() === partNumber.trim()
+      );
+      if (catIdx !== -1) {
+        const newTotal = parseInt(catRows[catIdx][5] || 0) + qty;
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `Part_Catalog!F${catIdx + 2}:G${catIdx + 2}`,
+          valueInputOption: "USER_ENTERED",
+          requestBody: { values: [[newTotal, currentDate]] },
+        });
+      }
+
+      clearAssetCache();
+      cache.del("partCatalog");
+
+      res.json({
+        success: true,
+        added: qty,
+        serials: newRows.map((r) => r[4]),
+        firstSerial: newRows[0][4],
+        lastSerial: newRows[newRows.length - 1][4],
+      });
+    } catch (e) {
+      console.error("Bulk add error:", e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  }
+);
+
+// =====================================================
+// TRANSFER ASSET (extended)
+// =====================================================
+app.post(
+  "/api/transfer-asset",
+  requireLogin,
+  [
+    body("serialNumber").trim().notEmpty(),
+    body("action").trim().notEmpty(),
+    body("status").trim().notEmpty(),
+    body("location").optional().isString(),
+    body("siteName").optional().isString(),
+    body("user").optional().isString(),
+    body("remark").optional().isString(),
+    body("fromLocation").optional().isString(),
+    body("farmType").optional().isString(),
+    body("houseId").optional().isString(),
+    body("houseName").optional().isString(),
+    body("animalType").optional().isString(),
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const {
+        serialNumber,
+        action,
+        status,
+        location,
+        siteName,
+        user,
+        remark,
+        fromLocation,
+        farmType,
+        houseId,
+        houseName,
+        animalType,
+      } = req.body;
+
+      const sheets = await getSheetsClient();
+      const currentDate = new Date().toLocaleString("th-TH");
+
+      // หาแถวใน Asset_List
+      const assetRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_List!A2:E",
+      });
+      const assetRows = assetRes.data.values || [];
+      const rowIndex =
+        assetRows.findIndex(
+          (r) => r[4] && r[4].trim() === serialNumber.trim()
+        ) + 2;
+      if (rowIndex === 1) {
+        return res.status(400).json({
+          success: false,
+          error: "ไม่พบ Serial Number",
+        });
+      }
+
+      // อัปเดต F:M
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Asset_List!F${rowIndex}:M${rowIndex}`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [
+            [
+              status,
+              location,
+              siteName,
+              user || req.session.user.username,
+              currentDate,
+              farmType || "-",
+              houseId || "-",
+              houseName || "-",
+            ],
+          ],
+        },
+      });
+
+      // บันทึก History พร้อมรายละเอียดเพิ่มเติม
+      const remarkFull = [
+        remark,
+        farmType ? `ประเภทฟาร์ม: ${farmType}` : "",
+        animalType ? `ประเภทสัตว์: ${animalType}` : "",
+        houseName ? `โรงเรือน: ${houseName}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | ");
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_History!A:G",
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [
+            [
+              currentDate,
+              serialNumber,
+              action,
+              fromLocation || "-",
+              `${siteName || "-"} (${location || "-"}) [${houseName || "-"}]`,
+              req.session.user.username,
+              remarkFull || "-",
+            ],
+          ],
+        },
+      });
+
+      clearAssetCache();
+      cache.del(`assetHistory_${serialNumber}`);
+      cache.del(`publicAssetHistory_${serialNumber}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Transfer asset error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// =====================================================
+// FRONTEND ROUTES
+// =====================================================
 app.get("/dashboard", (req, res) => {
   if (!req.session.user) return res.redirect("/");
   res.sendFile(__dirname + "/public/index.html");
 });
+
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
+
 app.get("/a/:code", (req, res) => {
   res.sendFile(path.join(__dirname, "public/asset.html"));
 });
+
 app.use(express.static("public"));
 
-// Health check
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", uptime: process.uptime() });
 });
 
-// -------------------- START SERVER --------------------
+// =====================================================
+// START SERVER
+// =====================================================
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  // Trigger initial sync (non-blocking)
   syncInitialAssetHistory().catch(console.error);
 });

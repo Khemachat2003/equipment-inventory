@@ -261,6 +261,7 @@ tbody tr:last-child td{border-bottom:none}
 .ret-item:last-child{border-bottom:none}
 .ret-item input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
 .ret-qty{margin-left:auto;background:var(--g100);padding:2px 10px;border-radius:20px;font-size:11px;color:var(--tmuted);flex-shrink:0}
+.asset-view-btn.active{background:#fff!important;color:var(--blue)!important;box-shadow:var(--sh-sm)}
 </style>
 </head>
 <body>
@@ -380,8 +381,16 @@ tbody tr:last-child td{border-bottom:none}
 
  <!-- ASSET -->
  <div id="asset" class="tab">
-  <div class="sh"><div><div class="sh-title">Asset Tracking</div><div class="sh-sub">ติดตามอุปกรณ์ด้วย Serial Number และ QR Code</div></div>
-   <button class="btn btn-blue btn-sm" onclick="openModal('addAssetModal')">➕ เพิ่ม Asset</button></div>
+  <div class="sh">
+   <div><div class="sh-title">Asset Tracking</div><div class="sh-sub">ติดตามอุปกรณ์ด้วย Serial Number และ QR Code</div></div>
+   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div style="display:flex;background:var(--g100);border:1px solid var(--g200);border-radius:var(--r);overflow:hidden">
+     <button class="asset-view-btn active" onclick="setAssetView('list',this)" style="padding:7px 14px;border:none;background:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--tmuted);transition:.15s">📋 รายการ</button>
+     <button class="asset-view-btn" onclick="setAssetView('part',this)" style="padding:7px 14px;border:none;background:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--tmuted);transition:.15s">📦 แยก Part</button>
+    </div>
+    <button class="btn btn-teal btn-sm" onclick="openModal('bulkAddModal')">📦 เพิ่มหลายชิ้น</button>
+    <button class="btn btn-blue btn-sm" onclick="openModal('addAssetModal')">➕ เพิ่ม Asset</button>
+   </div></div>
   <div class="panel">
    <div class="ph">
     <input class="si" id="assetSearch" type="text" placeholder="ค้นหา Asset ID, Code, Name, Serial..." onkeyup="filterAsset()" style="max-width:400px">
@@ -523,18 +532,20 @@ tbody tr:last-child td{border-bottom:none}
  </div>
 </div>
 
-<!-- TRANSFER -->
+<!-- TRANSFER MODAL — PRO VERSION -->
 <div class="mo" id="transferModal">
- <div class="mb mb-wide">
+ <div class="mb" style="max-width:600px">
   <div class="mh"><div class="mh-title">🚚 โอนย้ายอุปกรณ์</div><button class="mc" onclick="closeModal('transferModal')">✕</button></div>
-  <div class="mbd">
-   <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-size:13px">
-    Serial: <strong id="transferSerialTitle" style="font-family:monospace;color:var(--blue)">-</strong>
+  <div class="mbd" style="padding:16px 20px">
+   <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:12px;color:var(--g600);font-weight:600">Serial Number</span>
+    <span id="transferSerialTitle" style="font-family:monospace;color:var(--blue);font-weight:700;font-size:13px">-</span>
    </div>
    <input type="hidden" id="oldSiteName"><input type="hidden" id="oldLocation">
-   <div class="fg">
-    <div class="ff"><label>ประเภทการโอนย้าย</label>
-     <select id="transferAction">
+   <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📋 ประเภทการโอนย้าย</div>
+   <div class="fg" style="margin-bottom:14px">
+    <div class="ff"><label>ประเภท</label>
+     <select id="transferAction" onchange="onActionChange()">
       <option value="ย้ายตำแหน่งอุปกรณ์">🚚 ย้ายตำแหน่ง</option>
       <option value="ส่งซ่อมภายนอก">🔧 ส่งซ่อมภายนอก</option>
       <option value="โอนย้ายผู้รับผิดชอบ">👤 โอนย้ายผู้รับผิดชอบ</option>
@@ -547,15 +558,93 @@ tbody tr:last-child td{border-bottom:none}
       <option value="ส่งซ่อม">🔴 ส่งซ่อม</option><option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
      </select>
     </div>
-    <div class="ff"><label>ไซต์งานใหม่ *</label><input type="text" id="transferSite" placeholder="ชื่อไซต์ปลายทาง"></div>
-    <div class="ff"><label>Location ใหม่</label><input type="text" id="transferLocation" placeholder="เช่น ห้องคอนโทรล"></div>
-    <div class="ff" style="grid-column:1/-1"><label>ผู้รับผิดชอบใหม่</label><input type="text" id="transferUser" placeholder="ชื่อผู้รับผิดชอบ"></div>
-    <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="transferRemark" placeholder="เหตุผลการย้าย..."></div>
+   </div>
+   <div id="farmSection">
+    <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">🏭 ข้อมูลฟาร์มปลายทาง</div>
+    <div class="fg" style="margin-bottom:8px">
+     <div class="ff"><label>ประเภทฟาร์ม</label>
+      <select id="trFarmType" onchange="onFarmTypeChange()">
+       <option value="">-- เลือกประเภท --</option>
+       <option value="สัตว์ปีก">🐔 สัตว์ปีก</option>
+       <option value="สัตว์บก">🐄 สัตว์บก</option>
+       <option value="สุกร">🐷 สุกร</option>
+       <option value="อื่นๆ">⚙️ อื่นๆ / ไม่ใช่ฟาร์ม</option>
+      </select>
+     </div>
+     <div class="ff"><label>ประเภทสัตว์</label>
+      <select id="trAnimalType">
+       <option value="">-- ไม่ระบุ --</option>
+       <option value="ไก่เนื้อ">ไก่เนื้อ</option><option value="ไก่ไข่">ไก่ไข่</option>
+       <option value="เป็ด">เป็ด</option><option value="วัว">วัว</option>
+       <option value="แพะ/แกะ">แพะ/แกะ</option><option value="สุกร">สุกร</option>
+       <option value="อื่นๆ">อื่นๆ</option>
+      </select>
+     </div>
+    </div>
+    <div class="fg" style="margin-bottom:8px">
+     <div class="ff"><label>ไซต์งาน / ฟาร์ม *</label>
+      <select id="trSiteSelect" onchange="onSiteSelect(this.value)" style="margin-bottom:6px">
+       <option value="">-- เลือกฟาร์ม --</option>
+      </select>
+      <input type="text" id="transferSite" placeholder="หรือพิมพ์ชื่อฟาร์มเอง">
+     </div>
+     <div class="ff"><label>โรงเรือน</label>
+      <select id="trHouseSelect" onchange="onHouseSelect(this.value)" style="margin-bottom:6px">
+       <option value="">-- เลือกไซต์ก่อน --</option>
+      </select>
+      <input type="text" id="trHouseName" placeholder="หรือพิมพ์ชื่อโรงเรือนเอง">
+      <input type="hidden" id="trHouseId">
+     </div>
+    </div>
+    <div class="fg" style="margin-bottom:8px">
+     <div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="transferLocation" placeholder="เช่น คอก A แถว 3"></div>
+     <div class="ff"><label>จำนวนโรงเรือน (ในฟาร์มนี้)</label><input type="number" id="trHouseCount" placeholder="4" min="0"></div>
+    </div>
+   </div>
+   <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;margin-top:4px">👤 ผู้รับผิดชอบ</div>
+   <div class="fg">
+    <div class="ff" style="grid-column:1/-1"><label>ชื่อผู้รับผิดชอบ</label><input type="text" id="transferUser" placeholder="ชื่อผู้ดูแลอุปกรณ์"></div>
+    <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="transferRemark" placeholder="เหตุผล / รายละเอียดเพิ่มเติม..."></div>
    </div>
   </div>
   <div class="mf"><button class="btn btn-out" onclick="closeModal('transferModal')">ยกเลิก</button><button class="btn btn-blue" onclick="submitTransferAction()">💾 ยืนยันโอนย้าย</button></div>
  </div>
 </div>
+
+<!-- BULK ADD ASSET MODAL -->
+<div class="mo" id="bulkAddModal">
+ <div class="mb mb-wide">
+  <div class="mh"><div class="mh-title">📦 เพิ่ม Asset หลายชิ้น</div><button class="mc" onclick="closeModal('bulkAddModal')">✕</button></div>
+  <div class="mbd">
+   <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue)">
+    💡 Serial จะถูกสร้างอัตโนมัติ: <strong>SN-{PartNumber}-{DDMMYYYY}-0001</strong>
+   </div>
+   <div class="fg">
+    <div class="ff"><label>Part Number *</label>
+     <select id="bulkPartSelect" onchange="onBulkPartChange(this.value)"><option value="">-- เลือก Part --</option></select>
+    </div>
+    <div class="ff"><label>หรือพิมพ์ Part Number ใหม่</label>
+     <input type="text" id="bulkPartNumber" placeholder="FAN30" oninput="document.getElementById('bulkPartSelect').value=''">
+    </div>
+    <div class="ff" style="grid-column:1/-1"><label>ชื่ออุปกรณ์ *</label><input type="text" id="bulkPartName" placeholder="ชื่ออุปกรณ์"></div>
+    <div class="ff"><label>จำนวนที่เพิ่ม *</label><input type="number" id="bulkQty" placeholder="10" min="1" max="200"></div>
+    <div class="ff"><label>สถานะ</label>
+     <select id="bulkStatus"><option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option></select>
+    </div>
+    <div class="ff"><label>ไซต์งาน</label><input type="text" id="bulkSite" placeholder="Office / ฟาร์ม"></div>
+    <div class="ff"><label>Location</label><input type="text" id="bulkLocation" placeholder="สถานที่เก็บ"></div>
+    <div class="ff"><label>ผู้รับผิดชอบ</label><input type="text" id="bulkUser" placeholder="ชื่อผู้ดูแล"></div>
+    <div id="bulkPreview" style="grid-column:1/-1;background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;font-size:13px;color:var(--g600);display:none"></div>
+   </div>
+  </div>
+  <div class="mf">
+   <button class="btn btn-out" onclick="closeModal('bulkAddModal')">ยกเลิก</button>
+   <button class="btn btn-out btn-sm" onclick="previewBulkSerial()">👁 Preview</button>
+   <button class="btn btn-blue" onclick="confirmBulkAdd()">💾 เพิ่ม Asset</button>
+  </div>
+ </div>
+</div>
+
 
 <!-- HISTORY MODAL -->
 <div class="mo" id="historyModal">
@@ -603,6 +692,7 @@ function showApp(){document.getElementById("loginPage").style.display="none";doc
 /* ── INIT ── */
 function initApp(){
   loadCurrentUser();loadDashboard();loadStock();loadHistory();loadAssets();loadHistoryChart();
+  loadFarmSites();loadPartCatalog();
   const last=localStorage.getItem("activeTab")||"dashboard";
   openTab(last);
   setInterval(refreshDashboard,120000);
@@ -869,6 +959,87 @@ function openTransferModal(serial,status,location,site,user){
   document.getElementById("transferRemark").value="";
   openModal("transferModal");
 }
+/* ── FARM DATA CACHE ── */
+let farmSites=[];
+
+async function loadFarmSites(){
+  if(farmSites.length) return farmSites;
+  try{
+    const r=await fetch("/api/farm-sites");
+    farmSites=await r.json();
+  }catch(e){farmSites=[]}
+  return farmSites;
+}
+
+/* ── TRANSFER MODAL EVENTS ── */
+function onActionChange(){
+  const action=document.getElementById("transferAction").value;
+  const fs=document.getElementById("farmSection");
+  // ถ้าส่งซ่อมหรือคืนคลัง ซ่อน farm section
+  if(action.includes("ซ่อม")||action.includes("คืนคลัง")){
+    if(fs)fs.style.display="none";
+    document.getElementById("transferStatus").value=action.includes("ซ่อม")?"ส่งซ่อม":"สำรอง";
+  } else {
+    if(fs)fs.style.display="block";
+  }
+}
+
+function onFarmTypeChange(){
+  // รีเซ็ต animal type options ตามประเภทฟาร์ม
+  const ft=document.getElementById("trFarmType").value;
+  const at=document.getElementById("trAnimalType");
+  at.innerHTML='<option value="">-- ไม่ระบุ --</option>';
+  if(ft==="สัตว์ปีก"){
+    ["ไก่เนื้อ","ไก่ไข่","เป็ด","ห่าน","อื่นๆ"].forEach(v=>{
+      const o=document.createElement("option");o.value=v;o.textContent=v;at.appendChild(o);
+    });
+  } else if(ft==="สัตว์บก"){
+    ["วัว","ควาย","แพะ","แกะ","ม้า","อื่นๆ"].forEach(v=>{
+      const o=document.createElement("option");o.value=v;o.textContent=v;at.appendChild(o);
+    });
+  } else if(ft==="สุกร"){
+    ["สุกรพ่อพันธุ์","สุกรแม่พันธุ์","ลูกสุกร","สุกรขุน"].forEach(v=>{
+      const o=document.createElement("option");o.value=v;o.textContent=v;at.appendChild(o);
+    });
+  }
+}
+
+async function onSiteSelect(siteId){
+  if(!siteId){
+    document.getElementById("transferSite").value="";
+    document.getElementById("trHouseSelect").innerHTML='<option value="">-- เลือกไซต์ก่อน --</option>';
+    return;
+  }
+  const site=farmSites.find(s=>s.siteId===siteId);
+  if(site){
+    document.getElementById("transferSite").value=site.siteName;
+    // โหลดโรงเรือน
+    try{
+      const r=await fetch(`/api/farm-houses/${encodeURIComponent(siteId)}`);
+      const houses=await r.json();
+      const sel=document.getElementById("trHouseSelect");
+      sel.innerHTML='<option value="">-- เลือกโรงเรือน --</option>';
+      houses.forEach(h=>{
+        const o=document.createElement("option");
+        o.value=h.houseId;o.dataset.name=h.houseName;
+        o.textContent=`${h.houseName} (${h.houseType})`;
+        sel.appendChild(o);
+      });
+      if(site.farmType) document.getElementById("trFarmType").value=site.farmType;
+    }catch(e){}
+  }
+}
+
+function onHouseSelect(houseId){
+  const sel=document.getElementById("trHouseSelect");
+  const opt=sel.options[sel.selectedIndex];
+  if(opt&&opt.dataset.name){
+    document.getElementById("trHouseName").value=opt.dataset.name;
+    document.getElementById("trHouseId").value=houseId;
+  }
+}
+
+/* ── TRANSFER SUBMIT ── */
 async function submitTransferAction(){
   const serial=document.getElementById("transferSerialTitle").textContent;
   const action=document.getElementById("transferAction").value;
@@ -878,10 +1049,188 @@ async function submitTransferAction(){
   const user=document.getElementById("transferUser").value.trim();
   const remark=document.getElementById("transferRemark").value.trim();
   const from=`${document.getElementById("oldSiteName").value} (${document.getElementById("oldLocation").value})`;
+  const farmType=document.getElementById("trFarmType")?.value||"-";
+  const animalType=document.getElementById("trAnimalType")?.value||"-";
+  const houseId=document.getElementById("trHouseId")?.value||"-";
+  const houseName=document.getElementById("trHouseName")?.value.trim()||"-";
+
   if(!siteName){alert("กรุณาระบุไซต์งานปลายทาง");return}
-  try{const r=await(await fetch("/api/update-asset-status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({serialNumber:serial,action,status,location,siteName,user,remark,fromLocation:from})})).json();
+  try{
+    const r=await(await fetch("/api/transfer-asset",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({serialNumber:serial,action,status,location,siteName,user,remark,fromLocation:from,farmType,animalType,houseId,houseName})
+    })).json();
     if(r.success){closeModal("transferModal");await loadAssets();if(currentMonitorFarm)renderMonitorView()}
-    else alert("เกิดข้อผิดพลาด: "+r.error)}catch(e){alert("ไม่สามารถเชื่อมต่อได้")}
+    else alert("เกิดข้อผิดพลาด: "+r.error)
+  }catch(e){alert("ไม่สามารถเชื่อมต่อได้")}
+}
+
+/* ── OPEN TRANSFER MODAL (enhanced) ── */
+async function openTransferModal(serial,status,location,site,user){
+  document.getElementById("transferSerialTitle").textContent=serial;
+  document.getElementById("transferStatus").value=status;
+  document.getElementById("transferLocation").value=location;
+  document.getElementById("transferSite").value=site;
+  document.getElementById("transferUser").value=user;
+  document.getElementById("oldSiteName").value=site;
+  document.getElementById("oldLocation").value=location;
+  document.getElementById("transferRemark").value="";
+  document.getElementById("trHouseName").value="";
+  document.getElementById("trHouseId").value="";
+  document.getElementById("trHouseCount").value="";
+  if(document.getElementById("farmSection"))document.getElementById("farmSection").style.display="block";
+
+  // โหลดฟาร์มเข้า dropdown
+  const sites=await loadFarmSites();
+  const sel=document.getElementById("trSiteSelect");
+  sel.innerHTML='<option value="">-- เลือกฟาร์ม --</option>';
+  sites.forEach(s=>{
+    const o=document.createElement("option");
+    o.value=s.siteId;o.textContent=`${s.siteName} (${s.farmType})`;
+    sel.appendChild(o);
+  });
+
+  openModal("transferModal");
+}
+
+/* ── PART CATALOG + BULK ADD ── */
+let partCatalog=[];
+
+async function loadPartCatalog(){
+  try{
+    const r=await fetch("/api/part-catalog");
+    partCatalog=await r.json();
+    populatePartSelect(); // ✅ เพิ่มบรรทัดนี้
+  }catch(e){
+    console.error("Load part catalog error:", e);
+  }
+}
+
+// ✅ เพิ่มฟังก์ชันนี้ (วางใต้ loadPartCatalog)
+function populatePartSelect(){
+  const sel=document.getElementById("bulkPartSelect");
+  if(!sel) return;
+  sel.innerHTML='<option value="">-- เลือก Part --</option>';
+  partCatalog.forEach(p=>{
+    const opt=document.createElement("option");
+    opt.value=p.partNumber;
+    opt.textContent=`${p.partNumber} - ${p.partName} (${p.totalQty||0} ชิ้น)`;
+    sel.appendChild(opt);
+  });
+}
+function onBulkPartChange(pn){
+  if(!pn){
+    document.getElementById("bulkPartNumber").value="";
+    document.getElementById("bulkPartName").value="";
+    return;
+  }
+  const part=partCatalog.find(p=>p.partNumber===pn);
+  if(part){
+    document.getElementById("bulkPartNumber").value=part.partNumber;
+    document.getElementById("bulkPartName").value=part.partName;
+  }
+}
+
+function previewBulkSerial(){
+  const pn=(document.getElementById("bulkPartNumber").value||"").trim().toUpperCase();
+  const qty=parseInt(document.getElementById("bulkQty").value)||0;
+  if(!pn||!qty){alert("กรอก Part Number และจำนวนก่อน");return}
+  const now=new Date();
+  const ds=String(now.getDate()).padStart(2,"0")+String(now.getMonth()+1).padStart(2,"0")+now.getFullYear();
+  const prefix=`SN-${pn}-${ds}`;
+  const lines=[`Serial ที่จะสร้าง (${qty} ชิ้น):`];
+  for(let i=1;i<=Math.min(qty,5);i++) lines.push(`${prefix}-${String(i).padStart(4,"0")}`);
+  if(qty>5) lines.push(`... และอีก ${qty-5} ชิ้น`);
+  const prev=document.getElementById("bulkPreview");
+  prev.style.display="block";
+  prev.innerHTML=lines.join("<br>");
+}
+
+async function confirmBulkAdd(){
+  const pn=(document.getElementById("bulkPartNumber").value||"").trim().toUpperCase();
+  const pname=document.getElementById("bulkPartName").value.trim();
+  const qty=parseInt(document.getElementById("bulkQty").value);
+  if(!pn||!pname||!qty){alert("กรอกข้อมูลให้ครบ");return}
+  const body={
+    partNumber:pn,partName:pname,qty,
+    status:document.getElementById("bulkStatus").value,
+    siteName:document.getElementById("bulkSite").value.trim(),
+    location:document.getElementById("bulkLocation").value.trim(),
+    user:document.getElementById("bulkUser").value.trim()
+  };
+  try{
+    const r=await(await fetch("/api/bulk-add-asset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+    if(r.success){
+      alert(`✅ เพิ่ม ${r.added} ชิ้นสำเร็จ\nSerial: ${r.firstSerial} ~ ${r.lastSerial}`);
+      closeModal("bulkAddModal");
+      await loadAssets();await loadPartCatalog();renderPartView();
+    } else alert("เกิดข้อผิดพลาด: "+(r.error||""))
+  }catch(e){alert("ไม่สามารถเชื่อมต่อได้")}
+}
+
+/* ── ASSET VIEW: GROUP BY PART ── */
+let assetViewMode="list"; // "list" | "part"
+let partCatalogData=[];
+
+function renderPartView(){
+  // Group assetData by partNumber
+  const map={};
+  assetData.forEach(a=>{
+    const pn=a.partNumber||"ไม่ระบุ";
+    if(!map[pn]){map[pn]={partNumber:pn,name:a.name,items:[]}}
+    map[pn].items.push(a);
+  });
+  const tb=document.getElementById("assetBody");
+  const parts=Object.values(map);
+  if(!parts.length){tb.innerHTML='<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--tmuted)">ไม่มีข้อมูล</td></tr>';return}
+  let html="";
+  parts.forEach(p=>{
+    const ok=p.items.filter(a=>a.status&&a.status.includes("ใช้งานได้")).length;
+    const rep=p.items.filter(a=>a.status&&a.status.includes("ซ่อม")).length;
+    html+=`<tr style="background:var(--blue-l);cursor:pointer" onclick="togglePartGroup('pg-${p.partNumber.replace(/[^a-z0-9]/gi,'_')}')" title="คลิกเพื่อขยาย/ย่อ">
+      <td colspan="4" style="font-weight:800;color:var(--blue);font-size:13px">
+        📦 ${p.partNumber} — ${p.name}
+      </td>
+      <td colspan="2">
+        <span class="badge bg-green" style="margin-right:4px">✅ ${ok}</span>
+        ${rep?`<span class="badge bg-red">🔧 ${rep}</span>`:""}
+      </td>
+      <td colspan="6" style="color:var(--tmuted);font-size:12px">รวม ${p.items.length} ชิ้น · คลิกเพื่อดูรายการ</td>
+    </tr>`;
+    html+=`<tbody id="pg-${p.partNumber.replace(/[^a-z0-9]/gi,'_')}" style="display:none">`;
+    p.items.forEach(a=>{
+      const s=a.serialNumber||"",enc=encodeURIComponent(s);
+      html+=`<tr>
+        <td><span style="font-family:monospace;font-size:11px">${a.assetId||"-"}</span></td>
+        <td><span style="font-family:monospace;font-size:11px">${a.code||"-"}</span></td>
+        <td style="font-weight:500">${a.name||"-"}</td>
+        <td>${a.partNumber||"-"}</td>
+        <td><a href="javascript:void(0)" onclick="viewAssetHistory('${s}')" style="color:var(--blue);font-weight:700;font-family:monospace;font-size:11px;text-decoration:none">${s||"-"}</a></td>
+        <td>${getStatusBadge(a.status||"")}</td>
+        <td>${a.location||"-"}</td>
+        <td>${a.siteName||"-"}</td>
+        <td>${a.user||"-"}</td>
+        <td><a href="/trace.html?serial=${enc}" target="_blank" class="btn btn-out btn-sm">📜</a></td>
+        <td><a href="/qr.html?serial=${enc}" target="_blank" class="btn btn-teal btn-sm">📷</a></td>
+        <td><button class="btn btn-blue btn-sm" onclick="openTransferModal('${s}','${(a.status||"").replace(/'/g,"\'")}','${(a.location||"").replace(/'/g,"\'")}','${(a.siteName||"").replace(/'/g,"\'")}','${(a.user||"").replace(/'/g,"\'")}')">🚚</button></td>
+      </tr>`;
+    });
+    html+="</tbody>";
+  });
+  tb.innerHTML=html;
+}
+
+function togglePartGroup(id){
+  const el=document.getElementById(id);
+  if(el)el.style.display=el.style.display==="none"?"table-row-group":"none";
+}
+
+function setAssetView(mode,btn){
+  assetViewMode=mode;
+  document.querySelectorAll(".asset-view-btn").forEach(b=>b.classList.remove("active"));
+  if(btn)btn.classList.add("active");
+  if(mode==="part") renderPartView();
+  else renderAssetTable(assetData,"assetBody");
 }
 
 /* ── RETURN ── */
