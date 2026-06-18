@@ -6,389 +6,212 @@
 <title>Scan Asset</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-
-body{
-  font-family:"Segoe UI",system-ui,sans-serif;
-  background:#0f172a;
-  color:white;
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-}
-
-/* ── HEADER ── */
-.site-header{
-  background:rgba(255,255,255,.06);
-  border-bottom:1px solid rgba(255,255,255,.08);
-  padding:14px 20px;
-  display:flex;align-items:center;gap:12px;
-}
-.logo-icon{
-  width:34px;height:34px;
-  background:rgba(255,255,255,.1);
-  border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:16px;
-}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:#0f172a;color:white;min-height:100vh;display:flex;flex-direction:column}
+.site-header{background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.08);padding:14px 20px;display:flex;align-items:center;gap:12px}
+.logo-icon{width:34px;height:34px;background:rgba(255,255,255,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
 .logo-text{font-size:15px;font-weight:600;color:#f1f5f9}
 .logo-sub{font-size:11px;color:#94a3b8;margin-top:1px}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px 40px;gap:20px}
 
-/* ── MAIN ── */
-.main{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  padding:24px 16px 40px;
-  gap:20px;
-}
-
-/* ── CARD ── */
-.scan-card{
-  background:#1e293b;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:20px;
-  width:100%;
-  max-width:400px;
-  overflow:hidden;
-  box-shadow:0 20px 60px rgba(0,0,0,.4);
-}
-
-.scan-title{
-  background:linear-gradient(135deg,#1e3a8a,#2563eb);
-  padding:20px 24px;
-  text-align:center;
-}
-.scan-title h2{
-  font-size:18px;font-weight:700;margin-bottom:4px;
-}
-.scan-title p{
-  font-size:13px;color:rgba(255,255,255,.65);
-}
-
+/* ── INPUT CARD ── */
+.scan-card{background:#1e293b;border:1px solid rgba(255,255,255,.08);border-radius:20px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.scan-title{background:linear-gradient(135deg,#1e3a8a,#2563eb);padding:20px 24px;text-align:center}
+.scan-title h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.scan-title p{font-size:13px;color:rgba(255,255,255,.6)}
 .scan-body{padding:20px 20px 24px}
-
-/* ── INPUT ── */
-.input-wrap{
-  position:relative;
-  margin-bottom:12px;
-}
-.input-wrap input{
-  width:100%;
-  padding:14px 44px 14px 16px;
-  font-size:16px;
-  border-radius:12px;
-  border:1.5px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.07);
-  color:#f1f5f9;
-  outline:none;
-  transition:.2s;
-  -webkit-tap-highlight-color:transparent;
-}
+.input-wrap{position:relative;margin-bottom:12px}
+.input-wrap input{width:100%;padding:14px 44px 14px 16px;font-size:16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#f1f5f9;outline:none;transition:.2s}
 .input-wrap input::placeholder{color:rgba(255,255,255,.3)}
-.input-wrap input:focus{
-  border-color:#2563eb;
-  background:rgba(37,99,235,.12);
-  box-shadow:0 0 0 3px rgba(37,99,235,.2);
-}
-.input-icon{
-  position:absolute;right:14px;top:50%;transform:translateY(-50%);
-  font-size:18px;pointer-events:none;
-}
-
-/* ── SUBMIT ── */
-.btn-submit{
-  width:100%;
-  padding:14px;
-  background:#2563eb;
-  color:#fff;
-  border:none;border-radius:12px;
-  font-size:15px;font-weight:700;
-  cursor:pointer;transition:.15s;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
+.input-wrap input:focus{border-color:#2563eb;background:rgba(37,99,235,.12);box-shadow:0 0 0 3px rgba(37,99,235,.2)}
+.input-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+.btn-submit{width:100%;padding:14px;background:#2563eb;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-submit:hover{background:#1d4ed8}
 .btn-submit:active{transform:scale(.98)}
 
-/* ── STATUS TOAST ── */
-.toast{
-  position:fixed;
-  bottom:24px;left:50%;transform:translateX(-50%);
-  background:#1e293b;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:12px;
-  padding:12px 20px;
-  font-size:13px;color:#f1f5f9;
-  display:flex;align-items:center;gap:8px;
-  white-space:nowrap;
-  opacity:0;transition:opacity .3s;
-  z-index:99;pointer-events:none;
-}
-.toast.show{opacity:1}
+/* ── RESULT PREVIEW ── */
+.result-box{display:none;margin-top:14px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.3);border-radius:12px;padding:12px 16px}
+.result-box.show{display:block}
+.result-label{font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.result-serial{font-family:monospace;font-size:15px;color:#93c5fd;font-weight:700;word-break:break-all}
 
-/* ── CAMERA ── */
-.camera-card{
-  background:#1e293b;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:20px;
-  width:100%;max-width:400px;
-  overflow:hidden;
-  box-shadow:0 20px 60px rgba(0,0,0,.4);
-}
-.camera-title{
-  padding:14px 20px;
-  display:flex;justify-content:space-between;align-items:center;
-  border-bottom:1px solid rgba(255,255,255,.08);
-}
+/* ── CAMERA CARD ── */
+.camera-card{background:#1e293b;border:1px solid rgba(255,255,255,.08);border-radius:20px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.camera-title{padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.08)}
 .camera-title span{font-size:14px;font-weight:600;color:#f1f5f9}
-.toggle-btn{
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:8px;
-  padding:5px 12px;
-  color:#94a3b8;font-size:12px;font-weight:600;
-  cursor:pointer;transition:.15s;
-}
+.toggle-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:5px 12px;color:#94a3b8;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
 .toggle-btn:hover{background:rgba(255,255,255,.14);color:#f1f5f9}
 .toggle-btn.active{background:#2563eb;border-color:#2563eb;color:#fff}
-
 #readerWrap{padding:0}
 #reader{width:100%!important}
 #reader video{border-radius:0!important}
 
-/* ── LAST SCAN CHIP ── */
-.last-scan{
-  display:none;
-  background:rgba(37,99,235,.15);
-  border:1px solid rgba(37,99,235,.3);
-  border-radius:10px;
-  padding:10px 14px;
-  font-size:13px;color:#93c5fd;
-  margin-top:12px;
-  word-break:break-all;
-}
-.last-scan.show{display:block}
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 20px;font-size:13px;color:#f1f5f9;display:flex;align-items:center;gap:8px;white-space:nowrap;opacity:0;transition:opacity .3s;z-index:99;pointer-events:none}
+.toast.show{opacity:1}
 </style>
 </head>
 <body>
-</body>
-
-
 <header class="site-header">
-  <div class="logo-icon">📦</div>
-  <div>
-    <div class="logo-text">Equipment Management</div>
-    <div class="logo-sub">Asset Scanner</div>
-  </div>
+ <div class="logo-icon">📦</div>
+ <div><div class="logo-text">Equipment Management</div><div class="logo-sub">Asset Scanner</div></div>
 </header>
 
 <div class="main">
-
-  <!-- INPUT CARD -->
-  <div class="scan-card">
-    <div class="scan-title">
-      <h2>📷 สแกนอุปกรณ์</h2>
-      <p>ใช้เครื่องยิง Barcode หรือพิมพ์ Serial Number</p>
-    </div>
-    <div class="scan-body">
-      <div class="input-wrap">
-        <input
-          id="scanInput"
-          type="text"
-          placeholder="รอการสแกน หรือพิมพ์..."
-          autocomplete="off"
-          autocorrect="off"
-          spellcheck="false"
-        />
-        <span class="input-icon">🔍</span>
-      </div>
-      <button class="btn-submit" onclick="submitManual()">
-        🚀 ค้นหาอุปกรณ์
-      </button>
-      <div class="last-scan" id="lastScan"></div>
-    </div>
+ <!-- INPUT CARD -->
+ <div class="scan-card">
+  <div class="scan-title">
+   <h2>📷 สแกนอุปกรณ์</h2>
+   <p>ใช้เครื่องยิง Barcode หรือสแกน QR Code</p>
   </div>
+  <div class="scan-body">
+   <div class="input-wrap">
+    <input id="scanInput" type="text" placeholder="รอสแกน หรือพิมพ์ Serial / URL..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <span class="input-icon">🔍</span>
+   </div>
+   <button class="btn-submit" onclick="submitManual()">🚀 ค้นหาอุปกรณ์</button>
 
-  <!-- CAMERA CARD -->
-  <div class="camera-card">
-    <div class="camera-title">
-      <span>📱 สแกนด้วยกล้อง</span>
-      <button class="toggle-btn" id="toggleCamBtn" onclick="toggleCamera()">เปิดกล้อง</button>
-    </div>
-    <div id="readerWrap" style="display:none">
-      <div id="reader"></div>
-    </div>
+   <!-- ✅ แสดง serial ที่สกัดได้ก่อน redirect -->
+   <div class="result-box" id="resultBox">
+    <div class="result-label">Serial Number ที่พบ</div>
+    <div class="result-serial" id="resultSerial"></div>
+   </div>
   </div>
+ </div>
 
+ <!-- CAMERA CARD -->
+ <div class="camera-card">
+  <div class="camera-title">
+   <span>📱 สแกนด้วยกล้อง</span>
+   <button class="toggle-btn" id="toggleCamBtn" onclick="toggleCamera()">เปิดกล้อง</button>
+  </div>
+  <div id="readerWrap" style="display:none"><div id="reader"></div></div>
+ </div>
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast">🔍 กำลังค้นหา...</div>
+<div class="toast" id="toast"></div>
 
-<!-- library -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
 <script>
-const scanInput = document.getElementById("scanInput");
-let scanner = null;
-let cameraOn = false;
-let debounceTimer = null;
+const scanInput=document.getElementById("scanInput");
+let scanner=null,cameraOn=false,debounce=null;
 
-/* =========================
-   BARCODE GUN — detect rapid paste/type
-   (barcode gun ส่งข้อมูลเร็วมาก จบด้วย Enter)
-========================= */
-scanInput.addEventListener("keydown", function(e){
-  if(e.key === "Enter"){
-    const code = scanInput.value.trim();
-    if(!code) return;
-    handleScan(code);
-    scanInput.value = "";
+/* ════════════════════════════════════════════
+   ✅ CORE: สกัด serial จาก raw input
+   รองรับ:
+   1. URL เต็ม: https://...?serial=30-F-17062026-0001
+   2. Path: /a/30-F-17062026-0001
+   3. Serial ธรรมดา: 30-F-17062026-0001
+════════════════════════════════════════════ */
+function extractSerial(raw){
+  raw=(raw||"").trim();
+  if(!raw) return "";
+
+  /* กรณี URL */
+  try{
+    const url=new URL(raw);
+    /* ?serial=xxx */
+    const qs=url.searchParams.get("serial");
+    if(qs) return decodeURIComponent(qs);
+    /* path /a/xxx หรือ /asset.html → ดึงส่วนท้าย */
+    const parts=url.pathname.split("/").filter(Boolean);
+    if(parts.length>0){
+      const last=parts[parts.length-1];
+      /* ถ้าไม่ใช่ชื่อไฟล์ html → น่าจะเป็น serial */
+      if(!last.endsWith(".html")) return decodeURIComponent(last);
+    }
+  }catch(e){}
+
+  /* กรณีเป็น relative path /a/xxx */
+  if(raw.startsWith("/a/")){
+    return decodeURIComponent(raw.replace("/a/",""));
+  }
+
+  /* กรณีธรรมดา → คืนเดิม */
+  return raw;
+}
+
+/* ── BARCODE GUN (Enter) ── */
+scanInput.addEventListener("keydown",function(e){
+  if(e.key==="Enter"){
+    const raw=scanInput.value.trim();
+    if(!raw) return;
+    handleScan(raw);
+    scanInput.value="";
   }
 });
 
-/* auto-submit เมื่อ input หยุดพิมพ์ 600ms (กรณีบาง barcode ไม่ส่ง Enter) */
-scanInput.addEventListener("input", function(){
-  clearTimeout(debounceTimer);
-  const val = scanInput.value.trim();
-  if(val.length >= 4){
-    debounceTimer = setTimeout(() => {
-      /* ถ้าไม่ได้ focus อยู่ (barcode gun อาจเปลี่ยน focus) ให้ submit เลย */
-      if(document.activeElement !== scanInput){
-        handleScan(val);
-        scanInput.value = "";
-      }
-    }, 600);
+/* auto-submit สำหรับ barcode gun ที่ไม่ส่ง Enter */
+scanInput.addEventListener("input",function(){
+  clearTimeout(debounce);
+  const val=scanInput.value.trim();
+  if(val.length>=4){
+    debounce=setTimeout(()=>{
+      if(document.activeElement!==scanInput){handleScan(val);scanInput.value=""}
+    },500);
   }
 });
 
-/* =========================
-   MANUAL SUBMIT
-========================= */
 function submitManual(){
-  const code = scanInput.value.trim();
-  if(!code){
-    showToast("⚠️ กรุณาใส่ Serial Number");
-    return;
-  }
-  handleScan(code);
+  const raw=scanInput.value.trim();
+  if(!raw){showToast("⚠️ กรุณาใส่ Serial Number หรือ URL");return}
+  handleScan(raw);
 }
 
-/* =========================
-   ✅ BUG FIX: redirect ไป /a/:code ซึ่ง serve asset.html
-   (ต้องมี route app.get('/a/:code', ...) ใน server.js — มีอยู่แล้ว)
-========================= */
-function handleScan(code){
-  showToast(`🔍 กำลังโหลด: ${code}`);
+/* ── HANDLE SCAN ── */
+function handleScan(raw){
+  const serial=extractSerial(raw);
 
-  const lastScan = document.getElementById("lastScan");
-  lastScan.textContent = `สแกนล่าสุด: ${code}`;
-  lastScan.classList.add("show");
+  if(!serial){showToast("⚠️ ไม่พบ Serial Number");return}
 
-  /* หน่วงเล็กน้อยให้ toast แสดงก่อน redirect */
-  setTimeout(() => {
-    window.location.href = `/a/${encodeURIComponent(code)}`;
-  }, 300);
+  /* แสดง preview */
+  document.getElementById("resultSerial").textContent=serial;
+  document.getElementById("resultBox").classList.add("show");
+
+  showToast(`🔍 กำลังโหลด: ${serial}`);
+
+  /* redirect ไป asset.html พร้อม serial */
+  setTimeout(()=>{
+    window.location.href=`/a/${encodeURIComponent(serial)}`;
+  },400);
 }
 
-/* =========================
-   CAMERA TOGGLE
-========================= */
-function toggleCamera(){
-  if(cameraOn){
-    stopCamera();
-  } else {
-    startCamera();
-  }
-}
+/* ── CAMERA ── */
+function toggleCamera(){cameraOn?stopCamera():startCamera()}
 
 function startCamera(){
-  const wrap = document.getElementById("readerWrap");
-  const btn  = document.getElementById("toggleCamBtn");
+  const wrap=document.getElementById("readerWrap");
+  const btn=document.getElementById("toggleCamBtn");
+  wrap.style.display="block";btn.textContent="ปิดกล้อง";btn.classList.add("active");
 
-  wrap.style.display = "block";
-  btn.textContent = "ปิดกล้อง";
-  btn.classList.add("active");
-
-  scanner = new Html5Qrcode("reader");
-
-  Html5Qrcode.getCameras().then(devices => {
-
-    if(!devices || devices.length === 0){
-      showToast("⚠️ ไม่พบกล้องในอุปกรณ์นี้");
-      stopCamera();
-      return;
-    }
-
-    /* ใช้กล้องหลัง (index สุดท้าย) ถ้ามี */
-    const camId = devices.length > 1
-      ? devices[devices.length - 1].id
-      : devices[0].id;
-
-    scanner.start(
-      camId,
-      { fps:10, qrbox:{ width:220, height:220 } },
-      (decodedText) => {
-        handleScan(decodedText);
-        stopCamera();
-      },
-      null /* suppress errors during scan */
-    ).catch(err => {
-      console.error("Camera start error:", err);
-      showToast("⚠️ ไม่สามารถเปิดกล้องได้");
-      stopCamera();
-    });
-
-    cameraOn = true;
-
-  }).catch(err => {
-    console.error("getCameras error:", err);
-    showToast("⚠️ ขอสิทธิ์กล้องไม่สำเร็จ");
-    stopCamera();
-  });
+  scanner=new Html5Qrcode("reader");
+  Html5Qrcode.getCameras().then(devices=>{
+    if(!devices||!devices.length){showToast("⚠️ ไม่พบกล้อง");stopCamera();return}
+    const camId=devices.length>1?devices[devices.length-1].id:devices[0].id;
+    scanner.start(camId,{fps:10,qrbox:{width:220,height:220}},(decoded)=>{
+      handleScan(decoded);stopCamera();
+    },null).catch(err=>{showToast("⚠️ เปิดกล้องไม่ได้");stopCamera()});
+    cameraOn=true;
+  }).catch(()=>{showToast("⚠️ ขอสิทธิ์กล้องไม่สำเร็จ");stopCamera()});
 }
 
 function stopCamera(){
-  const wrap = document.getElementById("readerWrap");
-  const btn  = document.getElementById("toggleCamBtn");
-
-  if(scanner){
-    scanner.stop().catch(()=>{});
-    scanner.clear();
-    scanner = null;
-  }
-
-  cameraOn = false;
-  wrap.style.display = "none";
-  btn.textContent = "เปิดกล้อง";
-  btn.classList.remove("active");
+  const wrap=document.getElementById("readerWrap");
+  const btn=document.getElementById("toggleCamBtn");
+  if(scanner){scanner.stop().catch(()=>{});scanner.clear();scanner=null}
+  cameraOn=false;wrap.style.display="none";btn.textContent="เปิดกล้อง";btn.classList.remove("active");
 }
 
-/* =========================
-   TOAST
-========================= */
+/* ── TOAST ── */
 function showToast(msg){
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2500);
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove("show"),2800);
 }
 
-/* =========================
-   KEEP FOCUS สำหรับ barcode gun
-   (ทุก 800ms ถ้าไม่มี modal/camera ให้ focus input)
-========================= */
-setInterval(() => {
-  if(!cameraOn && document.activeElement?.tagName !== "BUTTON"){
-    scanInput.focus();
-  }
-}, 800);
-
-/* INIT */
-window.onload = () => {
-  scanInput.focus();
-};
+/* keep focus สำหรับ barcode gun */
+setInterval(()=>{if(!cameraOn&&document.activeElement?.tagName!=="BUTTON")scanInput.focus()},800);
+window.onload=()=>scanInput.focus();
 </script>
 </body>
 </html>

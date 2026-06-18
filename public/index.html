@@ -6,2069 +6,990 @@
 <title>Equipment Management System</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-/* ═══════════════════════════════════════════
-   DESIGN TOKENS
-═══════════════════════════════════════════ */
 :root{
-  --navy:#0f172a;
-  --navy2:#1e293b;
-  --blue:#2563eb;
-  --blue-dark:#1d4ed8;
-  --blue-light:#eff6ff;
-  --blue-border:#bfdbfe;
-  --teal:#0d9488;
-  --green:#16a34a;
-  --green-bg:#f0fdf4;
-  --green-border:#bbf7d0;
-  --amber:#d97706;
-  --amber-bg:#fffbeb;
-  --red:#dc2626;
-  --red-bg:#fef2f2;
-  --red-border:#fecaca;
-  --purple:#7c3aed;
-  --purple-bg:#f5f3ff;
-  --gray-50:#f8fafc;
-  --gray-100:#f1f5f9;
-  --gray-200:#e2e8f0;
-  --gray-300:#cbd5e1;
-  --gray-400:#94a3b8;
-  --gray-500:#64748b;
-  --gray-600:#475569;
-  --gray-700:#334155;
-  --gray-800:#1e293b;
-  --gray-900:#0f172a;
-  --text:#0f172a;
-  --text-sub:#475569;
-  --text-muted:#94a3b8;
-  --white:#ffffff;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-  --shadow-md:0 4px 16px rgba(0,0,0,.07),0 2px 6px rgba(0,0,0,.04);
-  --shadow-lg:0 10px 40px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
-  --r-sm:8px;
-  --r-md:12px;
-  --r-lg:16px;
-  --r-xl:20px;
+  --navy:#0f172a;--navy2:#1e293b;--blue:#2563eb;--blue-d:#1d4ed8;
+  --blue-l:#eff6ff;--blue-b:#bfdbfe;--teal:#0d9488;--green:#16a34a;
+  --green-bg:#f0fdf4;--green-b:#bbf7d0;--amber:#d97706;--amber-bg:#fffbeb;
+  --red:#dc2626;--red-bg:#fef2f2;--red-b:#fecaca;--purple:#7c3aed;
+  --g50:#f8fafc;--g100:#f1f5f9;--g200:#e2e8f0;--g300:#cbd5e1;
+  --g400:#94a3b8;--g500:#64748b;--g600:#475569;--g700:#334155;
+  --text:#0f172a;--tsub:#475569;--tmuted:#94a3b8;
+  --sh-sm:0 1px 3px rgba(0,0,0,.06);
+  --sh-md:0 4px 16px rgba(0,0,0,.07);
+  --sh-lg:0 10px 40px rgba(0,0,0,.08);
+  --r:8px;--r2:12px;--r3:16px;--r4:20px;
 }
-
 *{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Inter",-apple-system,"Segoe UI",sans-serif;background:var(--g100);color:var(--text);font-size:14px;line-height:1.5;visibility:hidden}
 
-body{
-  font-family:"Inter",-apple-system,"Segoe UI",sans-serif;
-  background:var(--gray-100);
-  color:var(--text);
-  font-size:14px;
-  line-height:1.5;
-  visibility:hidden;
-}
+/* ── LOGIN ── */
+#loginPage{min-height:100vh;display:flex;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 55%,#0f172a 100%);position:relative;overflow:hidden}
+#loginPage::before,#loginPage::after{content:"";position:absolute;border-radius:50%;filter:blur(90px);opacity:.15;pointer-events:none}
+#loginPage::before{width:520px;height:520px;background:#3b82f6;top:-160px;right:-120px}
+#loginPage::after{width:420px;height:420px;background:#818cf8;bottom:-120px;left:-80px}
+.ls{display:flex;width:100%;position:relative;z-index:1}
+.ll{flex:1;display:flex;flex-direction:column;justify-content:center;padding:64px;color:#fff}
+.lb{display:flex;align-items:center;gap:14px;margin-bottom:52px}
+.lb-icon{width:52px;height:52px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;backdrop-filter:blur(8px)}
+.lb-name{font-size:18px;font-weight:700}.lb-sub{font-size:12px;color:rgba(255,255,255,.45);margin-top:2px}
+.lh{font-size:44px;font-weight:800;line-height:1.12;letter-spacing:-.6px;margin-bottom:16px}
+.lh span{background:linear-gradient(90deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ls-text{font-size:16px;color:rgba(255,255,255,.5);line-height:1.75;max-width:400px}
+.lf{display:flex;flex-direction:column;gap:12px;margin-top:44px}
+.lf-item{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.65)}
+.lf-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#60a5fa,#818cf8);flex-shrink:0}
+.lr{width:460px;display:flex;align-items:center;justify-content:center;padding:40px;background:rgba(255,255,255,.03);backdrop-filter:blur(20px);border-left:1px solid rgba(255,255,255,.06)}
+.lc{background:#fff;border-radius:var(--r4);padding:44px 40px;width:100%;max-width:380px;box-shadow:0 40px 80px rgba(0,0,0,.25)}
+.lc-title{font-size:24px;font-weight:800;color:var(--navy);margin-bottom:6px;letter-spacing:-.3px}
+.lc-sub{font-size:14px;color:var(--tmuted);margin-bottom:32px}
+.lfield{margin-bottom:16px}
+.lfield label{display:block;font-size:13px;font-weight:600;color:var(--g700);margin-bottom:6px}
+.lfield input{width:100%;padding:12px 14px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:14px;color:var(--text);outline:none;transition:.2s;background:#fff}
+.lfield input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.lfield input::placeholder{color:var(--tmuted)}
+.lbtn{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:700;cursor:pointer;transition:.15s;margin-top:8px}
+.lbtn:hover{background:var(--blue-d);transform:translateY(-1px);box-shadow:0 8px 20px rgba(37,99,235,.35)}
+.lbtn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+#loginError{font-size:13px;color:var(--red);margin-top:10px;text-align:center;min-height:18px}
+@media(max-width:768px){.ll{display:none}.lr{width:100%;border-left:none;padding:20px}}
 
-/* ═══════════════════════════════════════════
-   LOGIN PAGE
-═══════════════════════════════════════════ */
-#loginPage{
-  min-height:100vh;
-  display:flex;
-  background:linear-gradient(135deg, var(--navy) 0%, #1e3a8a 50%, #0f172a 100%);
-  position:relative;
-  overflow:hidden;
-}
-
-/* decorative blobs */
-#loginPage::before,#loginPage::after{
-  content:"";
-  position:absolute;
-  border-radius:50%;
-  filter:blur(80px);
-  opacity:.18;
-}
-#loginPage::before{
-  width:500px;height:500px;
-  background:#3b82f6;
-  top:-150px;right:-100px;
-}
-#loginPage::after{
-  width:400px;height:400px;
-  background:#818cf8;
-  bottom:-100px;left:-80px;
-}
-
-.login-split{
-  display:flex;
-  width:100%;
-  position:relative;
-  z-index:1;
-}
-
-.login-left{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  padding:60px;
-  color:#fff;
-}
-.login-brand{
-  display:flex;align-items:center;gap:14px;
-  margin-bottom:48px;
-}
-.login-brand-icon{
-  width:52px;height:52px;
-  background:rgba(255,255,255,.12);
-  border:1px solid rgba(255,255,255,.2);
-  border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:24px;
-  backdrop-filter:blur(8px);
-}
-.login-brand-name{font-size:18px;font-weight:700;letter-spacing:-.2px}
-.login-brand-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
-
-.login-headline{font-size:42px;font-weight:800;line-height:1.15;letter-spacing:-.5px;margin-bottom:16px}
-.login-headline span{
-  background:linear-gradient(90deg,#60a5fa,#a78bfa);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.login-sub-text{font-size:16px;color:rgba(255,255,255,.55);line-height:1.7;max-width:400px}
-
-.login-features{display:flex;flex-direction:column;gap:12px;margin-top:40px}
-.login-feature{
-  display:flex;align-items:center;gap:10px;
-  font-size:14px;color:rgba(255,255,255,.7);
-}
-.login-feature-dot{
-  width:8px;height:8px;border-radius:50%;
-  background:linear-gradient(135deg,#60a5fa,#818cf8);
-  flex-shrink:0;
-}
-
-.login-right{
-  width:460px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:40px;
-  background:rgba(255,255,255,.04);
-  backdrop-filter:blur(20px);
-  border-left:1px solid rgba(255,255,255,.06);
-}
-
-.login-card{
-  background:#fff;
-  border-radius:var(--r-xl);
-  padding:44px 40px;
-  width:100%;
-  max-width:380px;
-  box-shadow:0 40px 80px rgba(0,0,0,.25);
-}
-.login-card-title{
-  font-size:24px;font-weight:800;color:var(--navy);
-  margin-bottom:6px;letter-spacing:-.3px;
-}
-.login-card-sub{font-size:14px;color:var(--text-muted);margin-bottom:32px}
-
-.login-field{margin-bottom:16px}
-.login-field label{
-  display:block;font-size:13px;font-weight:600;color:var(--gray-700);
-  margin-bottom:6px;
-}
-.login-field input{
-  width:100%;
-  padding:12px 14px;
-  border:1.5px solid var(--gray-200);
-  border-radius:var(--r-sm);
-  font-size:14px;color:var(--text);
-  outline:none;
-  transition:.2s;
-  background:#fff;
-}
-.login-field input:focus{
-  border-color:var(--blue);
-  box-shadow:0 0 0 3px rgba(37,99,235,.12);
-}
-.login-field input::placeholder{color:var(--text-muted)}
-
-.login-submit{
-  width:100%;
-  padding:13px;
-  background:var(--blue);
-  color:#fff;
-  border:none;border-radius:var(--r-sm);
-  font-size:15px;font-weight:700;
-  cursor:pointer;
-  transition:.15s;
-  margin-top:8px;
-  letter-spacing:.2px;
-}
-.login-submit:hover{background:var(--blue-dark);transform:translateY(-1px);box-shadow:0 8px 20px rgba(37,99,235,.35)}
-.login-submit:active{transform:translateY(0)}
-.login-submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
-
-#loginError{
-  font-size:13px;color:var(--red);
-  margin-top:10px;text-align:center;
-  min-height:18px;
-}
-
-@media(max-width:768px){
-  .login-left{display:none}
-  .login-right{width:100%;border-left:none;padding:20px}
-}
-
-/* ═══════════════════════════════════════════
-   MAIN APP SHELL
-═══════════════════════════════════════════ */
+/* ── APP SHELL ── */
 #mainApp{display:none}
-
-/* ── TOPBAR ── */
-.topbar{
-  background:var(--navy);
-  padding:0 24px;
-  height:60px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  position:sticky;top:0;
-  z-index:200;
-  box-shadow:0 1px 0 rgba(255,255,255,.06),0 4px 16px rgba(0,0,0,.2);
-}
-.topbar-left{display:flex;align-items:center;gap:12px}
-.topbar-logo{
-  width:36px;height:36px;
-  background:var(--blue);
-  border-radius:10px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0;
-}
-.topbar-title{color:#fff;font-size:15px;font-weight:700;letter-spacing:-.2px}
-.topbar-sub{color:rgba(255,255,255,.4);font-size:11px;margin-top:1px}
-
-.topbar-right{display:flex;align-items:center;gap:12px}
-.topbar-user{
-  display:flex;align-items:center;gap:8px;
-  color:rgba(255,255,255,.75);font-size:13px;
-}
-.topbar-avatar{
-  width:32px;height:32px;
-  background:var(--blue);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;color:#fff;
-  border:2px solid rgba(255,255,255,.15);
-}
-.topbar-logout{
-  background:rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.1);
-  color:rgba(255,255,255,.65);
-  padding:6px 14px;border-radius:8px;
-  font-size:12px;font-weight:600;cursor:pointer;
-  transition:.15s;
-}
-.topbar-logout:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5}
-
-/* ── NAV TABS ── */
-.navbar{
-  background:var(--navy2);
-  padding:0 20px;
-  display:flex;
-  gap:2px;
-  overflow-x:auto;
-  border-bottom:1px solid rgba(255,255,255,.05);
-  scrollbar-width:none;
-}
+.topbar{background:var(--navy);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 1px 0 rgba(255,255,255,.05),0 4px 16px rgba(0,0,0,.2)}
+.tb-l{display:flex;align-items:center;gap:12px}
+.tb-logo{width:36px;height:36px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.tb-title{color:#fff;font-size:15px;font-weight:700;letter-spacing:-.2px}
+.tb-sub{color:rgba(255,255,255,.38);font-size:11px;margin-top:1px}
+.tb-r{display:flex;align-items:center;gap:12px}
+.tb-user{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.7);font-size:13px}
+.tb-av{width:32px;height:32px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,.15)}
+.tb-out{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.tb-out:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5}
+.navbar{background:var(--navy2);padding:0 20px;display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.05);scrollbar-width:none}
 .navbar::-webkit-scrollbar{display:none}
-.nav-btn{
-  padding:14px 18px;
-  background:none;border:none;
-  color:rgba(255,255,255,.45);
-  font-size:13px;font-weight:500;
-  cursor:pointer;white-space:nowrap;
-  position:relative;transition:.15s;
-  display:flex;align-items:center;gap:7px;
-  border-bottom:2px solid transparent;
-  flex-shrink:0;
-}
+.nav-btn{padding:14px 18px;background:none;border:none;color:rgba(255,255,255,.42);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;position:relative;transition:.15s;display:flex;align-items:center;gap:7px;border-bottom:2px solid transparent;flex-shrink:0}
 .nav-btn:hover{color:rgba(255,255,255,.8)}
-.nav-btn.active{
-  color:#fff;font-weight:700;
-  border-bottom-color:var(--blue);
-}
-.nav-scan-btn{
-  margin-left:auto;
-  padding:8px 16px;
-  background:var(--teal);
-  color:#fff;
-  border:none;border-radius:var(--r-sm);
-  font-size:13px;font-weight:700;
-  cursor:pointer;
-  display:flex;align-items:center;gap:6px;
-  transition:.15s;
-  align-self:center;
-  flex-shrink:0;
-}
-.nav-scan-btn:hover{background:#0f766e;transform:translateY(-1px)}
+.nav-btn.active{color:#fff;font-weight:700;border-bottom-color:var(--blue)}
+.nav-scan{margin-left:auto;padding:7px 16px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s;align-self:center;flex-shrink:0;text-decoration:none}
+.nav-scan:hover{background:#0f766e;transform:translateY(-1px)}
 
-/* ── PAGE BODY ── */
-.page-body{
-  padding:28px 24px;
-  max-width:1400px;
-  margin:0 auto;
-}
+/* ── TABS ── */
+.tab{display:none;padding:28px 24px;max-width:1440px;margin:0 auto}
+.tab.active{display:block}
+@media(max-width:640px){.tab{padding:16px}}
 
-/* ── SECTION HEADER ── */
-.section-header{
-  display:flex;justify-content:space-between;align-items:flex-start;
-  margin-bottom:24px;flex-wrap:wrap;gap:12px;
-}
-.section-title{font-size:20px;font-weight:800;color:var(--navy);letter-spacing:-.3px}
-.section-sub{font-size:13px;color:var(--text-muted);margin-top:3px}
+/* ── SECTION HEAD ── */
+.sh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.sh-title{font-size:20px;font-weight:800;color:var(--navy);letter-spacing:-.3px}
+.sh-sub{font-size:13px;color:var(--tmuted);margin-top:3px}
 
 /* ── STAT CARDS ── */
-.stat-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:16px;
-  margin-bottom:28px;
-}
-.stat-card{
-  background:#fff;
-  border-radius:var(--r-lg);
-  padding:20px;
-  border:1px solid var(--gray-200);
-  box-shadow:var(--shadow-sm);
-  position:relative;overflow:hidden;
-  transition:.2s;
-}
-.stat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
-.stat-card-accent{
-  position:absolute;top:0;left:0;
-  width:100%;height:3px;
-  border-radius:var(--r-lg) var(--r-lg) 0 0;
-}
-.accent-blue{background:linear-gradient(90deg,#2563eb,#60a5fa)}
-.accent-teal{background:linear-gradient(90deg,#0d9488,#2dd4bf)}
-.accent-amber{background:linear-gradient(90deg,#d97706,#fbbf24)}
-.accent-green{background:linear-gradient(90deg,#16a34a,#4ade80)}
-.accent-red{background:linear-gradient(90deg,#dc2626,#f87171)}
-.accent-purple{background:linear-gradient(90deg,#7c3aed,#a78bfa)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:16px;margin-bottom:28px}
+.sc{background:#fff;border-radius:var(--r3);padding:20px;border:1px solid var(--g200);box-shadow:var(--sh-sm);position:relative;overflow:hidden;transition:.2s;cursor:default}
+.sc:hover{transform:translateY(-3px);box-shadow:var(--sh-md)}
+.sc-bar{position:absolute;top:0;left:0;width:100%;height:3px;border-radius:var(--r3) var(--r3) 0 0}
+.ab{background:linear-gradient(90deg,#2563eb,#60a5fa)}.at{background:linear-gradient(90deg,#0d9488,#2dd4bf)}
+.aa{background:linear-gradient(90deg,#d97706,#fbbf24)}.ag{background:linear-gradient(90deg,#16a34a,#4ade80)}
+.ar{background:linear-gradient(90deg,#dc2626,#f87171)}.ap{background:linear-gradient(90deg,#7c3aed,#a78bfa)}
+.sc-lbl{font-size:11px;color:var(--tmuted);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.sc-val{font-size:30px;font-weight:800;color:var(--navy);letter-spacing:-.5px;line-height:1}
+.sc-note{font-size:11px;color:var(--tmuted);margin-top:6px}
 
-.stat-label{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
-.stat-value{font-size:30px;font-weight:800;color:var(--navy);letter-spacing:-.5px;line-height:1}
-.stat-note{font-size:11px;color:var(--text-muted);margin-top:6px}
+/* ── CHART ── */
+.cc{background:#fff;border-radius:var(--r3);padding:24px;border:1px solid var(--g200);box-shadow:var(--sh-sm);margin-bottom:28px}
+.cc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.cc-title{font-size:15px;font-weight:700;color:var(--navy)}
+.cr-tabs{display:flex;gap:4px}
+.cr-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;background:var(--g100);color:var(--tmuted);border:1px solid var(--g200);cursor:pointer;transition:.15s}
+.cr-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.cr-btn:hover:not(.active){background:var(--g200)}
 
-/* ── CHART CARD ── */
-.chart-card{
-  background:#fff;
-  border-radius:var(--r-lg);
-  padding:24px;
-  border:1px solid var(--gray-200);
-  box-shadow:var(--shadow-sm);
-  margin-bottom:28px;
-}
-.chart-card-header{
-  display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:20px;flex-wrap:wrap;gap:12px;
-}
-.chart-card-title{font-size:15px;font-weight:700;color:var(--navy)}
-.chart-range-tabs{display:flex;gap:4px}
-.chart-range-btn{
-  padding:5px 12px;border-radius:6px;
-  font-size:12px;font-weight:600;
-  background:var(--gray-100);color:var(--text-muted);
-  border:1px solid var(--gray-200);cursor:pointer;transition:.15s;
-}
-.chart-range-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
-.chart-range-btn:hover:not(.active){background:var(--gray-200)}
+/* ── PANEL ── */
+.panel{background:#fff;border-radius:var(--r3);border:1px solid var(--g200);box-shadow:var(--sh-sm);overflow:hidden;margin-bottom:24px}
+.ph{padding:14px 20px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.ph-title{font-size:14px;font-weight:700;color:var(--navy)}
+.pb{padding:20px}
 
-/* ── PANEL (white box) ── */
-.panel{
-  background:#fff;
-  border-radius:var(--r-lg);
-  border:1px solid var(--gray-200);
-  box-shadow:var(--shadow-sm);
-  overflow:hidden;
-  margin-bottom:24px;
-}
-.panel-header{
-  padding:16px 20px;
-  border-bottom:1px solid var(--gray-100);
-  display:flex;justify-content:space-between;align-items:center;
-  gap:12px;flex-wrap:wrap;
-}
-.panel-title{font-size:14px;font-weight:700;color:var(--navy)}
-.panel-body{padding:20px}
+/* ── SEARCH ── */
+.si{flex:1;min-width:200px;padding:10px 14px 10px 38px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;color:var(--text);outline:none;transition:.2s;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.868-3.834zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E") no-repeat 12px center}
+.si:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 
-/* ── SEARCH BAR ── */
-.searchbar{
-  display:flex;gap:10px;flex-wrap:wrap;align-items:center;
-}
-.searchbar-input{
-  flex:1;min-width:200px;
-  padding:10px 14px 10px 38px;
-  border:1.5px solid var(--gray-200);
-  border-radius:var(--r-sm);
-  font-size:13px;color:var(--text);
-  outline:none;transition:.2s;
-  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.868-3.834zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E") no-repeat 12px center;
-}
-.searchbar-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-
-/* ── FORM ROW ── */
-.form-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:12px;
-}
-.form-field label{
-  display:block;font-size:12px;font-weight:600;color:var(--gray-600);
-  margin-bottom:5px;
-}
-.form-field input,
-.form-field select,
-.form-field textarea{
-  width:100%;
-  padding:9px 12px;
-  border:1.5px solid var(--gray-200);
-  border-radius:var(--r-sm);
-  font-size:13px;color:var(--text);
-  outline:none;transition:.2s;
-  background:#fff;
-}
-.form-field input:focus,
-.form-field select:focus,
-.form-field textarea:focus{
-  border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);
-}
+/* ── FORM ── */
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px}
+.ff label{display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:5px}
+.ff input,.ff select,.ff textarea{width:100%;padding:9px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;color:var(--text);outline:none;transition:.2s;background:#fff}
+.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 
 /* ── BUTTONS ── */
-.btn{
-  padding:9px 18px;
-  border-radius:var(--r-sm);
-  font-size:13px;font-weight:600;
-  cursor:pointer;border:1.5px solid transparent;
-  display:inline-flex;align-items:center;gap:6px;
-  transition:.15s;text-decoration:none;white-space:nowrap;
-}
+.btn{padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:6px;transition:.15s;text-decoration:none;white-space:nowrap}
 .btn:hover{transform:translateY(-1px)}
 .btn-blue{background:var(--blue);color:#fff;border-color:var(--blue)}
-.btn-blue:hover{background:var(--blue-dark);box-shadow:0 6px 16px rgba(37,99,235,.3)}
+.btn-blue:hover{background:var(--blue-d);box-shadow:0 6px 16px rgba(37,99,235,.28)}
 .btn-teal{background:var(--teal);color:#fff;border-color:var(--teal)}
 .btn-teal:hover{background:#0f766e}
-.btn-green{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
-.btn-green:hover{background:#dcfce7}
-.btn-red{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
-.btn-red:hover{background:#fee2e2}
-.btn-outline{background:#fff;color:var(--text-sub);border-color:var(--gray-200)}
-.btn-outline:hover{background:var(--gray-50);border-color:var(--gray-300)}
-.btn-ghost{background:none;border-color:transparent;color:var(--text-muted)}
-.btn-ghost:hover{background:var(--gray-100)}
+.btn-green{background:var(--green-bg);color:var(--green);border-color:var(--green-b)}
+.btn-red{background:var(--red-bg);color:var(--red);border-color:var(--red-b)}
+.btn-out{background:#fff;color:var(--tsub);border-color:var(--g200)}
+.btn-out:hover{background:var(--g50);border-color:var(--g300)}
+.btn-ghost{background:none;border-color:transparent;color:var(--tmuted)}
+.btn-ghost:hover{background:var(--g100)}
 .btn-sm{padding:6px 12px;font-size:12px}
 
 /* ── TABLE ── */
-.table-wrap{overflow-x:auto}
+.tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-thead tr{background:var(--gray-50);border-bottom:2px solid var(--gray-200)}
-th{
-  padding:11px 14px;
-  font-size:11px;font-weight:700;color:var(--text-muted);
-  text-transform:uppercase;letter-spacing:.5px;
-  text-align:left;white-space:nowrap;
-}
-td{
-  padding:12px 14px;
-  font-size:13px;color:var(--text);
-  border-bottom:1px solid var(--gray-100);
-  vertical-align:middle;
-}
+thead tr{background:var(--g50);border-bottom:2px solid var(--g200)}
+th{padding:11px 14px;font-size:11px;font-weight:700;color:var(--tmuted);text-transform:uppercase;letter-spacing:.5px;text-align:left;white-space:nowrap}
+td{padding:11px 14px;font-size:13px;color:var(--text);border-bottom:1px solid var(--g100);vertical-align:middle}
 tbody tr:hover{background:#fafcff}
 tbody tr:last-child td{border-bottom:none}
-
-/* status badges */
-.badge{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:3px 10px;border-radius:20px;
-  font-size:11px;font-weight:700;white-space:nowrap;
-}
-.badge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
-.badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
-.badge-amber{background:var(--amber-bg);color:var(--amber);border:1px solid #fde68a}
-.badge-blue{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-border)}
-.badge-gray{background:var(--gray-100);color:var(--gray-600);border:1px solid var(--gray-200)}
-
-/* out of stock row */
 .row-out td{background:#fffafa}
 .out-text{color:var(--red);font-weight:700;font-size:12px}
 
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.bg-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
+.bg-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b)}
+.bg-amber{background:var(--amber-bg);color:var(--amber);border:1px solid #fde68a}
+.bg-blue{background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b)}
+.bg-gray{background:var(--g100);color:var(--g600);border:1px solid var(--g200)}
+
 /* ── MODAL ── */
-.modal-overlay{
-  display:none;
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(15,23,42,.55);
-  backdrop-filter:blur(4px);
-  z-index:1000;
-  align-items:center;justify-content:center;
-  padding:20px;
-}
-.modal-overlay.open{display:flex}
+.mo{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.mb{background:#fff;border-radius:var(--r4);width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 40px 80px rgba(0,0,0,.2);animation:popIn .2s ease}
+.mb-wide{max-width:560px}
+@keyframes popIn{from{transform:scale(.93);opacity:0}to{transform:scale(1);opacity:1}}
+.mh{padding:20px 24px 16px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.mh-title{font-size:16px;font-weight:800;color:var(--navy)}
+.mc{width:30px;height:30px;border-radius:50%;background:var(--g100);border:none;cursor:pointer;font-size:16px;color:var(--tmuted);display:flex;align-items:center;justify-content:center;transition:.15s}
+.mc:hover{background:var(--g200);color:var(--text)}
+.mbd{padding:20px 24px;overflow-y:auto;flex:1}
+.mf{padding:16px 24px;border-top:1px solid var(--g100);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
 
-.modal-box{
-  background:#fff;
-  border-radius:var(--r-xl);
-  width:100%;max-width:480px;
-  max-height:90vh;
-  display:flex;flex-direction:column;
-  box-shadow:0 40px 80px rgba(0,0,0,.2);
-  animation:popIn .2s ease;
-}
-.modal-box.modal-wide{max-width:560px}
-@keyframes popIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+/* ── STOCK controls ── */
+.sc-row{display:flex;align-items:center;gap:6px}
+.qty-in{width:64px;padding:6px 8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;text-align:center;outline:none}
+.qty-in:focus{border-color:var(--blue)}
+.typ-sel{padding:6px 8px;border:1.5px solid var(--g200);border-radius:6px;font-size:12px;outline:none;background:#fff;cursor:pointer}
 
-.modal-head{
-  padding:20px 24px 16px;
-  border-bottom:1px solid var(--gray-100);
-  display:flex;justify-content:space-between;align-items:center;
-  flex-shrink:0;
-}
-.modal-head-title{font-size:16px;font-weight:800;color:var(--navy)}
-.modal-close{
-  width:30px;height:30px;border-radius:50%;
-  background:var(--gray-100);border:none;cursor:pointer;
-  font-size:16px;color:var(--text-muted);
-  display:flex;align-items:center;justify-content:center;
-  transition:.15s;
-}
-.modal-close:hover{background:var(--gray-200);color:var(--text)}
-
-.modal-body{padding:20px 24px;overflow-y:auto;flex:1}
-.modal-foot{
-  padding:16px 24px;
-  border-top:1px solid var(--gray-100);
-  display:flex;justify-content:flex-end;gap:10px;
-  flex-shrink:0;
-}
-
-/* ── HISTORY TIMELINE ── */
-.hm-timeline{position:relative;padding-left:40px}
-.hm-timeline::before{
-  content:"";position:absolute;
-  left:14px;top:20px;bottom:20px;
-  width:2px;
-  background:linear-gradient(to bottom,var(--blue),var(--blue-border));
-  border-radius:2px;
-}
-.hm-entry{position:relative;margin-bottom:14px}
-.hm-entry:last-child{margin-bottom:0}
-.hm-dot{
-  position:absolute;left:-40px;top:14px;
-  width:24px;height:24px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;z-index:1;
-  box-shadow:0 0 0 3px #fff;
-}
-.hm-dot-register{background:var(--green-bg);border:2px solid #4ade80;color:var(--green)}
-.hm-dot-move{background:var(--blue-light);border:2px solid var(--blue);color:var(--blue)}
-.hm-dot-repair{background:var(--red-bg);border:2px solid #f87171;color:var(--red)}
-.hm-dot-return{background:var(--amber-bg);border:2px solid #fbbf24;color:var(--amber)}
-.hm-dot-current{background:var(--blue);border:2px solid #93c5fd;color:#fff;box-shadow:0 0 0 3px #dbeafe}
-
-.hm-card{
-  background:#fff;border:1px solid var(--gray-200);
-  border-radius:var(--r-md);padding:12px 16px;
-  box-shadow:var(--shadow-sm);
-}
-.hm-card:hover{box-shadow:var(--shadow-md);border-color:var(--gray-300)}
-.hm-card-active{border-color:var(--blue-border);background:#fafcff}
-.hm-card-top{
-  display:flex;justify-content:space-between;align-items:flex-start;
-  gap:8px;flex-wrap:wrap;margin-bottom:8px;
-}
+/* ── TIMELINE ── */
+.hmt{position:relative;padding-left:40px}
+.hmt::before{content:"";position:absolute;left:14px;top:20px;bottom:20px;width:2px;background:linear-gradient(to bottom,var(--blue),var(--blue-b));border-radius:2px}
+.hme{position:relative;margin-bottom:14px}
+.hme:last-child{margin-bottom:0}
+.hmd{position:absolute;left:-40px;top:14px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1;box-shadow:0 0 0 3px #fff}
+.hmd-reg{background:var(--green-bg);border:2px solid #4ade80;color:var(--green)}
+.hmd-move{background:var(--blue-l);border:2px solid var(--blue);color:var(--blue)}
+.hmd-rep{background:var(--red-bg);border:2px solid #f87171;color:var(--red)}
+.hmd-ret{background:var(--amber-bg);border:2px solid #fbbf24;color:var(--amber)}
+.hmd-cur{background:var(--blue);border:2px solid #93c5fd;color:#fff;box-shadow:0 0 0 3px #dbeafe}
+.hmc{background:#fff;border:1px solid var(--g200);border-radius:var(--r2);padding:12px 16px;box-shadow:var(--sh-sm)}
+.hmc:hover{box-shadow:var(--sh-md);border-color:var(--g300)}
+.hmc-a{border-color:var(--blue-b);background:#fafcff}
+.hmc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .hm-action{font-size:13px;font-weight:700;color:var(--navy)}
-.hm-latest-tag{
-  display:inline-block;margin-left:6px;
-  background:var(--blue);color:#fff;
-  font-size:9px;font-weight:700;letter-spacing:.4px;
-  padding:2px 7px;border-radius:20px;vertical-align:middle;
-}
-.hm-date{
-  font-size:11px;color:var(--text-muted);
-  background:var(--gray-50);padding:2px 8px;border-radius:20px;
-  border:1px solid var(--gray-200);white-space:nowrap;flex-shrink:0;
-}
+.hm-tag{display:inline-block;margin-left:6px;background:var(--blue);color:#fff;font-size:9px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:20px;vertical-align:middle}
+.hm-date{font-size:11px;color:var(--tmuted);background:var(--g50);padding:2px 8px;border-radius:20px;border:1px solid var(--g200);white-space:nowrap;flex-shrink:0}
 .hm-route{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:5px 0}
-.hm-chip{
-  padding:2px 9px;border-radius:5px;font-size:11px;font-weight:500;
-  background:var(--gray-50);border:1px solid var(--gray-200);color:var(--text-sub);
-}
-.hm-chip-dest{background:var(--blue-light);border-color:var(--blue-border);color:var(--blue)}
-.hm-arrow{color:var(--text-muted);font-size:12px}
-.hm-user-row{display:flex;align-items:center;gap:7px;margin-top:6px}
-.hm-avatar{
-  width:20px;height:20px;border-radius:50%;
-  background:var(--blue-light);color:var(--blue);font-size:9px;font-weight:700;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid var(--blue-border);flex-shrink:0;
-}
-.hm-remark{
-  margin-top:7px;
-  background:var(--gray-50);border-left:3px solid var(--blue);
-  padding:6px 10px;border-radius:0 5px 5px 0;
-  font-size:11px;color:var(--text-sub);
-}
-.hm-remark-label{display:block;font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.hm-spinner{
-  width:28px;height:28px;border:3px solid var(--blue-border);
-  border-top-color:var(--blue);border-radius:50%;
-  animation:spin .7s linear infinite;margin:0 auto;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
+.hm-chip{padding:2px 9px;border-radius:5px;font-size:11px;font-weight:500;background:var(--g50);border:1px solid var(--g200);color:var(--tsub)}
+.hm-chip-d{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)}
+.hm-arr{color:var(--tmuted);font-size:12px}
+.hm-ur{display:flex;align-items:center;gap:7px;margin-top:6px}
+.hm-av{width:20px;height:20px;border-radius:50%;background:var(--blue-l);color:var(--blue);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1px solid var(--blue-b);flex-shrink:0}
+.hm-rem{margin-top:7px;background:var(--g50);border-left:3px solid var(--blue);padding:6px 10px;border-radius:0 5px 5px 0;font-size:11px;color:var(--tsub)}
+.hm-rem-lbl{display:block;font-size:9px;font-weight:700;color:var(--tmuted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.spin{width:28px;height:28px;border:3px solid var(--blue-b);border-top-color:var(--blue);border-radius:50%;animation:rot .7s linear infinite;margin:0 auto}
+@keyframes rot{to{transform:rotate(360deg)}}
 
-/* ── MONITOR FARM CARDS ── */
-.farm-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-.farm-pill{
-  padding:7px 16px;border-radius:20px;
-  font-size:13px;font-weight:600;cursor:pointer;
-  border:1.5px solid var(--gray-200);
-  background:#fff;color:var(--text-muted);
-  transition:.15s;display:flex;align-items:center;gap:6px;
-}
-.farm-pill:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
-.farm-pill.active{background:var(--blue);color:#fff;border-color:var(--blue)}
-.farm-pill .pill-count{
-  background:rgba(255,255,255,.25);
-  color:inherit;
-  font-size:10px;font-weight:700;
-  padding:1px 6px;border-radius:10px;
-}
-.farm-pill.active .pill-count{background:rgba(255,255,255,.25)}
-.farm-pill:not(.active) .pill-count{background:var(--gray-100);color:var(--text-muted)}
+/* ═══════════════════════════════════════
+   MONITOR FARM — PRO UI
+═══════════════════════════════════════ */
+.mon-layout{display:flex;gap:0;min-height:600px;background:#fff;border-radius:var(--r3);border:1px solid var(--g200);box-shadow:var(--sh-sm);overflow:hidden;margin-bottom:24px}
 
-.farm-stats{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:12px;margin-bottom:20px;
-}
-.farm-stat{
-  background:var(--blue-light);
-  border:1px solid var(--blue-border);
-  border-radius:var(--r-md);
-  padding:14px 16px;text-align:center;
-}
-.farm-stat-val{font-size:24px;font-weight:800;color:var(--blue);line-height:1}
-.farm-stat-lbl{font-size:11px;color:var(--blue);opacity:.7;margin-top:4px;font-weight:600}
+/* sidebar */
+.mon-sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--g100);display:flex;flex-direction:column;background:var(--g50)}
+.mon-sb-head{padding:16px 18px 10px;border-bottom:1px solid var(--g100)}
+.mon-sb-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px}
+.mon-search{position:relative}
+.mon-search input{width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:12px;outline:none;background:#fff;transition:.2s;color:var(--text)}
+.mon-search input:focus{border-color:var(--blue)}
+.mon-search::before{content:"🔍";position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none}
+.mon-farm-list{flex:1;overflow-y:auto;padding:8px}
+.mon-farm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:.15s;margin-bottom:2px;border:1.5px solid transparent}
+.mon-farm-item:hover{background:#fff;border-color:var(--g200)}
+.mon-farm-item.active{background:var(--blue-l);border-color:var(--blue-b)}
+.mon-farm-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:var(--g100)}
+.mon-farm-item.active .mon-farm-icon{background:var(--blue);color:#fff}
+.mon-farm-name{font-size:13px;font-weight:600;color:var(--text);flex:1;word-break:break-word;line-height:1.3}
+.mon-farm-item.active .mon-farm-name{color:var(--blue)}
+.mon-farm-cnt{flex-shrink:0;min-width:24px;height:20px;padding:0 7px;border-radius:20px;background:var(--g200);color:var(--g600);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.mon-farm-item.active .mon-farm-cnt{background:var(--blue);color:#fff}
 
-/* ── SETTINGS CARDS ── */
-.settings-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-  gap:16px;
-}
-.settings-card{
-  background:#fff;
-  border:1px solid var(--gray-200);
-  border-radius:var(--r-lg);
-  padding:22px;
-  box-shadow:var(--shadow-sm);
-}
-.settings-card h3{
-  font-size:14px;font-weight:700;color:var(--navy);
-  margin-bottom:14px;display:flex;align-items:center;gap:8px;
-}
-.settings-card p{font-size:13px;color:var(--text-sub);margin:5px 0}
-.settings-card b{color:var(--navy)}
-.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
-.status-online{background:#4ade80}
-.status-text-green{color:var(--green);font-weight:600}
+/* main content */
+.mon-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.mon-main-head{padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0}
+.mon-farm-label{font-size:16px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px}
+.mon-stats-row{display:flex;gap:10px;flex-wrap:wrap}
+.mon-stat-chip{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.msc-total{background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b)}
+.msc-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
+.msc-rep{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b)}
+.mon-table-wrap{flex:1;overflow:auto;padding:0}
+.mon-table-wrap table{border-radius:0}
+.mon-table-wrap thead tr{position:sticky;top:0;z-index:10;background:var(--g50)}
+.mon-tb-search{padding:12px 20px;border-bottom:1px solid var(--g100);flex-shrink:0}
 
-/* ── REPORT CARD ── */
-.report-card{
-  background:#fff;border:1px solid var(--gray-200);
-  border-radius:var(--r-lg);padding:28px;
-  max-width:560px;box-shadow:var(--shadow-sm);
-}
+/* responsive sidebar */
+@media(max-width:768px){.mon-layout{flex-direction:column}.mon-sidebar{width:100%;border-right:none;border-bottom:1px solid var(--g100)}.mon-farm-list{display:flex;flex-direction:row;flex-wrap:wrap;overflow-y:visible;padding:8px}.mon-farm-item{flex:none;width:auto}}
 
-/* ── EMPTY STATE ── */
-.empty-state{
-  text-align:center;padding:48px 24px;
-  color:var(--text-muted);
-}
-.empty-state-icon{font-size:36px;margin-bottom:12px}
-.empty-state-title{font-size:16px;font-weight:700;color:var(--gray-600);margin-bottom:6px}
+/* ── SETTINGS ── */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.scard{background:#fff;border:1px solid var(--g200);border-radius:var(--r3);padding:22px;box-shadow:var(--sh-sm)}
+.scard h3{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.scard p{font-size:13px;color:var(--tsub);margin:5px 0}
+.scard b{color:var(--navy)}
+.s-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.s-on{background:#4ade80}
+.s-ok{color:var(--green);font-weight:600}
 
-/* ── TABS ── */
-.tab{display:none;padding:24px}
-.tab.active{display:block}
+/* ── REPORT ── */
+.rc{background:#fff;border:1px solid var(--g200);border-radius:var(--r3);padding:28px;max-width:560px;box-shadow:var(--sh-sm)}
 
-/* ── STOCK INPUT ROW ── */
-.stock-controls{
-  display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
-}
-.stock-qty-input{
-  width:64px;padding:6px 8px;
-  border:1.5px solid var(--gray-200);border-radius:6px;
-  font-size:13px;text-align:center;outline:none;
-}
-.stock-qty-input:focus{border-color:var(--blue)}
-.stock-type-select{
-  padding:6px 8px;border:1.5px solid var(--gray-200);border-radius:6px;
-  font-size:12px;outline:none;background:#fff;cursor:pointer;
-}
-
-/* ── RESPONSIVE ── */
-@media(max-width:640px){
-  .tab{padding:16px}
-  .page-body{padding:16px}
-  th,td{padding:10px 10px;font-size:12px}
-  .stat-grid{grid-template-columns:repeat(2,1fr)}
-  .topbar-sub,.topbar-title{display:none}
-}
+/* ── RETURN LIST ── */
+.ret-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100);cursor:pointer;font-size:13px}
+.ret-item:last-child{border-bottom:none}
+.ret-item input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
+.ret-qty{margin-left:auto;background:var(--g100);padding:2px 10px;border-radius:20px;font-size:11px;color:var(--tmuted);flex-shrink:0}
 </style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════════
-     LOGIN PAGE
-════════════════════════════════════════ -->
+<!-- LOGIN -->
 <div id="loginPage">
-  <div class="login-split">
-
-    <div class="login-left">
-      <div class="login-brand">
-        <div class="login-brand-icon">📦</div>
-        <div>
-          <div class="login-brand-name">EMS Platform</div>
-          <div class="login-brand-sub">Equipment Management System</div>
-        </div>
-      </div>
-      <div class="login-headline">
-        จัดการอุปกรณ์<br><span>ทุกชิ้น ทุกฟาร์ม</span><br>ในที่เดียว
-      </div>
-      <div class="login-sub-text">ระบบติดตาม ตรวจสอบ และบริหารอุปกรณ์ด้วย QR Code แบบ Real-time</div>
-      <div class="login-features">
-        <div class="login-feature"><div class="login-feature-dot"></div>Asset Tracking พร้อม QR Code</div>
-        <div class="login-feature"><div class="login-feature-dot"></div>Monitor แยกฟาร์มแบบ Real-time</div>
-        <div class="login-feature"><div class="login-feature-dot"></div>ประวัติการเคลื่อนย้ายครบถ้วน</div>
-        <div class="login-feature"><div class="login-feature-dot"></div>Export รายงาน PDF</div>
-      </div>
-    </div>
-
-    <div class="login-right">
-      <div class="login-card">
-        <div class="login-card-title">ยินดีต้อนรับ 👋</div>
-        <div class="login-card-sub">กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</div>
-        <div class="login-field">
-          <label>Username</label>
-          <input type="text" id="username" placeholder="กรอก Username" autocomplete="username">
-        </div>
-        <div class="login-field">
-          <label>Password</label>
-          <input type="password" id="password" placeholder="กรอก Password" autocomplete="current-password">
-        </div>
-        <button class="login-submit" id="loginBtn" onclick="login()">เข้าสู่ระบบ</button>
-        <div id="loginError"></div>
-      </div>
-    </div>
-
+ <div class="ls">
+  <div class="ll">
+   <div class="lb">
+    <div class="lb-icon">📦</div>
+    <div><div class="lb-name">EMS Platform</div><div class="lb-sub">Equipment Management System</div></div>
+   </div>
+   <div class="lh">จัดการอุปกรณ์<br><span>ทุกชิ้น ทุกฟาร์ม</span><br>ในที่เดียว</div>
+   <div class="ls-text">ระบบติดตาม ตรวจสอบ และบริหารอุปกรณ์ด้วย QR Code แบบ Real-time</div>
+   <div class="lf">
+    <div class="lf-item"><div class="lf-dot"></div>Asset Tracking พร้อม QR Code</div>
+    <div class="lf-item"><div class="lf-dot"></div>Monitor แยกฟาร์มแบบ Real-time</div>
+    <div class="lf-item"><div class="lf-dot"></div>สแกน QR → ค้นหาอัตโนมัติ</div>
+    <div class="lf-item"><div class="lf-dot"></div>Export รายงาน PDF</div>
+   </div>
   </div>
+  <div class="lr">
+   <div class="lc">
+    <div class="lc-title">ยินดีต้อนรับ 👋</div>
+    <div class="lc-sub">กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</div>
+    <div class="lfield"><label>Username</label><input type="text" id="username" placeholder="กรอก Username" autocomplete="username"></div>
+    <div class="lfield"><label>Password</label><input type="password" id="password" placeholder="กรอก Password" autocomplete="current-password"></div>
+    <button class="lbtn" id="loginBtn" onclick="login()">เข้าสู่ระบบ</button>
+    <div id="loginError"></div>
+   </div>
+  </div>
+ </div>
 </div>
 
-<!-- ════════════════════════════════════════
-     MAIN APP
-════════════════════════════════════════ -->
+<!-- MAIN APP -->
 <div id="mainApp">
-
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbar-left">
-      <div class="topbar-logo">📦</div>
-      <div>
-        <div class="topbar-title">Equipment Management</div>
-        <div class="topbar-sub">Asset Tracking System</div>
-      </div>
-    </div>
-    <div class="topbar-right">
-      <div class="topbar-user">
-        <div class="topbar-avatar" id="userAvatar">?</div>
-        <span id="currentUser">Loading...</span>
-      </div>
-      <button class="topbar-logout" onclick="logout()">ออกจากระบบ</button>
-    </div>
+ <div class="topbar">
+  <div class="tb-l">
+   <div class="tb-logo">📦</div>
+   <div><div class="tb-title">Equipment Management</div><div class="tb-sub">Asset Tracking System</div></div>
   </div>
-
-  <!-- NAVBAR -->
-  <div class="navbar">
-    <button class="nav-btn active" id="nav-dashboard" onclick="openTab('dashboard')">📊 Dashboard</button>
-    <button class="nav-btn" id="nav-stock" onclick="openTab('stock')">📦 Stock</button>
-    <button class="nav-btn" id="nav-history" onclick="openTab('history')">📜 ประวัติ</button>
-    <button class="nav-btn" id="nav-asset" onclick="openTab('asset')">📟 Asset</button>
-    <button class="nav-btn" id="nav-farmMonitorTab" onclick="openTab('farmMonitorTab')">🏭 Monitor ฟาร์ม</button>
-    <button class="nav-btn" id="nav-report" onclick="openTab('report')">📄 รายงาน</button>
-    <button class="nav-btn" id="nav-settings" onclick="openTab('settings')">⚙️ Settings</button>
-    <button class="nav-scan-btn" onclick="window.open('/scan.html','_blank')">📷 สแกน QR</button>
+  <div class="tb-r">
+   <div class="tb-user"><div class="tb-av" id="userAvatar">?</div><span id="currentUser">Loading...</span></div>
+   <button class="tb-out" onclick="logout()">ออกจากระบบ</button>
   </div>
+ </div>
+ <div class="navbar">
+  <button class="nav-btn active" id="nav-dashboard" onclick="openTab('dashboard')">📊 Dashboard</button>
+  <button class="nav-btn" id="nav-stock" onclick="openTab('stock')">📦 Stock</button>
+  <button class="nav-btn" id="nav-history" onclick="openTab('history')">📜 ประวัติ</button>
+  <button class="nav-btn" id="nav-asset" onclick="openTab('asset')">📟 Asset</button>
+  <button class="nav-btn" id="nav-farmMonitorTab" onclick="openTab('farmMonitorTab')">🏭 Monitor ฟาร์ม</button>
+  <button class="nav-btn" id="nav-report" onclick="openTab('report')">📄 รายงาน</button>
+  <button class="nav-btn" id="nav-settings" onclick="openTab('settings')">⚙️ Settings</button>
+  <a class="nav-scan" href="/scan.html" target="_blank">📷 สแกน QR</a>
+ </div>
 
-  <!-- ══════════ DASHBOARD ══════════ -->
-  <div id="dashboard" class="tab active">
-    <div class="page-body">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Dashboard</div>
-          <div class="section-sub">ภาพรวมระบบ ณ วันนี้</div>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="refreshDashboard()">🔄 รีเฟรช</button>
-      </div>
-
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-card-accent accent-blue"></div>
-          <div class="stat-label">รายการทั้งหมด</div>
-          <div class="stat-value" id="totalItems">—</div>
-          <div class="stat-note">ประเภทอุปกรณ์</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-accent accent-teal"></div>
-          <div class="stat-label">คงอยู่ Office</div>
-          <div class="stat-value" id="totalOffice">—</div>
-          <div class="stat-note">ชิ้น</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-accent accent-amber"></div>
-          <div class="stat-label">อยู่ที่ Site</div>
-          <div class="stat-value" id="totalSite">—</div>
-          <div class="stat-note">ชิ้น</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-accent accent-green"></div>
-          <div class="stat-label">เบิกวันนี้</div>
-          <div class="stat-value" id="todayBorrow">—</div>
-          <div class="stat-note">รายการ</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-accent accent-purple"></div>
-          <div class="stat-label">คืนวันนี้</div>
-          <div class="stat-value" id="todayReturn">—</div>
-          <div class="stat-note">รายการ</div>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <div class="chart-card-header">
-          <div class="chart-card-title">📈 สถิติการเบิก–คืน</div>
-          <div class="chart-range-tabs">
-            <button class="chart-range-btn" onclick="setChartRange(7,this)">7 วัน</button>
-            <button class="chart-range-btn active" onclick="setChartRange(14,this)">14 วัน</button>
-            <button class="chart-range-btn" onclick="setChartRange(30,this)">30 วัน</button>
-          </div>
-        </div>
-        <canvas id="historyChart" height="90"></canvas>
-      </div>
-    </div>
+ <!-- DASHBOARD -->
+ <div id="dashboard" class="tab active">
+  <div class="sh"><div><div class="sh-title">Dashboard</div><div class="sh-sub">ภาพรวมระบบ ณ วันนี้</div></div>
+   <button class="btn btn-out btn-sm" onclick="refreshDashboard()">🔄 รีเฟรช</button></div>
+  <div class="stat-grid">
+   <div class="sc"><div class="sc-bar ab"></div><div class="sc-lbl">รายการทั้งหมด</div><div class="sc-val" id="totalItems">—</div><div class="sc-note">ประเภทอุปกรณ์</div></div>
+   <div class="sc"><div class="sc-bar at"></div><div class="sc-lbl">คงอยู่ Office</div><div class="sc-val" id="totalOffice">—</div><div class="sc-note">ชิ้น</div></div>
+   <div class="sc"><div class="sc-bar aa"></div><div class="sc-lbl">อยู่ที่ Site</div><div class="sc-val" id="totalSite">—</div><div class="sc-note">ชิ้น</div></div>
+   <div class="sc"><div class="sc-bar ag"></div><div class="sc-lbl">เบิกวันนี้</div><div class="sc-val" id="todayBorrow">—</div><div class="sc-note">รายการ</div></div>
+   <div class="sc"><div class="sc-bar ap"></div><div class="sc-lbl">คืนวันนี้</div><div class="sc-val" id="todayReturn">—</div><div class="sc-note">รายการ</div></div>
   </div>
-
-  <!-- ══════════ STOCK ══════════ -->
-  <div id="stock" class="tab">
-    <div class="page-body">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Stock</div>
-          <div class="section-sub">รายการอุปกรณ์ทั้งหมด</div>
-        </div>
-        <button class="btn btn-blue btn-sm" onclick="openAddStockModal()">➕ เพิ่มอุปกรณ์</button>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="searchbar" style="flex:1">
-            <input class="searchbar-input" id="search" type="text" placeholder="ค้นหารหัสหรือชื่ออุปกรณ์..." onkeyup="filterTable()">
-          </div>
-          <button class="btn btn-outline btn-sm" onclick="openReturnModal()">🔁 คืนจาก Site</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>รหัส</th><th>รูป</th><th>ชื่ออุปกรณ์</th>
-                <th>ทั้งหมด</th><th>Office</th><th>Site</th><th>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="stockBody"></tbody>
-          </table>
-        </div>
-      </div>
+  <div class="cc">
+   <div class="cc-head">
+    <div class="cc-title">📈 สถิติการเบิก–คืน</div>
+    <div class="cr-tabs">
+     <button class="cr-btn" onclick="setChartRange(7,this)">7 วัน</button>
+     <button class="cr-btn active" onclick="setChartRange(14,this)">14 วัน</button>
+     <button class="cr-btn" onclick="setChartRange(30,this)">30 วัน</button>
     </div>
+   </div>
+   <canvas id="historyChart" height="90"></canvas>
   </div>
+ </div>
 
-  <!-- ══════════ HISTORY ══════════ -->
-  <div id="history" class="tab">
-    <div class="page-body">
-      <div class="section-header">
-        <div>
-          <div class="section-title">ประวัติการทำรายการ</div>
-          <div class="section-sub">รายการเบิก–คืนทั้งหมด</div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-header">
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:1">
-            <div class="form-field" style="margin:0">
-              <input type="date" id="historyStart" style="width:auto">
-            </div>
-            <span style="color:var(--text-muted);font-size:13px">ถึง</span>
-            <div class="form-field" style="margin:0">
-              <input type="date" id="historyEnd" style="width:auto">
-            </div>
-            <button class="btn btn-blue btn-sm" onclick="loadHistory()">🔍 ค้นหา</button>
-            <button class="btn btn-outline btn-sm" onclick="clearHistoryFilter()">ล้าง</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>วันที่</th><th>รหัส</th><th>ชื่อ</th>
-                <th>ประเภท</th><th>จำนวน</th><th>จาก</th><th>ไป</th><th>ผู้ทำรายการ</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+ <!-- STOCK -->
+ <div id="stock" class="tab">
+  <div class="sh"><div><div class="sh-title">Stock</div><div class="sh-sub">รายการอุปกรณ์ทั้งหมด</div></div>
+   <button class="btn btn-blue btn-sm" onclick="openModal('addStockModal')">➕ เพิ่มอุปกรณ์</button></div>
+  <div class="panel">
+   <div class="ph">
+    <input class="si" id="search" type="text" placeholder="ค้นหารหัสหรือชื่ออุปกรณ์..." onkeyup="filterTable()" style="max-width:340px">
+    <button class="btn btn-out btn-sm" onclick="_openReturnModal()">🔁 คืนจาก Site</button>
+   </div>
+   <div class="tw">
+    <table><thead><tr><th>รหัส</th><th>รูป</th><th>ชื่ออุปกรณ์</th><th>ทั้งหมด</th><th>Office</th><th>Site</th><th>จัดการ</th></tr></thead>
+    <tbody id="stockBody"></tbody></table>
+   </div>
   </div>
+ </div>
 
-  <!-- ══════════ ASSET TRACKING ══════════ -->
-  <div id="asset" class="tab">
-    <div class="page-body">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Asset Tracking</div>
-          <div class="section-sub">ติดตามอุปกรณ์ด้วย Serial Number และ QR Code</div>
-        </div>
-        <button class="btn btn-blue btn-sm" onclick="openAddAssetModal()">➕ เพิ่ม Asset</button>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <input class="searchbar-input" id="assetSearch" type="text" placeholder="ค้นหา Asset ID, Code, Name, Serial..." onkeyup="filterAsset()" style="flex:1;max-width:400px">
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset ID</th><th>Code</th><th>Name</th>
-                <th>Part Number</th><th>Serial Number</th><th>Status</th>
-                <th>Location</th><th>Site</th><th>User</th>
-                <th>Trace</th><th>QR</th><th>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="assetBody"></tbody>
-          </table>
-        </div>
-      </div>
+ <!-- HISTORY -->
+ <div id="history" class="tab">
+  <div class="sh"><div><div class="sh-title">ประวัติการทำรายการ</div><div class="sh-sub">รายการเบิก–คืนทั้งหมด</div></div></div>
+  <div class="panel">
+   <div class="ph">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:1">
+     <input type="date" id="historyStart" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none">
+     <span style="color:var(--tmuted);font-size:13px">ถึง</span>
+     <input type="date" id="historyEnd" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none">
+     <button class="btn btn-blue btn-sm" onclick="loadHistory()">🔍 ค้นหา</button>
+     <button class="btn btn-out btn-sm" onclick="clearHistoryFilter()">ล้าง</button>
     </div>
+   </div>
+   <div class="tw">
+    <table><thead><tr><th>วันที่</th><th>รหัส</th><th>ชื่อ</th><th>ประเภท</th><th>จำนวน</th><th>จาก</th><th>ไป</th><th>ผู้ทำรายการ</th></tr></thead>
+    <tbody id="historyBody"></tbody></table>
+   </div>
   </div>
+ </div>
 
-  <!-- ══════════ FARM MONITOR ══════════ -->
-  <div id="farmMonitorTab" class="tab">
-    <div class="page-body">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Monitor แยกฟาร์ม</div>
-          <div class="section-sub">ดูอุปกรณ์แยกตามไซต์งาน แบบ Real-time</div>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="loadAssets();renderMonitorView()">🔄 รีเฟรช</button>
-      </div>
-
-      <!-- farm stat bar -->
-      <div class="farm-stats" id="farmStatBar"></div>
-
-      <!-- farm filter pills -->
-      <div class="farm-pills" id="farmPills"></div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <input class="searchbar-input" id="monitorAssetSearch" type="text" placeholder="ค้นหาในฟาร์มที่เลือก..." onkeyup="filterMonitorAsset()" style="flex:1;max-width:360px">
-          <span id="monitorCountLabel" style="font-size:13px;color:var(--text-muted);flex-shrink:0"></span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Asset ID</th><th>Code</th><th>Name</th>
-                <th>Serial Number</th><th>Status</th>
-                <th>Location</th><th>Site</th><th>User</th>
-                <th>Trace</th><th>QR</th><th>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="monitorAssetBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+ <!-- ASSET -->
+ <div id="asset" class="tab">
+  <div class="sh"><div><div class="sh-title">Asset Tracking</div><div class="sh-sub">ติดตามอุปกรณ์ด้วย Serial Number และ QR Code</div></div>
+   <button class="btn btn-blue btn-sm" onclick="openModal('addAssetModal')">➕ เพิ่ม Asset</button></div>
+  <div class="panel">
+   <div class="ph">
+    <input class="si" id="assetSearch" type="text" placeholder="ค้นหา Asset ID, Code, Name, Serial..." onkeyup="filterAsset()" style="max-width:400px">
+   </div>
+   <div class="tw">
+    <table><thead><tr><th>Asset ID</th><th>Code</th><th>Name</th><th>Part Number</th><th>Serial Number</th><th>Status</th><th>Location</th><th>Site</th><th>User</th><th>Trace</th><th>QR</th><th>จัดการ</th></tr></thead>
+    <tbody id="assetBody"></tbody></table>
+   </div>
   </div>
+ </div>
 
-  <!-- ══════════ REPORT ══════════ -->
-  <div id="report" class="tab">
-    <div class="page-body">
-      <div class="section-header">
-        <div>
-          <div class="section-title">รายงาน</div>
-          <div class="section-sub">Export ข้อมูลเป็น PDF</div>
-        </div>
-      </div>
-      <div class="report-card">
-        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--gray-100)">
-          <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px">📄 Export รายงาน PDF</div>
-          <div style="font-size:13px;color:var(--text-muted)">กรอกข้อมูลให้ครบแล้วกด Export</div>
-        </div>
-        <div class="form-grid" style="margin-bottom:14px">
-          <div class="form-field" style="grid-column:1/-1">
-            <label>หัวข้อรายงาน</label>
-            <input id="title" placeholder="เช่น รายงานประจำเดือน มิถุนายน 2568">
-          </div>
-          <div class="form-field">
-            <label>วันที่เริ่ม</label>
-            <input type="date" id="startDate">
-          </div>
-          <div class="form-field">
-            <label>วันที่สิ้นสุด</label>
-            <input type="date" id="endDate">
-          </div>
-          <div class="form-field">
-            <label>ประเภทรายการ</label>
-            <select id="reportType">
-              <option value="all">เบิกและคืน</option>
-              <option value="borrow">เฉพาะเบิก</option>
-              <option value="return">เฉพาะคืน</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label>ยานพาหนะ</label>
-            <input id="vehicle" placeholder="เช่น รถบรรทุก XYZ">
-          </div>
-          <div class="form-field">
-            <label>จำนวนสถานที่</label>
-            <input type="number" id="locationCount" placeholder="เช่น 3">
-          </div>
-          <div class="form-field" style="grid-column:1/-1">
-            <label>รายชื่อสถานที่ (แต่ละบรรทัด)</label>
-            <textarea id="locations" rows="3" placeholder="โรงงาน A&#10;โกดัง B&#10;ไซต์งาน C" style="resize:vertical"></textarea>
-          </div>
-          <div class="form-field">
-            <label>จำนวนพนักงาน</label>
-            <input type="number" id="employeeCount" placeholder="เช่น 5">
-          </div>
-          <div class="form-field" style="grid-column:1/-1">
-            <label>รายชื่อพนักงาน (แต่ละบรรทัด)</label>
-            <textarea id="employees" rows="3" placeholder="สมชาย&#10;สมหญิง" style="resize:vertical"></textarea>
-          </div>
-        </div>
-        <button class="btn btn-blue" onclick="exportPDF()" style="width:100%;justify-content:center;padding:13px">
-          📄 Export PDF
-        </button>
-      </div>
-    </div>
+ <!-- FARM MONITOR — PRO SIDEBAR LAYOUT -->
+ <div id="farmMonitorTab" class="tab">
+  <div class="sh">
+   <div><div class="sh-title">Monitor แยกฟาร์ม</div><div class="sh-sub">ดูอุปกรณ์แยกตามไซต์งาน แบบ Real-time</div></div>
+   <button class="btn btn-out btn-sm" onclick="loadAssets().then(renderMonitorView)">🔄 รีเฟรช</button>
   </div>
-
-  <!-- ══════════ SETTINGS ══════════ -->
-  <div id="settings" class="tab">
-    <div class="page-body">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Settings</div>
-          <div class="section-sub">ข้อมูลระบบและผู้ใช้งาน</div>
-        </div>
-      </div>
-      <div class="settings-grid">
-        <div class="settings-card">
-          <h3>👤 User Info</h3>
-          <p><b>Username</b></p>
-          <p id="settingsUser">—</p>
-          <p style="margin-top:8px"><b>สถานะ</b></p>
-          <p class="status-text-green"><span class="status-dot status-online"></span>Online</p>
-        </div>
-        <div class="settings-card">
-          <h3>⚙️ System Info</h3>
-          <p><b>Version</b></p><p>2.0</p>
-          <p style="margin-top:6px"><b>Server</b></p><p>Node.js</p>
-          <p style="margin-top:6px"><b>Database</b></p><p>Google Sheets</p>
-        </div>
-        <div class="settings-card">
-          <h3>📊 Database</h3>
-          <p>เปิดดู Google Sheets ของระบบ</p>
-          <button class="btn btn-blue btn-sm" style="margin-top:14px" onclick="openDatabase()">📊 Open Database</button>
-        </div>
-        <div class="settings-card">
-          <h3>📈 System Status</h3>
-          <p><b>Server</b></p>
-          <p class="status-text-green"><span class="status-dot status-online"></span>Running</p>
-          <p style="margin-top:6px"><b>Database</b></p>
-          <p class="status-text-green"><span class="status-dot status-online"></span>Connected</p>
-        </div>
-        <div class="settings-card">
-          <h3>📷 Quick Actions</h3>
-          <p>เปิดหน้าสแกนอุปกรณ์</p>
-          <a class="btn btn-teal btn-sm" href="/scan.html" target="_blank" style="margin-top:14px">📷 เปิด Scanner</a>
-        </div>
-      </div>
+  <div class="mon-layout">
+   <!-- SIDEBAR -->
+   <div class="mon-sidebar">
+    <div class="mon-sb-head">
+     <div class="mon-sb-title">🏭 ไซต์งาน</div>
+     <div class="mon-search"><input type="text" id="farmSearch" placeholder="ค้นหาฟาร์ม..." oninput="filterFarmList(this.value)"></div>
     </div>
+    <div class="mon-farm-list" id="monFarmList"></div>
+   </div>
+   <!-- MAIN -->
+   <div class="mon-main">
+    <div class="mon-main-head">
+     <div class="mon-farm-label" id="monFarmLabel">🌐 ทุกฟาร์ม</div>
+     <div class="mon-stats-row" id="monStatsRow"></div>
+    </div>
+    <div class="mon-tb-search">
+     <input class="si" id="monitorAssetSearch" type="text" placeholder="ค้นหาในฟาร์มที่เลือก..." onkeyup="filterMonitorAsset()" style="max-width:360px">
+    </div>
+    <div class="mon-table-wrap">
+     <table><thead><tr><th>Asset ID</th><th>Code</th><th>Name</th><th>Serial</th><th>Status</th><th>Location</th><th>Site</th><th>User</th><th>Trace</th><th>QR</th><th>จัดการ</th></tr></thead>
+     <tbody id="monitorAssetBody"></tbody></table>
+    </div>
+   </div>
   </div>
+ </div>
 
-</div><!-- end mainApp -->
-
-<!-- ════════════════════════════════════════
-     MODALS
-════════════════════════════════════════ -->
-
-<!-- ADD STOCK MODAL -->
-<div class="modal-overlay" id="addStockModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-head-title">➕ เพิ่มอุปกรณ์ใหม่</div>
-      <button class="modal-close" onclick="closeModal('addStockModal')">✕</button>
+ <!-- REPORT -->
+ <div id="report" class="tab">
+  <div class="sh"><div><div class="sh-title">รายงาน</div><div class="sh-sub">Export ข้อมูลเป็น PDF</div></div></div>
+  <div class="rc">
+   <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--g100)">
+    <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px">📄 Export รายงาน PDF</div>
+    <div style="font-size:13px;color:var(--tmuted)">กรอกข้อมูลให้ครบแล้วกด Export</div>
+   </div>
+   <div class="fg" style="margin-bottom:14px">
+    <div class="ff" style="grid-column:1/-1"><label>หัวข้อรายงาน</label><input id="title" placeholder="รายงานประจำเดือน..."></div>
+    <div class="ff"><label>วันที่เริ่ม</label><input type="date" id="startDate"></div>
+    <div class="ff"><label>วันที่สิ้นสุด</label><input type="date" id="endDate"></div>
+    <div class="ff"><label>ประเภทรายการ</label>
+     <select id="reportType"><option value="all">เบิกและคืน</option><option value="borrow">เฉพาะเบิก</option><option value="return">เฉพาะคืน</option></select>
     </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-field">
-          <label>รหัสอุปกรณ์</label>
-          <input type="text" id="newCode" placeholder="เช่น EQ001">
-        </div>
-        <div class="form-field">
-          <label>ชื่ออุปกรณ์</label>
-          <input type="text" id="newName" placeholder="ชื่ออุปกรณ์">
-        </div>
-        <div class="form-field">
-          <label>จำนวน</label>
-          <input type="number" id="newQty" placeholder="0">
-        </div>
-        <div class="form-field">
-          <label>รูปภาพ</label>
-          <input type="file" id="newImage" accept="image/*">
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline" onclick="closeModal('addStockModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="addItem()">💾 บันทึก</button>
-    </div>
+    <div class="ff"><label>ยานพาหนะ</label><input id="vehicle" placeholder="เช่น รถบรรทุก"></div>
+    <div class="ff"><label>จำนวนสถานที่</label><input type="number" id="locationCount" placeholder="3"></div>
+    <div class="ff" style="grid-column:1/-1"><label>รายชื่อสถานที่ (แต่ละบรรทัด)</label><textarea id="locations" rows="3" placeholder="โรงงาน A&#10;โกดัง B" style="resize:vertical"></textarea></div>
+    <div class="ff"><label>จำนวนพนักงาน</label><input type="number" id="employeeCount" placeholder="5"></div>
+    <div class="ff" style="grid-column:1/-1"><label>รายชื่อพนักงาน (แต่ละบรรทัด)</label><textarea id="employees" rows="3" placeholder="สมชาย&#10;สมหญิง" style="resize:vertical"></textarea></div>
+   </div>
+   <button class="btn btn-blue" onclick="exportPDF()" style="width:100%;justify-content:center;padding:13px;font-size:14px">📄 Export PDF</button>
   </div>
+ </div>
+
+ <!-- SETTINGS -->
+ <div id="settings" class="tab">
+  <div class="sh"><div><div class="sh-title">Settings</div><div class="sh-sub">ข้อมูลระบบและผู้ใช้งาน</div></div></div>
+  <div class="sg">
+   <div class="scard"><h3>👤 User Info</h3><p><b>Username</b></p><p id="settingsUser">—</p><p style="margin-top:8px"><b>สถานะ</b></p><p class="s-ok"><span class="s-dot s-on"></span>Online</p></div>
+   <div class="scard"><h3>⚙️ System Info</h3><p><b>Version</b></p><p>2.0</p><p style="margin-top:6px"><b>Server</b></p><p>Node.js</p><p style="margin-top:6px"><b>Database</b></p><p>Google Sheets</p></div>
+   <div class="scard"><h3>📊 Database</h3><p>เปิดดู Google Sheets ของระบบ</p><button class="btn btn-blue btn-sm" style="margin-top:14px" onclick="openDatabase()">📊 Open Database</button></div>
+   <div class="scard"><h3>📈 System Status</h3><p><b>Server</b></p><p class="s-ok"><span class="s-dot s-on"></span>Running</p><p style="margin-top:6px"><b>Database</b></p><p class="s-ok"><span class="s-dot s-on"></span>Connected</p></div>
+   <div class="scard"><h3>📷 Quick Scan</h3><p>เปิดหน้าสแกน QR Code</p><a class="btn btn-teal btn-sm" href="/scan.html" target="_blank" style="margin-top:14px">📷 เปิด Scanner</a></div>
+  </div>
+ </div>
+
+</div><!-- /mainApp -->
+
+<!-- ── MODALS ── -->
+<!-- ADD STOCK -->
+<div class="mo" id="addStockModal">
+ <div class="mb">
+  <div class="mh"><div class="mh-title">➕ เพิ่มอุปกรณ์ใหม่</div><button class="mc" onclick="closeModal('addStockModal')">✕</button></div>
+  <div class="mbd">
+   <div class="fg">
+    <div class="ff"><label>รหัสอุปกรณ์</label><input type="text" id="newCode" placeholder="EQ001"></div>
+    <div class="ff"><label>ชื่ออุปกรณ์</label><input type="text" id="newName" placeholder="ชื่ออุปกรณ์"></div>
+    <div class="ff"><label>จำนวน</label><input type="number" id="newQty" placeholder="0"></div>
+    <div class="ff"><label>รูปภาพ</label><input type="file" id="newImage" accept="image/*"></div>
+   </div>
+  </div>
+  <div class="mf"><button class="btn btn-out" onclick="closeModal('addStockModal')">ยกเลิก</button><button class="btn btn-blue" onclick="addItem()">💾 บันทึก</button></div>
+ </div>
 </div>
 
-<!-- ADD ASSET MODAL -->
-<div class="modal-overlay" id="addAssetModal">
-  <div class="modal-box modal-wide">
-    <div class="modal-head">
-      <div class="modal-head-title">➕ เพิ่ม Asset ใหม่</div>
-      <button class="modal-close" onclick="closeModal('addAssetModal')">✕</button>
+<!-- ADD ASSET -->
+<div class="mo" id="addAssetModal">
+ <div class="mb mb-wide">
+  <div class="mh"><div class="mh-title">➕ เพิ่ม Asset ใหม่</div><button class="mc" onclick="closeModal('addAssetModal')">✕</button></div>
+  <div class="mbd">
+   <div class="fg">
+    <div class="ff"><label>Asset ID *</label><input type="text" id="newAssetId" placeholder="AST001"></div>
+    <div class="ff"><label>Code</label><input type="text" id="newAssetCode" placeholder="รหัสอุปกรณ์"></div>
+    <div class="ff" style="grid-column:1/-1"><label>ชื่ออุปกรณ์ *</label><input type="text" id="newAssetName" placeholder="ชื่ออุปกรณ์"></div>
+    <div class="ff"><label>Part Number</label><input type="text" id="newAssetPart" placeholder="Part Number"></div>
+    <div class="ff"><label>Serial Number</label><input type="text" id="newAssetSerial" placeholder="Serial Number"></div>
+    <div class="ff"><label>สถานะ</label>
+     <select id="newAssetStatus">
+      <option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="นำเข้า">🟢 นำเข้า</option>
+      <option value="สำรอง">🟡 สำรอง</option><option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
+      <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+     </select>
     </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-field">
-          <label>Asset ID *</label>
-          <input type="text" id="newAssetId" placeholder="AST001">
-        </div>
-        <div class="form-field">
-          <label>Code</label>
-          <input type="text" id="newAssetCode" placeholder="รหัสอุปกรณ์">
-        </div>
-        <div class="form-field" style="grid-column:1/-1">
-          <label>ชื่ออุปกรณ์ *</label>
-          <input type="text" id="newAssetName" placeholder="ชื่ออุปกรณ์">
-        </div>
-        <div class="form-field">
-          <label>Part Number</label>
-          <input type="text" id="newAssetPart" placeholder="Part Number">
-        </div>
-        <div class="form-field">
-          <label>Serial Number</label>
-          <input type="text" id="newAssetSerial" placeholder="Serial Number">
-        </div>
-        <div class="form-field">
-          <label>สถานะ</label>
-          <select id="newAssetStatus">
-            <option value="ใช้งานได้">🟢 ใช้งานได้</option>
-            <option value="นำเข้า">🟢 นำเข้า</option>
-            <option value="สำรอง">🟡 สำรอง</option>
-            <option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
-            <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label>Location</label>
-          <input type="text" id="newAssetLocation" placeholder="สถานที่">
-        </div>
-        <div class="form-field">
-          <label>Site</label>
-          <input type="text" id="newAssetSite" placeholder="ไซต์งาน">
-        </div>
-        <div class="form-field">
-          <label>ผู้ใช้งาน</label>
-          <input type="text" id="newAssetUser" placeholder="ชื่อผู้ดูแล">
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline" onclick="closeModal('addAssetModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="addAsset()">💾 บันทึก Asset</button>
-    </div>
+    <div class="ff"><label>Location</label><input type="text" id="newAssetLocation" placeholder="สถานที่"></div>
+    <div class="ff"><label>Site</label><input type="text" id="newAssetSite" placeholder="ไซต์งาน"></div>
+    <div class="ff"><label>ผู้ใช้งาน</label><input type="text" id="newAssetUser" placeholder="ชื่อผู้ดูแล"></div>
+   </div>
   </div>
+  <div class="mf"><button class="btn btn-out" onclick="closeModal('addAssetModal')">ยกเลิก</button><button class="btn btn-blue" onclick="addAsset()">💾 บันทึก</button></div>
+ </div>
 </div>
 
-<!-- RETURN MODAL -->
-<div class="modal-overlay" id="returnModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-head-title">📦 คืนอุปกรณ์จาก Site</div>
-      <button class="modal-close" onclick="closeModal('returnModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn btn-outline btn-sm" onclick="selectAllReturn()">เลือกทั้งหมด</button>
-        <button class="btn btn-ghost btn-sm" onclick="unselectAllReturn()">ยกเลิกเลือก</button>
-      </div>
-      <div id="returnList"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline" onclick="closeModal('returnModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="confirmSelectedReturn()">ยืนยันการคืน</button>
-    </div>
+<!-- RETURN -->
+<div class="mo" id="returnModal">
+ <div class="mb">
+  <div class="mh"><div class="mh-title">📦 คืนอุปกรณ์จาก Site</div><button class="mc" onclick="closeModal('returnModal')">✕</button></div>
+  <div class="mbd">
+   <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn btn-out btn-sm" onclick="selectAllReturn()">เลือกทั้งหมด</button>
+    <button class="btn btn-ghost btn-sm" onclick="unselectAllReturn()">ยกเลิกเลือก</button>
+   </div>
+   <div id="returnList"></div>
   </div>
+  <div class="mf"><button class="btn btn-out" onclick="closeModal('returnModal')">ยกเลิก</button><button class="btn btn-blue" onclick="confirmSelectedReturn()">ยืนยันการคืน</button></div>
+ </div>
 </div>
 
-<!-- TRANSFER MODAL -->
-<div class="modal-overlay" id="transferModal">
-  <div class="modal-box modal-wide">
-    <div class="modal-head">
-      <div class="modal-head-title">🚚 โอนย้ายอุปกรณ์</div>
-      <button class="modal-close" onclick="closeModal('transferModal')">✕</button>
+<!-- TRANSFER -->
+<div class="mo" id="transferModal">
+ <div class="mb mb-wide">
+  <div class="mh"><div class="mh-title">🚚 โอนย้ายอุปกรณ์</div><button class="mc" onclick="closeModal('transferModal')">✕</button></div>
+  <div class="mbd">
+   <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-size:13px">
+    Serial: <strong id="transferSerialTitle" style="font-family:monospace;color:var(--blue)">-</strong>
+   </div>
+   <input type="hidden" id="oldSiteName"><input type="hidden" id="oldLocation">
+   <div class="fg">
+    <div class="ff"><label>ประเภทการโอนย้าย</label>
+     <select id="transferAction">
+      <option value="ย้ายตำแหน่งอุปกรณ์">🚚 ย้ายตำแหน่ง</option>
+      <option value="ส่งซ่อมภายนอก">🔧 ส่งซ่อมภายนอก</option>
+      <option value="โอนย้ายผู้รับผิดชอบ">👤 โอนย้ายผู้รับผิดชอบ</option>
+      <option value="คืนคลังสินค้า">📦 คืนคลังสินค้า</option>
+     </select>
     </div>
-    <div class="modal-body">
-      <div style="background:var(--blue-light);border:1px solid var(--blue-border);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-size:13px">
-        Serial: <strong id="transferSerialTitle" style="font-family:monospace;color:var(--blue)">-</strong>
-      </div>
-      <input type="hidden" id="oldSiteName">
-      <input type="hidden" id="oldLocation">
-      <div class="form-grid">
-        <div class="form-field">
-          <label>ประเภทการโอนย้าย</label>
-          <select id="transferAction">
-            <option value="ย้ายตำแหน่งอุปกรณ์">🚚 ย้ายตำแหน่ง</option>
-            <option value="ส่งซ่อมภายนอก">🔧 ส่งซ่อมภายนอก</option>
-            <option value="โอนย้ายผู้รับผิดชอบ">👤 โอนย้ายผู้รับผิดชอบ</option>
-            <option value="คืนคลังสินค้า">📦 คืนคลังสินค้า</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label>สถานะใหม่</label>
-          <select id="transferStatus">
-            <option value="ใช้งานได้">🟢 ใช้งานได้</option>
-            <option value="สำรอง">🟡 สำรอง</option>
-            <option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
-            <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label>ไซต์งานใหม่ *</label>
-          <input type="text" id="transferSite" placeholder="ชื่อไซต์ปลายทาง">
-        </div>
-        <div class="form-field">
-          <label>Location ใหม่</label>
-          <input type="text" id="transferLocation" placeholder="เช่น ห้องคอนโทรล">
-        </div>
-        <div class="form-field" style="grid-column:1/-1">
-          <label>ผู้รับผิดชอบใหม่</label>
-          <input type="text" id="transferUser" placeholder="ชื่อผู้รับผิดชอบ">
-        </div>
-        <div class="form-field" style="grid-column:1/-1">
-          <label>หมายเหตุ</label>
-          <input type="text" id="transferRemark" placeholder="เหตุผลการย้าย...">
-        </div>
-      </div>
+    <div class="ff"><label>สถานะใหม่</label>
+     <select id="transferStatus">
+      <option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option>
+      <option value="ส่งซ่อม">🔴 ส่งซ่อม</option><option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+     </select>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline" onclick="closeModal('transferModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="submitTransferAction()">💾 ยืนยันโอนย้าย</button>
-    </div>
+    <div class="ff"><label>ไซต์งานใหม่ *</label><input type="text" id="transferSite" placeholder="ชื่อไซต์ปลายทาง"></div>
+    <div class="ff"><label>Location ใหม่</label><input type="text" id="transferLocation" placeholder="เช่น ห้องคอนโทรล"></div>
+    <div class="ff" style="grid-column:1/-1"><label>ผู้รับผิดชอบใหม่</label><input type="text" id="transferUser" placeholder="ชื่อผู้รับผิดชอบ"></div>
+    <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="transferRemark" placeholder="เหตุผลการย้าย..."></div>
+   </div>
   </div>
+  <div class="mf"><button class="btn btn-out" onclick="closeModal('transferModal')">ยกเลิก</button><button class="btn btn-blue" onclick="submitTransferAction()">💾 ยืนยันโอนย้าย</button></div>
+ </div>
 </div>
 
 <!-- HISTORY MODAL -->
-<div class="modal-overlay" id="historyModal">
-  <div class="modal-box modal-wide">
-    <div class="modal-head">
-      <div class="modal-head-title">
-        📋 ประวัติอุปกรณ์
-        <span style="font-family:monospace;font-size:12px;font-weight:600;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-border);padding:2px 10px;border-radius:20px;margin-left:6px" id="modalSerialTitle">-</span>
-      </div>
-      <button class="modal-close" onclick="closeModal('historyModal')">✕</button>
-    </div>
-    <div style="padding:8px 24px 10px;border-bottom:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;background:var(--gray-50)">
-      <span style="font-size:13px;color:var(--text-muted)" id="hmCounter"></span>
-      <a id="hmExtLink" href="#" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px;padding:4px 12px;border-radius:6px;border:1px solid var(--blue-border);background:var(--blue-light)">📋 ดูหน้าเต็ม →</a>
-    </div>
-    <div class="modal-body">
-      <div id="historyModalBody">
-        <div style="text-align:center;padding:40px 0">
-          <div class="hm-spinner"></div>
-          <p style="color:var(--text-muted);margin-top:12px;font-size:13px">กำลังโหลด...</p>
-        </div>
-      </div>
-    </div>
+<div class="mo" id="historyModal">
+ <div class="mb mb-wide">
+  <div class="mh">
+   <div class="mh-title">📋 ประวัติ <span style="font-family:monospace;font-size:12px;font-weight:600;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b);padding:2px 10px;border-radius:20px;margin-left:6px" id="modalSerialTitle">-</span></div>
+   <button class="mc" onclick="closeModal('historyModal')">✕</button>
   </div>
+  <div style="padding:8px 24px 10px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;background:var(--g50)">
+   <span style="font-size:13px;color:var(--tmuted)" id="hmCounter"></span>
+   <a id="hmExtLink" href="#" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px;padding:4px 12px;border-radius:6px;border:1px solid var(--blue-b);background:var(--blue-l)">📋 ดูหน้าเต็ม →</a>
+  </div>
+  <div class="mbd"><div id="historyModalBody"><div style="text-align:center;padding:40px 0"><div class="spin"></div></div></div></div>
+ </div>
 </div>
 
-<!-- ════════════════════════════════════════
-     JAVASCRIPT
-════════════════════════════════════════ -->
 <script>
-/* ────────────────────────────────────────
-   STATE
-──────────────────────────────────────── */
-let stockData = [];
-let assetData = [];
-let allChartData = {};
-let currentChartRange = 14;
-let historyChart;
-let currentMonitorFarm = "ALL";
+/* ── STATE ── */
+let stockData=[],assetData=[],allChartData={},currentChartRange=14;
+let historyChart,currentMonitorFarm="ALL",allFarms=[];
 
-/* ────────────────────────────────────────
-   MODAL HELPERS
-──────────────────────────────────────── */
-function openModal(id){ document.getElementById(id).classList.add("open") }
-function closeModal(id){ document.getElementById(id).classList.remove("open") }
+/* ── MODAL ── */
+function openModal(id){document.getElementById(id).classList.add("open")}
+function closeModal(id){document.getElementById(id).classList.remove("open")}
+document.querySelectorAll(".mo").forEach(el=>{el.addEventListener("click",e=>{if(e.target===el)el.classList.remove("open")})});
 
-// close on backdrop click
-document.querySelectorAll(".modal-overlay").forEach(el=>{
-  el.addEventListener("click", e=>{ if(e.target===el) el.classList.remove("open") })
-})
-
-function openAddStockModal(){ closeModal("addStockModal"); openModal("addStockModal") }
-function openAddAssetModal(){ closeModal("addAssetModal"); openModal("addAssetModal") }
-function openReturnModal(){ _openReturnModal() }
-function closeReturnModal(){ closeModal("returnModal") }
-function closeTransferModal(){ closeModal("transferModal") }
-function closeHistoryModal(){ closeModal("historyModal") }
-
-/* ────────────────────────────────────────
-   LOGIN
-──────────────────────────────────────── */
+/* ── LOGIN ── */
 async function login(){
-  const btn = document.getElementById("loginBtn");
-  btn.textContent = "กำลังเข้าสู่ระบบ...";
-  btn.disabled = true;
-  document.getElementById("loginError").textContent = "";
-
-  try {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-    if(!username||!password){
-      document.getElementById("loginError").textContent = "กรุณากรอก Username และ Password";
-      return;
-    }
-    const res = await fetch("/api/login",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      credentials:"include",
-      body:JSON.stringify({username,password})
-    });
-    const result = await res.json();
-    if(result.success){
-      showApp();
-    } else {
-      document.getElementById("loginError").textContent = result.error || "Username หรือ Password ไม่ถูกต้อง";
-    }
-  } catch(e){
-    document.getElementById("loginError").textContent = "ไม่สามารถเชื่อมต่อได้";
-  } finally {
-    btn.textContent = "เข้าสู่ระบบ";
-    btn.disabled = false;
-  }
+  const btn=document.getElementById("loginBtn");
+  btn.textContent="กำลังเข้าสู่ระบบ...";btn.disabled=true;
+  document.getElementById("loginError").textContent="";
+  try{
+    const u=document.getElementById("username").value.trim();
+    const p=document.getElementById("password").value.trim();
+    if(!u||!p){document.getElementById("loginError").textContent="กรุณากรอก Username และ Password";return}
+    const res=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({username:u,password:p})});
+    const r=await res.json();
+    if(r.success){showApp()}else{document.getElementById("loginError").textContent=r.error||"Username หรือ Password ไม่ถูกต้อง"}
+  }catch(e){document.getElementById("loginError").textContent="ไม่สามารถเชื่อมต่อได้"}
+  finally{btn.textContent="เข้าสู่ระบบ";btn.disabled=false}
 }
+async function logout(){try{await fetch("/api/logout",{method:"POST",credentials:"include"})}catch(e){}location.reload()}
+function showApp(){document.getElementById("loginPage").style.display="none";document.getElementById("mainApp").style.display="block";initApp()}
 
-async function logout(){
-  try{ await fetch("/api/logout",{method:"POST",credentials:"include"}) }catch(e){}
-  location.reload();
-}
-
-function showApp(){
-  document.getElementById("loginPage").style.display = "none";
-  document.getElementById("mainApp").style.display = "block";
-  initApp();
-}
-
-/* ────────────────────────────────────────
-   INIT
-──────────────────────────────────────── */
+/* ── INIT ── */
 function initApp(){
-  loadCurrentUser();
-  loadDashboard();
-  loadStock();
-  loadHistory();
-  loadAssets();
-  loadHistoryChart();
-  openTab("dashboard");
-  // auto-refresh every 2 min
-  setInterval(refreshDashboard, 120000);
+  loadCurrentUser();loadDashboard();loadStock();loadHistory();loadAssets();loadHistoryChart();
+  const last=localStorage.getItem("activeTab")||"dashboard";
+  openTab(last);
+  setInterval(refreshDashboard,120000);
 }
 
-/* ────────────────────────────────────────
-   TAB
-──────────────────────────────────────── */
+/* ── TAB ── */
 function openTab(id){
-  document.querySelectorAll(".tab").forEach(t=>{ t.classList.remove("active"); t.style.display="none" });
+  document.querySelectorAll(".tab").forEach(t=>{t.classList.remove("active");t.style.display="none"});
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
-  const target = document.getElementById(id);
-  if(!target){ openTab("dashboard"); return }
-  target.classList.add("active");
-  target.style.display = "block";
-  const navBtn = document.getElementById("nav-"+id);
-  if(navBtn) navBtn.classList.add("active");
-  localStorage.setItem("activeTab", id);
-  if(id==="farmMonitorTab") renderMonitorView();
+  const t=document.getElementById(id);
+  if(!t){openTab("dashboard");return}
+  t.classList.add("active");t.style.display="block";
+  const nb=document.getElementById("nav-"+id);
+  if(nb)nb.classList.add("active");
+  localStorage.setItem("activeTab",id);
+  if(id==="farmMonitorTab")renderMonitorView();
 }
 
-/* ────────────────────────────────────────
-   DASHBOARD
-──────────────────────────────────────── */
+/* ── DASHBOARD ── */
 async function loadDashboard(){
-  try {
-    const res = await fetch("/api/dashboard");
-    const d = await res.json();
-    document.getElementById("totalItems").textContent = d.totalItems ?? "—";
-    document.getElementById("totalOffice").textContent = d.totalOffice ?? "—";
-    document.getElementById("totalSite").textContent = d.totalSite ?? "—";
-    document.getElementById("todayBorrow").textContent = d.todayBorrow ?? "—";
-    document.getElementById("todayReturn").textContent = d.todayReturn ?? "—";
-  } catch(e){ console.error(e) }
+  try{const res=await fetch("/api/dashboard");const d=await res.json();
+  ["totalItems","totalOffice","totalSite","todayBorrow","todayReturn"].forEach(k=>{document.getElementById(k).textContent=d[k]??0})}catch(e){}
 }
+function refreshDashboard(){loadDashboard();loadHistoryChart()}
 
-function refreshDashboard(){
-  loadDashboard();
-  loadHistoryChart();
-}
-
-/* ────────────────────────────────────────
-   CHART — ✅ FIX: ใช้ /api/dashboard-stats (real-time 30 วัน)
-   แทน /api/history ที่ตีความวันที่ผิด
-──────────────────────────────────────── */
+/* ── CHART (real-time via /api/dashboard-stats) ── */
 async function loadHistoryChart(){
-  try {
-    const res = await fetch("/api/dashboard-stats");
-    allChartData = await res.json();
-    renderChart(currentChartRange);
-  } catch(e){ console.error("Chart load error:", e) }
+  try{const res=await fetch("/api/dashboard-stats");allChartData=await res.json();renderChart(currentChartRange)}catch(e){}
 }
-
-function setChartRange(days, btn){
-  currentChartRange = days;
-  document.querySelectorAll(".chart-range-btn").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  renderChart(days);
+function setChartRange(days,btn){
+  currentChartRange=days;
+  document.querySelectorAll(".cr-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");renderChart(days);
 }
-
 function renderChart(days){
-  if(!allChartData || !Object.keys(allChartData).length) return;
-
-  const allLabels = Object.keys(allChartData).sort();
-  const labels = allLabels.slice(-days);
-  const borrowData = labels.map(d => allChartData[d]?.borrow || 0);
-  const returnData = labels.map(d => allChartData[d]?.return || 0);
-
-  const ctx = document.getElementById("historyChart").getContext("2d");
-  if(historyChart) historyChart.destroy();
-
-  const borrowGrad = ctx.createLinearGradient(0,0,0,280);
-  borrowGrad.addColorStop(0,"rgba(37,99,235,.35)");
-  borrowGrad.addColorStop(1,"rgba(37,99,235,0)");
-
-  const returnGrad = ctx.createLinearGradient(0,0,0,280);
-  returnGrad.addColorStop(0,"rgba(13,148,136,.35)");
-  returnGrad.addColorStop(1,"rgba(13,148,136,0)");
-
-  historyChart = new Chart(ctx, {
-    type:"line",
-    data:{
-      labels,
-      datasets:[
-        { label:"เบิก", data:borrowData, borderColor:"#2563eb", backgroundColor:borrowGrad,
-          fill:true, tension:.35, pointRadius:4, pointHoverRadius:6, borderWidth:2 },
-        { label:"คืน", data:returnData, borderColor:"#0d9488", backgroundColor:returnGrad,
-          fill:true, tension:.35, pointRadius:4, pointHoverRadius:6, borderWidth:2 }
-      ]
-    },
-    options:{
-      responsive:true,
-      interaction:{ intersect:false, mode:"index" },
-      plugins:{
-        legend:{ position:"top", labels:{ usePointStyle:true, padding:20, font:{ size:12, weight:"600" } } },
-        tooltip:{
-          backgroundColor:"#1e293b",
-          titleColor:"#f1f5f9",bodyColor:"#94a3b8",
-          cornerRadius:10,padding:12,
-          callbacks:{
-            title: items => items[0].label
-          }
-        }
-      },
-      scales:{
-        x:{ grid:{ display:false }, ticks:{ font:{ size:11 }, color:"#94a3b8", maxTicksLimit:10 } },
-        y:{ beginAtZero:true, grid:{ color:"rgba(0,0,0,.04)" },
-            ticks:{ precision:0, font:{ size:11 }, color:"#94a3b8" } }
-      }
-    }
-  });
+  if(!allChartData||!Object.keys(allChartData).length)return;
+  const all=Object.keys(allChartData).sort();
+  const labels=all.slice(-days);
+  const bD=labels.map(d=>allChartData[d]?.borrow||0);
+  const rD=labels.map(d=>allChartData[d]?.return||0);
+  const ctx=document.getElementById("historyChart").getContext("2d");
+  if(historyChart)historyChart.destroy();
+  const bG=ctx.createLinearGradient(0,0,0,280);bG.addColorStop(0,"rgba(37,99,235,.3)");bG.addColorStop(1,"rgba(37,99,235,0)");
+  const rG=ctx.createLinearGradient(0,0,0,280);rG.addColorStop(0,"rgba(13,148,136,.3)");rG.addColorStop(1,"rgba(13,148,136,0)");
+  historyChart=new Chart(ctx,{type:"line",data:{labels,datasets:[
+    {label:"เบิก",data:bD,borderColor:"#2563eb",backgroundColor:bG,fill:true,tension:.35,pointRadius:4,pointHoverRadius:6,borderWidth:2},
+    {label:"คืน",data:rD,borderColor:"#0d9488",backgroundColor:rG,fill:true,tension:.35,pointRadius:4,pointHoverRadius:6,borderWidth:2}
+  ]},options:{responsive:true,interaction:{intersect:false,mode:"index"},plugins:{legend:{position:"top",labels:{usePointStyle:true,padding:20,font:{size:12,weight:"600"}}},tooltip:{backgroundColor:"#1e293b",titleColor:"#f1f5f9",bodyColor:"#94a3b8",cornerRadius:10,padding:12}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:"#94a3b8",maxTicksLimit:10}},y:{beginAtZero:true,grid:{color:"rgba(0,0,0,.04)"},ticks:{precision:0,font:{size:11},color:"#94a3b8"}}}}});
 }
 
-/* ────────────────────────────────────────
-   STOCK
-──────────────────────────────────────── */
-async function loadStock(){
-  try {
-    const res = await fetch("/api/stock");
-    stockData = await res.json();
-    renderStockTable(stockData);
-  } catch(e){ console.error(e) }
-}
-
+/* ── STOCK ── */
+async function loadStock(){try{const r=await fetch("/api/stock");stockData=await r.json();renderStockTable(stockData)}catch(e){}}
 function renderStockTable(data){
-  const tbody = document.getElementById("stockBody");
-  if(!data.length){
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">ไม่มีข้อมูล</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = data.map(item=>{
-    const ext = item.ext || "jpg";
-    const imgUrl = `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${item.code}.${ext}?v=${Date.now()}`;
-    const officeQty = parseInt(item.office)||0;
-    const outCls = officeQty < 1 ? 'class="row-out"' : "";
-    return `<tr ${outCls}>
+  const tb=document.getElementById("stockBody");
+  if(!data.length){tb.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--tmuted)">ไม่มีข้อมูล</td></tr>`;return}
+  tb.innerHTML=data.map(item=>{
+    const ext=item.ext||"jpg";
+    const img=`https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${item.code}.${ext}?v=${Date.now()}`;
+    const oq=parseInt(item.office)||0;
+    return`<tr ${oq<1?'class="row-out"':""}>
       <td><span style="font-family:monospace;font-weight:600">${item.code}</span></td>
-      <td><img src="${imgUrl}" width="48" height="48" style="object-fit:cover;border-radius:8px;border:1px solid var(--gray-200)" onerror="this.src='/image/noimage.jpg'"></td>
+      <td><img src="${img}" width="46" height="46" style="object-fit:cover;border-radius:8px;border:1px solid var(--g200)" onerror="this.src='/image/noimage.jpg'"></td>
       <td style="font-weight:500">${item.name}</td>
       <td>${item.total}</td>
-      <td>${officeQty<1?'<span class="out-text">🔴 หมด</span>':officeQty}</td>
+      <td>${oq<1?'<span class="out-text">🔴 หมด</span>':oq}</td>
       <td>${item.site}</td>
-      <td>
-        <div class="stock-controls">
-          <input type="number" min="1" id="qty-${item.code}" class="stock-qty-input" placeholder="จำนวน">
-          <select id="type-${item.code}" class="stock-type-select">
-            <option value="เบิก">เบิก</option>
-            <option value="คืน">คืน</option>
-          </select>
-          <button class="btn btn-blue btn-sm" onclick="event.stopPropagation();submitRowTransfer('${item.code}','${item.name}')">✔</button>
-          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();editTotal('${item.code}',${item.total})">✏️</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join("");
+      <td><div class="sc-row">
+        <input type="number" min="1" id="qty-${item.code}" class="qty-in" placeholder="จำนวน">
+        <select id="type-${item.code}" class="typ-sel"><option value="เบิก">เบิก</option><option value="คืน">คืน</option></select>
+        <button class="btn btn-blue btn-sm" onclick="event.stopPropagation();submitRowTransfer('${item.code}','${item.name}')">✔</button>
+        <button class="btn btn-out btn-sm" onclick="event.stopPropagation();editTotal('${item.code}',${item.total})">✏️</button>
+      </div></td>
+    </tr>`;}).join("")
 }
-
-function filterTable(){
-  const kw = document.getElementById("search").value.toLowerCase();
-  renderStockTable(stockData.filter(i=>i.code.toLowerCase().includes(kw)||i.name.toLowerCase().includes(kw)));
-}
-
-async function editTotal(code, current){
-  const newTotal = prompt("แก้ไขจำนวนทั้งหมด:", current);
-  if(newTotal===null) return;
-  const res = await fetch("/api/update-total",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({code, newTotal:parseInt(newTotal)}) });
-  const r = await res.json();
-  if(r.error){ alert(r.error) } else { await loadStock(); await loadDashboard() }
-}
-
+function filterTable(){const k=document.getElementById("search").value.toLowerCase();renderStockTable(stockData.filter(i=>i.code.toLowerCase().includes(k)||i.name.toLowerCase().includes(k)))}
+async function editTotal(code,cur){const n=prompt("แก้ไขจำนวนทั้งหมด:",cur);if(n===null)return;const r=await(await fetch("/api/update-total",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,newTotal:parseInt(n)})})).json();if(r.error)alert(r.error);else{await loadStock();await loadDashboard()}}
 async function addItem(){
-  const code = document.getElementById("newCode").value.trim();
-  const name = document.getElementById("newName").value.trim();
-  const qty = parseInt(document.getElementById("newQty").value);
-  const file = document.getElementById("newImage").files[0];
-  if(!code||!name||!qty||!file){ alert("กรอกข้อมูลและเลือกรูปให้ครบ"); return }
-  const ext = file.name.split(".").pop().toLowerCase();
-  if(!["jpg","jpeg","png"].includes(ext)){ alert("รองรับ JPG/PNG เท่านั้น"); return }
-  const reader = new FileReader();
-  reader.onload = async e=>{
-    try {
-      const upRes = await fetch("/upload-image",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ fileName:code+"."+ext, base64:e.target.result }) });
-      const upResult = await upRes.json();
-      if(upResult.success){
-        await fetch("/api/add-item",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({code,name,total:qty,office:0,site:0,ext}) });
-        closeModal("addStockModal");
-        ["newCode","newName","newQty"].forEach(id=>document.getElementById(id).value="");
-        await loadStock(); await loadDashboard();
-        alert("เพิ่มอุปกรณ์สำเร็จ");
-      } else { alert("อัปโหลดรูปไม่สำเร็จ") }
-    } catch(e){ alert("เกิดข้อผิดพลาด") }
-  };
+  const code=document.getElementById("newCode").value.trim(),name=document.getElementById("newName").value.trim(),qty=parseInt(document.getElementById("newQty").value),file=document.getElementById("newImage").files[0];
+  if(!code||!name||!qty||!file){alert("กรอกข้อมูลและเลือกรูปให้ครบ");return}
+  const ext=file.name.split(".").pop().toLowerCase();
+  if(!["jpg","jpeg","png"].includes(ext)){alert("รองรับ JPG/PNG เท่านั้น");return}
+  const reader=new FileReader();
+  reader.onload=async e=>{try{const up=await(await fetch("/upload-image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fileName:code+"."+ext,base64:e.target.result})})).json();
+    if(up.success){await fetch("/api/add-item",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,name,total:qty,office:0,site:0,ext})});
+    closeModal("addStockModal");["newCode","newName","newQty"].forEach(id=>document.getElementById(id).value="");await loadStock();await loadDashboard();alert("เพิ่มอุปกรณ์สำเร็จ")}else alert("อัปโหลดรูปไม่สำเร็จ")}catch(e){alert("เกิดข้อผิดพลาด")}};
   reader.readAsDataURL(file);
 }
-
 async function submitRowTransfer(code,name){
-  const qty = parseInt(document.getElementById(`qty-${code}`).value);
-  const type = document.getElementById(`type-${code}`).value;
-  if(!qty||qty<=0){ alert("กรอกจำนวนให้ถูกต้อง"); return }
-  const res = await fetch("/api/transfer",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({code,name,qty,type}) });
-  const r = await res.json();
-  if(r.error){ alert(r.error) } else { await loadStock(); await loadDashboard(); await loadHistory() }
+  const qty=parseInt(document.getElementById(`qty-${code}`).value),type=document.getElementById(`type-${code}`).value;
+  if(!qty||qty<=0){alert("กรอกจำนวนให้ถูกต้อง");return}
+  const r=await(await fetch("/api/transfer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,name,qty,type})})).json();
+  if(r.error)alert(r.error);else{await loadStock();await loadDashboard();await loadHistory()}
 }
 
-/* ────────────────────────────────────────
-   HISTORY
-──────────────────────────────────────── */
+/* ── HISTORY ── */
 async function loadHistory(){
-  const start = document.getElementById("historyStart").value;
-  const end = document.getElementById("historyEnd").value;
-  let url = "/api/history";
-  if(start||end) url += `?start=${start}&end=${end}`;
-  const res = await fetch(url);
-  const history = await res.json();
-  const tbody = document.getElementById("historyBody");
-  if(!history.length){
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">ไม่พบข้อมูล</td></tr>`;
-    return;
-  }
-  const typeStyle = t=>{
-    if(t==="เบิก") return `<span class="badge badge-blue">${t}</span>`;
-    if(t==="คืน") return `<span class="badge badge-green">${t}</span>`;
-    return `<span class="badge badge-gray">${t}</span>`;
-  };
-  tbody.innerHTML = history.map(h=>`
-    <tr>
-      <td>${h.date||"-"}</td>
-      <td><span style="font-family:monospace">${h.code||"-"}</span></td>
-      <td>${h.name||"-"}</td>
-      <td>${typeStyle(h.type)}</td>
-      <td style="text-align:center">${h.qty||"-"}</td>
-      <td>${h.from||"-"}</td>
-      <td>${h.to||"-"}</td>
-      <td>${h.user||"-"}</td>
-    </tr>`).join("");
+  const s=document.getElementById("historyStart").value,e=document.getElementById("historyEnd").value;
+  let url="/api/history";if(s||e)url+=`?start=${s}&end=${e}`;
+  const h=await(await fetch(url)).json();
+  const tb=document.getElementById("historyBody");
+  if(!h.length){tb.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--tmuted)">ไม่พบข้อมูล</td></tr>`;return}
+  const ts=t=>t==="เบิก"?`<span class="badge bg-blue">${t}</span>`:t==="คืน"?`<span class="badge bg-green">${t}</span>`:`<span class="badge bg-gray">${t}</span>`;
+  tb.innerHTML=h.map(x=>`<tr><td>${x.date||"-"}</td><td><span style="font-family:monospace">${x.code||"-"}</span></td><td>${x.name||"-"}</td><td>${ts(x.type)}</td><td style="text-align:center">${x.qty||"-"}</td><td>${x.from||"-"}</td><td>${x.to||"-"}</td><td>${x.user||"-"}</td></tr>`).join("")
 }
+function clearHistoryFilter(){document.getElementById("historyStart").value="";document.getElementById("historyEnd").value="";loadHistory()}
 
-function clearHistoryFilter(){
-  document.getElementById("historyStart").value = "";
-  document.getElementById("historyEnd").value = "";
-  loadHistory();
-}
-
-/* ────────────────────────────────────────
-   ASSET
-──────────────────────────────────────── */
-function getStatusBadge(s=""){
-  const t = s.toLowerCase();
-  if(t.includes("ซ่อม")) return `<span class="badge badge-red">${s}</span>`;
-  if(t.includes("สำรอง")) return `<span class="badge badge-amber">${s}</span>`;
-  if(t.includes("ชำรุด")||t.includes("สูญ")) return `<span class="badge badge-gray">${s}</span>`;
-  return `<span class="badge badge-green">${s}</span>`;
-}
+/* ── ASSET ── */
+function getStatusBadge(s=""){const t=s.toLowerCase();
+  if(t.includes("ซ่อม"))return`<span class="badge bg-red">${s}</span>`;
+  if(t.includes("สำรอง"))return`<span class="badge bg-amber">${s}</span>`;
+  if(t.includes("ชำรุด")||t.includes("สูญ"))return`<span class="badge bg-gray">${s}</span>`;
+  return`<span class="badge bg-green">${s}</span>`}
 
 async function loadAssets(){
-  try {
-    const res = await fetch("/api/assets");
-    if(!res.ok) throw new Error(res.status);
-    assetData = await res.json();
-    renderAssetTable(assetData, "assetBody", true);
-  } catch(e){ console.error(e) }
+  try{const r=await fetch("/api/assets");if(!r.ok)throw new Error(r.status);assetData=await r.json();renderAssetTable(assetData,"assetBody")}catch(e){}
 }
-
-function renderAssetTable(data, tbodyId, showAllCols){
-  const tbody = document.getElementById(tbodyId);
-  if(!tbody) return;
-  if(!data.length){
-    const cols = showAllCols ? 12 : 11;
-    tbody.innerHTML = `<tr><td colspan="${cols}" class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">ไม่พบข้อมูล</div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = data.map(item=>{
-    const serial = item.serialNumber||"";
-    const enc = encodeURIComponent(serial);
-    return `<tr>
-      <td><span style="font-family:monospace;font-size:12px">${item.assetId||"-"}</span></td>
-      ${showAllCols?`<td><span style="font-family:monospace;font-size:12px">${item.code||"-"}</span></td>`:""}
-      <td style="font-weight:500">${item.name||"-"}</td>
-      ${showAllCols?`<td>${item.partNumber||"-"}</td>`:""}
-      <td>
-        <a href="javascript:void(0)" onclick="viewAssetHistory('${serial}')"
-          style="color:var(--blue);font-weight:700;font-family:monospace;font-size:12px;text-decoration:none"
-          title="ดูประวัติ">
-          ${serial||'<span style="color:var(--text-muted)">ไม่มี</span>'}
-        </a>
-      </td>
-      <td>${getStatusBadge(item.status||"")}</td>
-      <td>${item.location||"-"}</td>
-      <td>${item.siteName||"-"}</td>
-      <td>${item.user||"-"}</td>
-      <td><a href="/trace.html?serial=${enc}" target="_blank" class="btn btn-outline btn-sm">📜</a></td>
-      <td><a href="/qr.html?serial=${enc}" target="_blank" class="btn btn-teal btn-sm">📷</a></td>
-      <td>
-        <button class="btn btn-blue btn-sm" onclick="openTransferModal('${serial}','${item.status||""}','${item.location||""}','${item.siteName||""}','${item.user||""}')">🚚</button>
-      </td>
-    </tr>`;
-  }).join("");
+function renderAssetTable(data,tbId){
+  const tb=document.getElementById(tbId);if(!tb)return;
+  if(!data.length){tb.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--tmuted)">ไม่พบข้อมูล</td></tr>`;return}
+  tb.innerHTML=data.map(a=>{const s=a.serialNumber||"",enc=encodeURIComponent(s);return`<tr>
+    <td><span style="font-family:monospace;font-size:12px">${a.assetId||"-"}</span></td>
+    <td><span style="font-family:monospace;font-size:12px">${a.code||"-"}</span></td>
+    <td style="font-weight:500">${a.name||"-"}</td>
+    <td>${a.partNumber||"-"}</td>
+    <td><a href="javascript:void(0)" onclick="viewAssetHistory('${s}')" style="color:var(--blue);font-weight:700;font-family:monospace;font-size:12px;text-decoration:none">${s||'<span style="color:var(--tmuted)">ไม่มี</span>'}</a></td>
+    <td>${getStatusBadge(a.status||"")}</td>
+    <td>${a.location||"-"}</td>
+    <td>${a.siteName||"-"}</td>
+    <td>${a.user||"-"}</td>
+    <td><a href="/trace.html?serial=${enc}" target="_blank" class="btn btn-out btn-sm">📜</a></td>
+    <td><a href="/qr.html?serial=${enc}" target="_blank" class="btn btn-teal btn-sm">📷</a></td>
+    <td><button class="btn btn-blue btn-sm" onclick="openTransferModal('${s}','${(a.status||"").replace(/'/g,"\\'")}','${(a.location||"").replace(/'/g,"\\'")}','${(a.siteName||"").replace(/'/g,"\\'")}','${(a.user||"").replace(/'/g,"\\'")}')">🚚</button></td>
+  </tr>`}).join("")
 }
-
-function filterAsset(){
-  const kw = document.getElementById("assetSearch").value.toLowerCase().trim();
-  const filtered = assetData.filter(a=>
-    (a.assetId||"").toLowerCase().includes(kw)||
-    (a.code||"").toLowerCase().includes(kw)||
-    (a.name||"").toLowerCase().includes(kw)||
-    (a.serialNumber||"").toLowerCase().includes(kw)
-  );
-  renderAssetTable(filtered, "assetBody", true);
-}
-
+function filterAsset(){const k=document.getElementById("assetSearch").value.toLowerCase().trim();renderAssetTable(assetData.filter(a=>(a.assetId||"").toLowerCase().includes(k)||(a.code||"").toLowerCase().includes(k)||(a.name||"").toLowerCase().includes(k)||(a.serialNumber||"").toLowerCase().includes(k)),"assetBody")}
 async function addAsset(){
-  const assetId = document.getElementById("newAssetId").value.trim();
-  const name = document.getElementById("newAssetName").value.trim();
-  if(!assetId||!name){ alert("กรุณากรอก Asset ID และ ชื่ออุปกรณ์"); return }
-  try {
-    const body = {
-      assetId, name,
-      code: document.getElementById("newAssetCode").value.trim(),
-      partNumber: document.getElementById("newAssetPart").value.trim(),
-      serialNumber: document.getElementById("newAssetSerial").value.trim(),
-      status: document.getElementById("newAssetStatus").value,
-      location: document.getElementById("newAssetLocation").value.trim(),
-      siteName: document.getElementById("newAssetSite").value.trim(),
-      user: document.getElementById("newAssetUser").value.trim()
-    };
-    const res = await fetch("/api/add-asset",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
-    const r = await res.json();
-    if(r.success){
-      closeModal("addAssetModal");
-      ["newAssetId","newAssetCode","newAssetName","newAssetPart","newAssetSerial","newAssetLocation","newAssetSite","newAssetUser"].forEach(id=>document.getElementById(id).value="");
-      await loadAssets();
-    } else { alert("เกิดข้อผิดพลาด: "+(r.error||"")) }
-  } catch(e){ alert("ไม่สามารถเชื่อมต่อได้") }
+  const assetId=document.getElementById("newAssetId").value.trim(),name=document.getElementById("newAssetName").value.trim();
+  if(!assetId||!name){alert("กรุณากรอก Asset ID และชื่ออุปกรณ์");return}
+  try{const body={assetId,name,code:document.getElementById("newAssetCode").value.trim(),partNumber:document.getElementById("newAssetPart").value.trim(),serialNumber:document.getElementById("newAssetSerial").value.trim(),status:document.getElementById("newAssetStatus").value,location:document.getElementById("newAssetLocation").value.trim(),siteName:document.getElementById("newAssetSite").value.trim(),user:document.getElementById("newAssetUser").value.trim()};
+    const r=await(await fetch("/api/add-asset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+    if(r.success){closeModal("addAssetModal");["newAssetId","newAssetCode","newAssetName","newAssetPart","newAssetSerial","newAssetLocation","newAssetSite","newAssetUser"].forEach(id=>document.getElementById(id).value="");await loadAssets()}
+    else alert("เกิดข้อผิดพลาด: "+(r.error||""))}catch(e){alert("ไม่สามารถเชื่อมต่อได้")}
 }
 
-/* ────────────────────────────────────────
-   MONITOR FARM — ✅ REDESIGNED
-──────────────────────────────────────── */
+/* ══════════════════════════════════════
+   MONITOR FARM — PRO VERSION
+   ✅ Sidebar + farm search + live stats
+══════════════════════════════════════ */
 function renderMonitorView(){
-  if(!assetData.length){ loadAssets().then(()=>_renderMonitor()); return }
-  _renderMonitor();
+  if(!assetData.length){loadAssets().then(()=>_buildMonitor());return}
+  _buildMonitor();
 }
 
-function _renderMonitor(){
-  // สร้าง farm map
-  const farmMap = {};
+function _buildMonitor(){
+  /* สร้าง farmMap */
+  const farmMap={};
   assetData.forEach(a=>{
-    const farm = (a.siteName||"ไม่ระบุไซต์").trim();
-    if(!farmMap[farm]) farmMap[farm] = [];
-    farmMap[farm].push(a);
+    const f=(a.siteName||"ไม่ระบุไซต์").trim();
+    if(!farmMap[f])farmMap[f]=[];
+    farmMap[f].push(a);
   });
+  allFarms=Object.keys(farmMap).sort();
 
-  const farms = Object.keys(farmMap).sort();
+  /* render sidebar */
+  _renderFarmList(allFarms,farmMap,"");
 
-  // STAT BAR
-  const statBar = document.getElementById("farmStatBar");
-  statBar.innerHTML = `
-    <div class="farm-stat">
-      <div class="farm-stat-val">${assetData.length}</div>
-      <div class="farm-stat-lbl">อุปกรณ์ทั้งหมด</div>
-    </div>
-    <div class="farm-stat">
-      <div class="farm-stat-val">${farms.length}</div>
-      <div class="farm-stat-lbl">ไซต์งาน</div>
-    </div>
-    <div class="farm-stat">
-      <div class="farm-stat-val">${assetData.filter(a=>a.status&&a.status.includes("ใช้งานได้")).length}</div>
-      <div class="farm-stat-lbl">ใช้งานได้</div>
-    </div>
-    <div class="farm-stat">
-      <div class="farm-stat-val">${assetData.filter(a=>a.status&&a.status.includes("ซ่อม")).length}</div>
-      <div class="farm-stat-lbl">ส่งซ่อม</div>
-    </div>
-  `;
+  /* apply current farm */
+  _applyMonitorFarm(currentMonitorFarm,farmMap);
+}
 
-  // FARM PILLS
-  const pills = document.getElementById("farmPills");
-  pills.innerHTML = `
-    <button class="farm-pill ${currentMonitorFarm==="ALL"?"active":""}"
-      onclick="selectMonitorFarm('ALL')">
-      🌐 ทั้งหมด
-      <span class="pill-count">${assetData.length}</span>
-    </button>
-    ${farms.map(f=>`
-      <button class="farm-pill ${currentMonitorFarm===f?"active":""}"
-        onclick="selectMonitorFarm('${f.replace(/'/g,"\\'")}')">
-        🏭 ${f}
-        <span class="pill-count">${farmMap[f].length}</span>
-      </button>`).join("")}
-  `;
+function _renderFarmList(farms,farmMap,searchTerm){
+  const list=document.getElementById("monFarmList");
+  const icons=["🏭","🐷","🌾","🐄","🐔","🏗","🏢","🔬","🌿","⚙️"];
+  let html=`
+    <div class="mon-farm-item ${currentMonitorFarm==="ALL"?"active":""}" onclick="selectMonitorFarm('ALL')">
+      <div class="mon-farm-icon">🌐</div>
+      <div class="mon-farm-name">ทุกฟาร์ม</div>
+      <div class="mon-farm-cnt">${assetData.length}</div>
+    </div>`;
+  farms.filter(f=>f.toLowerCase().includes(searchTerm.toLowerCase())).forEach((f,i)=>{
+    const cnt=farmMap[f]?.length||0;
+    const ic=icons[i%icons.length];
+    const isAct=currentMonitorFarm===f;
+    html+=`<div class="mon-farm-item ${isAct?"active":""}" onclick="selectMonitorFarm('${f.replace(/'/g,"\\'")}')">
+      <div class="mon-farm-icon">${ic}</div>
+      <div class="mon-farm-name">${f}</div>
+      <div class="mon-farm-cnt">${cnt}</div>
+    </div>`;
+  });
+  list.innerHTML=html;
+}
 
-  // TABLE
-  _applyMonitorFilter();
+function filterFarmList(val){
+  const farmMap={};
+  assetData.forEach(a=>{const f=(a.siteName||"ไม่ระบุไซต์").trim();if(!farmMap[f])farmMap[f]=[];farmMap[f].push(a)});
+  _renderFarmList(Object.keys(farmMap).sort(),farmMap,val);
 }
 
 function selectMonitorFarm(farm){
-  currentMonitorFarm = farm;
-  // update pills active state
-  document.querySelectorAll(".farm-pill").forEach(p=>{
-    const isAll = p.textContent.trim().startsWith("🌐") && farm==="ALL";
-    const isFarm = p.textContent.includes(farm) && farm!=="ALL";
-    p.classList.toggle("active", isAll || isFarm);
-  });
-  document.getElementById("monitorAssetSearch").value = "";
-  _applyMonitorFilter();
+  currentMonitorFarm=farm;
+  const farmMap={};
+  assetData.forEach(a=>{const f=(a.siteName||"ไม่ระบุไซต์").trim();if(!farmMap[f])farmMap[f]=[];farmMap[f].push(a)});
+  /* update sidebar active */
+  _renderFarmList(allFarms,farmMap,document.getElementById("farmSearch").value||"");
+  document.getElementById("monitorAssetSearch").value="";
+  _applyMonitorFarm(farm,farmMap);
 }
 
-function _applyMonitorFilter(){
-  const search = (document.getElementById("monitorAssetSearch")?.value||"").toLowerCase().trim();
+function _applyMonitorFarm(farm,farmMap){
+  /* update label */
+  document.getElementById("monFarmLabel").textContent=farm==="ALL"?"🌐 ทุกฟาร์ม":"🏭 "+farm;
 
-  let filtered = assetData;
-  if(currentMonitorFarm !== "ALL"){
-    filtered = filtered.filter(a=>(a.siteName||"ไม่ระบุไซต์").trim() === currentMonitorFarm);
-  }
-  if(search){
-    filtered = filtered.filter(a=>
-      (a.assetId||"").toLowerCase().includes(search)||
-      (a.code||"").toLowerCase().includes(search)||
-      (a.name||"").toLowerCase().includes(search)||
-      (a.serialNumber||"").toLowerCase().includes(search)
-    );
-  }
+  /* filter data */
+  const list=farm==="ALL"?assetData:(farmMap[farm]||[]);
 
-  renderMonitorTable(filtered);
-  const label = document.getElementById("monitorCountLabel");
-  if(label) label.textContent = `แสดง ${filtered.length} รายการ`;
+  /* stats chips */
+  const ok=list.filter(a=>a.status&&a.status.includes("ใช้งานได้")).length;
+  const rep=list.filter(a=>a.status&&a.status.includes("ซ่อม")).length;
+  document.getElementById("monStatsRow").innerHTML=`
+    <span class="mon-stat-chip msc-total">รวม ${list.length} ชิ้น</span>
+    <span class="mon-stat-chip msc-ok">✅ ใช้งาน ${ok}</span>
+    ${rep?`<span class="mon-stat-chip msc-rep">🔧 ซ่อม ${rep}</span>`:""}
+  `;
+
+  /* render table */
+  _renderMonitorTable(list);
 }
 
-function filterMonitorAsset(){ _applyMonitorFilter() }
-
-function renderMonitorTable(data){
-  const tbody = document.getElementById("monitorAssetBody");
-  if(!data.length){
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:48px;color:var(--text-muted)">
-      <div style="font-size:28px;margin-bottom:8px">🏭</div>
-      ไม่พบอุปกรณ์ในไซต์งานนี้
-    </td></tr>`;
-    return;
-  }
-  tbody.innerHTML = data.map(item=>{
-    const serial = item.serialNumber||"";
-    const enc = encodeURIComponent(serial);
-    return `<tr>
-      <td><span style="font-family:monospace;font-size:12px">${item.assetId||"-"}</span></td>
-      <td><span style="font-family:monospace;font-size:12px">${item.code||"-"}</span></td>
-      <td style="font-weight:500">${item.name||"-"}</td>
-      <td><span style="font-family:monospace;font-size:12px;color:var(--blue)">${serial||"-"}</span></td>
-      <td>${getStatusBadge(item.status||"")}</td>
-      <td>${item.location||"-"}</td>
-      <td>${item.siteName||"-"}</td>
-      <td>${item.user||"-"}</td>
-      <td><a href="/trace.html?serial=${enc}" target="_blank" class="btn btn-outline btn-sm">📜</a></td>
-      <td><a href="/qr.html?serial=${enc}" target="_blank" class="btn btn-teal btn-sm">📷</a></td>
-      <td>
-        <button class="btn btn-blue btn-sm" onclick="openTransferModal('${serial}','${item.status||""}','${item.location||""}','${item.siteName||""}','${item.user||""}')">🚚</button>
-      </td>
-    </tr>`;
-  }).join("");
+function filterMonitorAsset(){
+  const kw=(document.getElementById("monitorAssetSearch").value||"").toLowerCase().trim();
+  const farmMap={};assetData.forEach(a=>{const f=(a.siteName||"ไม่ระบุไซต์").trim();if(!farmMap[f])farmMap[f]=[];farmMap[f].push(a)});
+  let base=currentMonitorFarm==="ALL"?assetData:(farmMap[currentMonitorFarm]||[]);
+  if(kw)base=base.filter(a=>(a.assetId||"").toLowerCase().includes(kw)||(a.code||"").toLowerCase().includes(kw)||(a.name||"").toLowerCase().includes(kw)||(a.serialNumber||"").toLowerCase().includes(kw));
+  _renderMonitorTable(base);
 }
 
-/* ────────────────────────────────────────
-   TRANSFER
-──────────────────────────────────────── */
+function _renderMonitorTable(data){
+  const tb=document.getElementById("monitorAssetBody");
+  if(!data.length){tb.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:48px;color:var(--tmuted)"><div style="font-size:32px;margin-bottom:10px">🏭</div>ไม่พบอุปกรณ์ในไซต์งานนี้</td></tr>`;return}
+  tb.innerHTML=data.map(a=>{const s=a.serialNumber||"",enc=encodeURIComponent(s);return`<tr>
+    <td><span style="font-family:monospace;font-size:12px">${a.assetId||"-"}</span></td>
+    <td><span style="font-family:monospace;font-size:12px">${a.code||"-"}</span></td>
+    <td style="font-weight:500">${a.name||"-"}</td>
+    <td><span style="font-family:monospace;font-size:12px;color:var(--blue)">${s||"-"}</span></td>
+    <td>${getStatusBadge(a.status||"")}</td>
+    <td>${a.location||"-"}</td>
+    <td>${a.siteName||"-"}</td>
+    <td>${a.user||"-"}</td>
+    <td><a href="/trace.html?serial=${enc}" target="_blank" class="btn btn-out btn-sm">📜</a></td>
+    <td><a href="/qr.html?serial=${enc}" target="_blank" class="btn btn-teal btn-sm">📷</a></td>
+    <td><button class="btn btn-blue btn-sm" onclick="openTransferModal('${s}','${(a.status||"").replace(/'/g,"\\'")}','${(a.location||"").replace(/'/g,"\\'")}','${(a.siteName||"").replace(/'/g,"\\'")}','${(a.user||"").replace(/'/g,"\\'")}')">🚚</button></td>
+  </tr>`}).join("")
+}
+
+/* ── TRANSFER ── */
 function openTransferModal(serial,status,location,site,user){
-  document.getElementById("transferSerialTitle").textContent = serial;
-  document.getElementById("transferStatus").value = status;
-  document.getElementById("transferLocation").value = location;
-  document.getElementById("transferSite").value = site;
-  document.getElementById("transferUser").value = user;
-  document.getElementById("oldSiteName").value = site;
-  document.getElementById("oldLocation").value = location;
-  document.getElementById("transferRemark").value = "";
+  document.getElementById("transferSerialTitle").textContent=serial;
+  document.getElementById("transferStatus").value=status;
+  document.getElementById("transferLocation").value=location;
+  document.getElementById("transferSite").value=site;
+  document.getElementById("transferUser").value=user;
+  document.getElementById("oldSiteName").value=site;
+  document.getElementById("oldLocation").value=location;
+  document.getElementById("transferRemark").value="";
   openModal("transferModal");
 }
-
 async function submitTransferAction(){
-  const serialNumber = document.getElementById("transferSerialTitle").textContent;
-  const action = document.getElementById("transferAction").value;
-  const status = document.getElementById("transferStatus").value;
-  const location = document.getElementById("transferLocation").value.trim();
-  const siteName = document.getElementById("transferSite").value.trim();
-  const user = document.getElementById("transferUser").value.trim();
-  const remark = document.getElementById("transferRemark").value.trim();
-  const oldSite = document.getElementById("oldSiteName").value;
-  const oldLoc = document.getElementById("oldLocation").value;
-  const fromLocation = `${oldSite} (${oldLoc})`;
-  if(!siteName){ alert("กรุณาระบุไซต์งานปลายทาง"); return }
-  try {
-    const res = await fetch("/api/update-asset-status",{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({serialNumber,action,status,location,siteName,user,remark,fromLocation})
-    });
-    const r = await res.json();
-    if(r.success){
-      closeModal("transferModal");
-      await loadAssets();
-      if(document.getElementById("farmMonitorTab").style.display!=="none") renderMonitorView();
-    } else { alert("เกิดข้อผิดพลาด: "+r.error) }
-  } catch(e){ alert("ไม่สามารถเชื่อมต่อได้") }
+  const serial=document.getElementById("transferSerialTitle").textContent;
+  const action=document.getElementById("transferAction").value;
+  const status=document.getElementById("transferStatus").value;
+  const location=document.getElementById("transferLocation").value.trim();
+  const siteName=document.getElementById("transferSite").value.trim();
+  const user=document.getElementById("transferUser").value.trim();
+  const remark=document.getElementById("transferRemark").value.trim();
+  const from=`${document.getElementById("oldSiteName").value} (${document.getElementById("oldLocation").value})`;
+  if(!siteName){alert("กรุณาระบุไซต์งานปลายทาง");return}
+  try{const r=await(await fetch("/api/update-asset-status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({serialNumber:serial,action,status,location,siteName,user,remark,fromLocation:from})})).json();
+    if(r.success){closeModal("transferModal");await loadAssets();if(currentMonitorFarm)renderMonitorView()}
+    else alert("เกิดข้อผิดพลาด: "+r.error)}catch(e){alert("ไม่สามารถเชื่อมต่อได้")}
 }
 
-/* ────────────────────────────────────────
-   RETURN MODAL
-──────────────────────────────────────── */
+/* ── RETURN ── */
 async function _openReturnModal(){
-  try {
-    const res = await fetch("/api/get-site-items");
-    const data = await res.json();
-    const list = document.getElementById("returnList");
-    list.innerHTML = (data.items||[]).map(item=>`
-      <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);cursor:pointer;font-size:14px">
-        <input type="checkbox" data-code="${item.code}" data-name="${item.name}" data-qty="${item.qty}" style="width:16px;height:16px">
-        <span>${item.name}</span>
-        <span style="margin-left:auto;background:var(--gray-100);padding:2px 10px;border-radius:20px;font-size:12px;color:var(--text-muted)">${item.qty} ชิ้น</span>
-      </label>`).join("") || `<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-title">ไม่มีอุปกรณ์ใน Site</div></div>`;
-    openModal("returnModal");
-  } catch(e){ alert("โหลดข้อมูลไม่ได้") }
+  try{const d=await(await fetch("/api/get-site-items")).json();
+    document.getElementById("returnList").innerHTML=(d.items||[]).map(i=>`
+      <label class="ret-item">
+        <input type="checkbox" data-code="${i.code}" data-name="${i.name}" data-qty="${i.qty}">
+        <span>${i.name}</span>
+        <span class="ret-qty">${i.qty} ชิ้น</span>
+      </label>`).join("")||`<div style="text-align:center;padding:30px;color:var(--tmuted)">📦 ไม่มีอุปกรณ์ใน Site</div>`;
+    openModal("returnModal")}catch(e){alert("โหลดข้อมูลไม่ได้")}
 }
-
-function selectAllReturn(){ document.querySelectorAll("#returnList input[type='checkbox']").forEach(c=>c.checked=true) }
-function unselectAllReturn(){ document.querySelectorAll("#returnList input[type='checkbox']").forEach(c=>c.checked=false) }
-
+function selectAllReturn(){document.querySelectorAll("#returnList input[type='checkbox']").forEach(c=>c.checked=true)}
+function unselectAllReturn(){document.querySelectorAll("#returnList input[type='checkbox']").forEach(c=>c.checked=false)}
 async function confirmSelectedReturn(){
-  const checks = document.querySelectorAll("#returnList input:checked");
-  const items = [...checks].map(c=>({code:c.dataset.code, qty:parseInt(c.dataset.qty)}));
-  if(!items.length){ alert("กรุณาเลือกรายการ"); return }
-  const res = await fetch("/api/return-selected-site",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({items}) });
-  const d = await res.json();
-  if(d.success){ closeModal("returnModal"); loadStock() } else { alert("เกิดข้อผิดพลาด") }
+  const items=[...document.querySelectorAll("#returnList input:checked")].map(c=>({code:c.dataset.code,qty:parseInt(c.dataset.qty)}));
+  if(!items.length){alert("กรุณาเลือกรายการ");return}
+  const d=await(await fetch("/api/return-selected-site",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({items})})).json();
+  if(d.success){closeModal("returnModal");loadStock()}else alert("เกิดข้อผิดพลาด")
 }
 
-/* ────────────────────────────────────────
-   EXPORT PDF — ✅ validated before submit
-──────────────────────────────────────── */
+/* ── EXPORT PDF (validated) ── */
 function exportPDF(){
-  const startDate = document.getElementById("startDate").value;
-  const endDate = document.getElementById("endDate").value;
-  if(!startDate||!endDate){ alert("กรุณาเลือกช่วงวันที่"); return }
-  const data = {
-    title: document.getElementById("title").value || "รายงานประวัติการเบิก–คืนอุปกรณ์",
-    locations: document.getElementById("locations").value,
-    vehicle: document.getElementById("vehicle").value || "-",
-    startDate, endDate,
-    employeeCount: document.getElementById("employeeCount").value || "0",
-    employees: document.getElementById("employees").value,
-    reportType: document.getElementById("reportType").value
-  };
-  const form = document.createElement("form");
-  form.method = "POST"; form.action = "/api/export-history"; form.target = "_blank";
-  Object.keys(data).forEach(k=>{
-    const inp = document.createElement("input");
-    inp.type = "hidden"; inp.name = k; inp.value = data[k];
-    form.appendChild(inp);
-  });
-  document.body.appendChild(form); form.submit(); document.body.removeChild(form);
+  const s=document.getElementById("startDate").value,e=document.getElementById("endDate").value;
+  if(!s||!e){alert("กรุณาเลือกช่วงวันที่");return}
+  const data={title:document.getElementById("title").value||"รายงาน",locations:document.getElementById("locations").value,vehicle:document.getElementById("vehicle").value||"-",startDate:s,endDate:e,employeeCount:document.getElementById("employeeCount").value||"0",employees:document.getElementById("employees").value,reportType:document.getElementById("reportType").value};
+  const form=document.createElement("form");form.method="POST";form.action="/api/export-history";form.target="_blank";
+  Object.keys(data).forEach(k=>{const i=document.createElement("input");i.type="hidden";i.name=k;i.value=data[k];form.appendChild(i)});
+  document.body.appendChild(form);form.submit();document.body.removeChild(form);
 }
 
-/* ────────────────────────────────────────
-   HISTORY MODAL
-──────────────────────────────────────── */
-function _dotClass(action=""){
-  const a = action.toLowerCase();
-  if(a.includes("ลงทะเบียน")||a.includes("เพิ่ม")) return {cls:"hm-dot-register",icon:"✦"};
-  if(a.includes("ซ่อม")) return {cls:"hm-dot-repair",icon:"🔧"};
-  if(a.includes("คืน")) return {cls:"hm-dot-return",icon:"↩"};
-  return {cls:"hm-dot-move",icon:"→"};
-}
-function _initials(name=""){
-  const p = name.trim().split(" ").filter(Boolean);
-  if(!p.length) return "?";
-  return p.length>1 ? (p[0][0]+p[p.length-1][0]).toUpperCase() : p[0].slice(0,2).toUpperCase();
+/* ════════════════════════════════════════
+   SCAN INPUT — ✅ NEW FEATURE
+   รับ URL จาก QR → สกัด serial ออก → ค้นหาอัตโนมัติ
+   ตัวอย่าง: https://equipment-system-ivnd.onrender.com/trace.html?serial=30-F-17062026-0001
+   → ดึงแค่ "30-F-17062026-0001" → ใส่ช่อง assetSearch
+════════════════════════════════════════ */
+function extractSerialFromScan(raw){
+  raw=raw.trim();
+  /* กรณีเป็น URL → ดึง query param "serial" */
+  try{
+    const url=new URL(raw);
+    const s=url.searchParams.get("serial");
+    if(s)return decodeURIComponent(s);
+  }catch(e){}
+  /* กรณีเป็น serial ธรรมดา (ไม่ใช่ URL) → คืนค่าเดิม */
+  return raw;
 }
 
-async function viewAssetHistory(serial){
-  if(!serial||serial==="ไม่มี Serial"){ alert("ไม่พบ Serial Number"); return }
-  document.getElementById("modalSerialTitle").textContent = serial;
-  document.getElementById("hmCounter").textContent = "";
-  document.getElementById("hmExtLink").href = `/trace.html?serial=${encodeURIComponent(serial)}`;
-  document.getElementById("historyModalBody").innerHTML =
-    '<div style="text-align:center;padding:40px 0"><div class="hm-spinner"></div><p style="color:var(--text-muted);margin-top:12px;font-size:13px">กำลังโหลด...</p></div>';
-  openModal("historyModal");
-  try {
-    const res = await fetch(`/api/asset-history/${encodeURIComponent(serial)}`);
-    const data = await res.json();
-    document.getElementById("hmCounter").textContent = `${data.length} รายการ`;
-    if(!data.length){
-      document.getElementById("historyModalBody").innerHTML =
-        '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px">📭 ยังไม่มีประวัติในระบบ</div>';
-      return;
-    }
-    let html = '<div class="hm-timeline">';
-    data.forEach((e,idx)=>{
-      const isFirst = idx===0;
-      const {cls,icon} = isFirst ? {cls:"hm-dot-current",icon:"📍"} : _dotClass(e.action);
-      const init = _initials(e.user||"");
-      const routeHTML = (e.from&&e.from!=="-")
-        ? `<div class="hm-route"><span class="hm-chip">${e.from}</span><span class="hm-arrow">→</span><span class="hm-chip hm-chip-dest">${e.to||"-"}</span></div>`
-        : (e.to&&e.to!=="-")?`<div class="hm-route"><span class="hm-chip hm-chip-dest">📍 ${e.to}</span></div>`:"";
-      const remarkHTML = (e.remark&&e.remark!=="-")
-        ? `<div class="hm-remark"><span class="hm-remark-label">หมายเหตุ</span>${e.remark}</div>`:""
-      html += `
-        <div class="hm-entry">
-          <div class="hm-dot ${cls}">${icon}</div>
-          <div class="hm-card ${isFirst?"hm-card-active":""}">
-            <div class="hm-card-top">
-              <div class="hm-action">${e.action||"-"}${isFirst?'<span class="hm-latest-tag">ล่าสุด</span>':""}</div>
-              <div class="hm-date">📅 ${e.date||"-"}</div>
-            </div>
-            ${routeHTML}
-            <div class="hm-user-row">
-              <div class="hm-avatar">${init}</div>
-              <span style="color:var(--text-muted);font-size:12px">${e.user||"System"}</span>
-            </div>
-            ${remarkHTML}
-          </div>
-        </div>`;
-    });
-    html += "</div>";
-    document.getElementById("historyModalBody").innerHTML = html;
-  } catch(e){
-    document.getElementById("historyModalBody").innerHTML =
-      '<div style="text-align:center;padding:30px;color:var(--red)">⚠️ ไม่สามารถโหลดประวัติได้</div>';
+/* hook กับ asset tab: ถ้ามี ?serial= ใน URL ตอนโหลดหน้า */
+function checkScanParam(){
+  const p=new URLSearchParams(window.location.search);
+  const serial=p.get("serial");
+  if(serial){
+    openTab("asset");
+    const inp=document.getElementById("assetSearch");
+    if(inp){inp.value=serial;filterAsset()}
   }
 }
 
-/* ────────────────────────────────────────
-   USER + MISC
-──────────────────────────────────────── */
+/* ── HISTORY MODAL ── */
+function _dotClass(a=""){a=a.toLowerCase();
+  if(a.includes("ลงทะเบียน")||a.includes("เพิ่ม"))return{cls:"hmd-reg",icon:"✦"};
+  if(a.includes("ซ่อม"))return{cls:"hmd-rep",icon:"🔧"};
+  if(a.includes("คืน"))return{cls:"hmd-ret",icon:"↩"};
+  return{cls:"hmd-move",icon:"→"}}
+function _init(name=""){const p=name.trim().split(" ").filter(Boolean);if(!p.length)return"?";return p.length>1?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0].slice(0,2).toUpperCase()}
+
+async function viewAssetHistory(serial){
+  if(!serial||serial==="ไม่มี Serial"){alert("ไม่พบ Serial Number");return}
+  document.getElementById("modalSerialTitle").textContent=serial;
+  document.getElementById("hmCounter").textContent="";
+  document.getElementById("hmExtLink").href=`/trace.html?serial=${encodeURIComponent(serial)}`;
+  document.getElementById("historyModalBody").innerHTML='<div style="text-align:center;padding:40px 0"><div class="spin"></div><p style="color:var(--tmuted);margin-top:12px;font-size:13px">กำลังโหลด...</p></div>';
+  openModal("historyModal");
+  try{const data=await(await fetch(`/api/asset-history/${encodeURIComponent(serial)}`)).json();
+    document.getElementById("hmCounter").textContent=`${data.length} รายการ`;
+    if(!data.length){document.getElementById("historyModalBody").innerHTML='<div style="text-align:center;padding:40px;color:var(--tmuted);font-size:14px">📭 ยังไม่มีประวัติในระบบ</div>';return}
+    let html='<div class="hmt">';
+    data.forEach((e,i)=>{const f=i===0;const{cls,icon}=f?{cls:"hmd-cur",icon:"📍"}:_dotClass(e.action);const init=_init(e.user||"");
+      const rH=(e.from&&e.from!=="-")?`<div class="hm-route"><span class="hm-chip">${e.from}</span><span class="hm-arr">→</span><span class="hm-chip hm-chip-d">${e.to||"-"}</span></div>`:(e.to&&e.to!=="-")?`<div class="hm-route"><span class="hm-chip hm-chip-d">📍 ${e.to}</span></div>`:"";
+      const rem=(e.remark&&e.remark!=="-")?`<div class="hm-rem"><span class="hm-rem-lbl">หมายเหตุ</span>${e.remark}</div>`:"";
+      html+=`<div class="hme"><div class="hmd ${cls}">${icon}</div><div class="hmc ${f?"hmc-a":""}"><div class="hmc-top"><div class="hm-action">${e.action||"-"}${f?'<span class="hm-tag">ล่าสุด</span>':""}</div><div class="hm-date">📅 ${e.date||"-"}</div></div>${rH}<div class="hm-ur"><div class="hm-av">${init}</div><span style="color:var(--tmuted);font-size:12px">${e.user||"System"}</span></div>${rem}</div></div>`;});
+    html+="</div>";
+    document.getElementById("historyModalBody").innerHTML=html;
+  }catch(e){document.getElementById("historyModalBody").innerHTML='<div style="text-align:center;padding:30px;color:var(--red)">⚠️ ไม่สามารถโหลดประวัติได้</div>'}
+}
+
+/* ── USER ── */
 async function loadCurrentUser(){
-  try {
-    const res = await fetch("/api/me",{credentials:"include"});
-    const data = await res.json();
-    const name = data.username||"User";
-    document.getElementById("currentUser").textContent = name;
-    document.getElementById("settingsUser").textContent = name;
-    const av = document.getElementById("userAvatar");
-    if(av) av.textContent = name[0]?.toUpperCase()||"U";
-  } catch(e){}
+  try{const d=await(await fetch("/api/me",{credentials:"include"})).json();
+    const name=d.username||"User";
+    document.getElementById("currentUser").textContent=name;
+    document.getElementById("settingsUser").textContent=name;
+    const av=document.getElementById("userAvatar");if(av)av.textContent=name[0]?.toUpperCase()||"U";
+  }catch(e){}
 }
+function openDatabase(){window.open("https://docs.google.com/spreadsheets/d/1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE","_blank")}
 
-function openDatabase(){
-  window.open("https://docs.google.com/spreadsheets/d/1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE","_blank");
-}
-
-/* ────────────────────────────────────────
-   AUTH CHECK ON LOAD
-──────────────────────────────────────── */
+/* ── AUTH CHECK ── */
 async function checkAuth(){
-  try {
-    const res = await fetch("/api/check-auth",{credentials:"include"});
-    const data = await res.json();
-    if(data.loggedIn){ showApp() }
-  } catch(e){}
-  document.body.style.visibility = "visible";
+  try{const d=await(await fetch("/api/check-auth",{credentials:"include"})).json();if(d.loggedIn)showApp()}catch(e){}
+  document.body.style.visibility="visible";
 }
-
-/* keyboard enter on login */
-document.addEventListener("keydown", e=>{
-  if(e.key==="Enter" && document.getElementById("loginPage").style.display!=="none") login();
-});
-
-/* restore last tab */
-document.addEventListener("DOMContentLoaded", ()=>{
-  const lastTab = localStorage.getItem("activeTab");
-  if(lastTab) openTab(lastTab);
-});
-
-window.onload = checkAuth;
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&document.getElementById("loginPage").style.display!=="none")login()});
+document.addEventListener("DOMContentLoaded",()=>{checkScanParam()});
+window.onload=checkAuth;
 </script>
 </body>
 </html>
