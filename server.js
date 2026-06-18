@@ -1993,7 +1993,203 @@ app.post(
     }
   }
 );
+// =====================================================
+// ADD FARM SITE (Admin only)
+// =====================================================
+app.post(
+  "/api/add-farm-site",
+  requireLogin,
+  [
+    body("siteId").trim().notEmpty(),
+    body("siteName").trim().notEmpty(),
+    body("farmType").optional().isString(),
+    body("province").optional().isString(),
+    body("manager").optional().isString(),
+    body("note").optional().isString(),
+  ],
+  validate,
+  async (req, res) => {
+    if (req.session.user.role !== "admin") {
+      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
+    }
+    try {
+      const { siteId, siteName, farmType, province, manager, note } = req.body;
+      const sheets = await getSheetsClient();
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Farm_Sites!A:F",
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [[siteId, siteName, farmType || "", province || "", manager || "", note || ""]],
+        },
+      });
+      cache.del("farmSites");
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Add farm site error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
 
+// =====================================================
+// ADD FARM HOUSE (Admin only)
+// =====================================================
+app.post(
+  "/api/add-farm-house",
+  requireLogin,
+  [
+    body("houseId").trim().notEmpty(),
+    body("siteId").trim().notEmpty(),
+    body("houseName").trim().notEmpty(),
+    body("houseType").optional().isString(),
+    body("capacity").optional().isString(),
+    body("note").optional().isString(),
+  ],
+  validate,
+  async (req, res) => {
+    if (req.session.user.role !== "admin") {
+      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
+    }
+    try {
+      const { houseId, siteId, houseName, houseType, capacity, note } = req.body;
+      const sheets = await getSheetsClient();
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Farm_Houses!A:F",
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [[houseId, siteId, houseName, houseType || "", capacity || "", note || ""]],
+        },
+      });
+      cache.del(`farmHouses_${siteId}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Add farm house error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// =====================================================
+// ADD PART TO CATALOG (Admin only)
+// =====================================================
+app.post(
+  "/api/add-part-from-asset",
+  requireLogin,
+  [
+    body("partNumber").trim().notEmpty(),
+    body("partName").trim().notEmpty(),
+    body("category").optional().isString(),
+    body("description").optional().isString(),
+    body("unit").optional().isString(),
+  ],
+  validate,
+  async (req, res) => {
+    if (req.session.user.role !== "admin") {
+      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
+    }
+    try {
+      const { partNumber, partName, category, description, unit } = req.body;
+      const sheets = await getSheetsClient();
+      const date = new Date().toLocaleString("th-TH");
+
+      // ตรวจสอบว่ามี Part นี้แล้วหรือยัง
+      const catRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Part_Catalog!A:A",
+      });
+      const existing = (catRes.data.values || []).some(row => row[0] && row[0].trim() === partNumber.trim());
+
+      if (existing) {
+        return res.json({ success: false, error: "Part Number นี้มีอยู่แล้ว" });
+      }
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Part_Catalog!A:G",
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [[partNumber, partName, category || "", description || "", unit || "ชิ้น", 0, date]],
+        },
+      });
+      cache.del("partCatalog");
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Add part error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// =====================================================
+// GET DASHBOARD STATS (Extended with Farm stats)
+// =====================================================
+app.get("/api/dashboard-stats-extended", requireLogin, async (req, res) => {
+  const cacheKey = "dashboardStatsExtended";
+  let stats = cache.get(cacheKey);
+  if (stats) return res.json(stats);
+
+  try {
+    const sheets = await getSheetsClient();
+
+    // ดึง Asset_List
+    const assetRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!A2:M",
+    });
+    const assets = assetRes.data.values || [];
+
+    // ดึง Farm_Sites
+    const farmRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Farm_Sites!A2:F",
+    });
+    const farms = farmRes.data.values || [];
+
+    // สถิติ
+    const totalFarms = farms.length;
+    const uniqueSites = new Set(assets.map(a => a[7]).filter(s => s && s !== "-" && s !== ""));
+    const totalFarmAssets = assets.filter(a => a[7] && a[7] !== "-" && a[7] !== "").length;
+    const totalStockAssets = assets.filter(a => !a[7] || a[7] === "-" || a[7] === "").length;
+    const totalAssets = assets.length;
+
+    // สถานะอุปกรณ์
+    const statusCount = {};
+    assets.forEach(a => {
+      const status = a[5] || "ไม่ระบุ";
+      statusCount[status] = (statusCount[status] || 0) + 1;
+    });
+
+    // ฟาร์มที่มีอุปกรณ์มากสุด
+    const farmCount = {};
+    assets.forEach(a => {
+      const site = a[7] || "ไม่ระบุ";
+      if (site !== "-" && site !== "") {
+        farmCount[site] = (farmCount[site] || 0) + 1;
+      }
+    });
+    const topFarms = Object.entries(farmCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+
+    const result = {
+      totalFarms,
+      totalAssets,
+      totalFarmAssets,
+      totalStockAssets,
+      statusCount,
+      topFarms,
+    };
+
+    cache.set(cacheKey, result, 300);
+    res.json(result);
+  } catch (error) {
+    console.error("Dashboard stats extended error:", error);
+    res.status(500).json({ error: "Dashboard stats error" });
+  }
+});
 // =====================================================
 // FRONTEND ROUTES
 // =====================================================

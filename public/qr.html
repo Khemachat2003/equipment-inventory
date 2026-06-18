@@ -3,367 +3,497 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Code — Asset</title>
+<title>QR Code Generator</title>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
+/* ── Font ── */
+@font-face {
+  font-family: 'THSarabunNew';
+  src: url('/fonts/THSarabunNew.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { 
+  font-family: 'Segoe UI', system-ui, sans-serif; 
+  background: #f1f5f9; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  padding: 24px; 
+  min-height: 100vh;
+}
+h1 { 
+  margin-bottom: 20px; 
+  color: #0f172a; 
+  font-weight: 700;
+  font-size: 24px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.container { 
+  background: #fff; 
+  border-radius: 16px; 
+  padding: 28px; 
+  box-shadow: 0 4px 20px rgba(0,0,0,.08); 
+  max-width: 760px; 
+  width: 100%; 
+}
+
+/* ── Controls ── */
+.controls { 
+  display: flex; 
+  gap: 16px; 
+  flex-wrap: wrap; 
+  margin-bottom: 20px; 
+  align-items: flex-end; 
+}
+.controls .group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.controls label { 
+  font-weight: 600; 
+  color: #475569; 
+  font-size: 12px; 
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.controls input[type="number"],
+.controls select { 
+  padding: 8px 10px; 
+  border: 1.5px solid #d1d5db; 
+  border-radius: 8px; 
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  transition: .2s;
+  background: #fff;
+}
+.controls input[type="number"] { width: 76px; }
+.controls select { width: 120px; cursor: pointer; }
+.controls input[type="number"]:focus,
+.controls select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+.controls .unit {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-left: 2px;
+}
+.controls .size-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.controls .save-btn {
+  background: #0d9488;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: .2s;
+  margin-left: auto;
+}
+.controls .save-btn:hover { background: #0f766e; }
+
+/* ── Error ── */
+.error { 
+  color: #dc2626; 
+  margin-bottom: 12px; 
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ── Preview Area ── */
+.preview-area { 
+  border: 2px solid #e5e7eb; 
+  border-radius: 12px; 
+  padding: 20px; 
+  background: #fafbfc; 
+  display: flex; 
+  justify-content: center; 
+}
+
+#qrDisplay { 
+  display: flex; 
+  align-items: center; 
+  gap: 24px; 
+  border: 1.5px solid #d1d5db; 
+  border-radius: 10px; 
+  background: #ffffff; 
+  max-width: 100%; 
+  transition: all 0.2s; 
+  min-width: 280px;
+  font-family: 'THSarabunNew', 'Segoe UI', system-ui, sans-serif;
+}
+#qrDisplay .qr-image { 
+  flex-shrink: 0; 
+}
+#qrDisplay .qr-image img { 
+  display: block; 
+  background: #fff; 
+  border: 1px solid #f1f5f9;
+  border-radius: 4px;
+}
+
+/* ── Info (ขวา) ── */
+#qrDisplay .info { 
+  font-size: 14px; 
+  color: #0f172a; 
+  line-height: 1.7; 
+  min-width: 120px;
+  flex: 1;
+}
+#qrDisplay .info .label { 
+  font-weight: 500; 
+  color: #64748b; 
+  font-size: 0.9em;
+}
+#qrDisplay .info .serial-value {
+  font-weight: 800;          /* หนาขึ้น */
+  color: #0f172a;
+  letter-spacing: 0.2px;
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+}
+#qrDisplay .info .part-value {
+  font-weight: 700;          /* หนาขึ้น */
+  color: #1e293b;
+}
+#qrDisplay .info .name-value {
+  font-weight: 700;          /* หนาขึ้น */
+  color: #1e293b;
+}
+#qrDisplay .info .row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 2px 0;
+}
+
+/* ── Dark mode (background ดำ) ── */
+#qrDisplay.dark {
+  background: #1a1a1a;
+  border-color: #ffffff;
+}
+#qrDisplay.dark .info .label { color: #9ca3af; }
+#qrDisplay.dark .info .serial-value { color: #ffffff; }
+#qrDisplay.dark .info .part-value { color: #f3f4f6; }
+#qrDisplay.dark .info .name-value { color: #f3f4f6; }
+#qrDisplay.dark .qr-image img { border-color: #374151; }
+
+/* ── Buttons ── */
+.btn-row { 
+  display: flex; 
+  gap: 12px; 
+  margin-top: 20px; 
+  flex-wrap: wrap; 
+}
+.btn { 
+  padding: 10px 24px; 
+  border: none; 
+  border-radius: 8px; 
+  font-weight: 600; 
+  cursor: pointer; 
+  transition: .2s; 
+  font-size: 14px;
+}
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-outline { background: #fff; border: 1.5px solid #d1d5db; color: #0f172a; }
+.btn-outline:hover { background: #f1f5f9; }
+.btn-teal { background: #0d9488; color: #fff; }
+.btn-teal:hover { background: #0f766e; }
+
+/* ── Responsive ── */
+@media (max-width: 550px) {
+  #qrDisplay {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+    min-width: unset;
+  }
+  #qrDisplay .info .row {
+    justify-content: center;
+  }
+  .controls {
+    gap: 10px;
+  }
+  .controls .save-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ── Print ── */
 @media print {
-  body{ background:white !important }
-  .no-print{ display:none !important }
-  .card{ box-shadow:none !important;border:none !important }
-  #printArea{ background:white !important }
-  *{ -webkit-print-color-adjust:exact !important;print-color-adjust:exact !important }
-}
-
-*{box-sizing:border-box;margin:0;padding:0}
-
-body{
-  font-family:"Segoe UI",system-ui,sans-serif;
-  background:#f1f5f9;
-  display:flex;
-  flex-direction:column;
-  min-height:100vh;
-}
-
-/* ── HEADER ── */
-.site-header{
-  background:#1e3a8a;
-  padding:14px 20px;
-  display:flex;align-items:center;gap:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,.25);
-  flex-shrink:0;
-}
-.logo-icon{
-  width:36px;height:36px;
-  background:rgba(255,255,255,.15);
-  border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;
-}
-.logo-text{color:#fff;font-size:16px;font-weight:600}
-.logo-sub{color:rgba(255,255,255,.55);font-size:11px;margin-top:1px}
-
-/* ── PAGE ── */
-.page{
-  flex:1;
-  display:flex;
-  justify-content:center;
-  padding:28px 16px 60px;
-}
-
-/* ── CARD ── */
-.card{
-  background:#fff;
-  width:100%;
-  max-width:600px;
-  border-radius:20px;
-  box-shadow:0 10px 40px rgba(0,0,0,.09);
-  overflow:hidden;
-  border:1px solid #e5e7eb;
-  height:fit-content;
-}
-
-.card-header-bar{
-  background:linear-gradient(135deg,#1e3a8a,#1d4ed8);
-  color:#fff;
-  text-align:center;
-  padding:18px;
-  font-size:17px;
-  font-weight:700;
-}
-
-.card-body{padding:24px}
-
-/* ── ERROR ── */
-.error-box{
-  background:#fef2f2;
-  border:1px solid #fecaca;
-  border-radius:10px;
-  padding:14px 18px;
-  color:#991b1b;
-  font-size:14px;
-  margin-bottom:16px;
-  display:none;
-}
-
-/* ── PRINT AREA ── */
-#printArea{
-  background:#fff;
-  padding:8px;
-}
-
-.main{
-  display:flex;
-  gap:20px;
-  align-items:flex-start;
-  flex-wrap:wrap;
-}
-
-/* QR */
-.qr-section{flex:0 0 200px}
-.qr-wrap{
-  width:200px;height:200px;
-  border:2px solid #e5e7eb;
-  border-radius:12px;
-  display:flex;align-items:center;justify-content:center;
-  background:#fff;
-  overflow:hidden;
-  position:relative;
-}
-.qr-wrap img{width:100%;height:100%;object-fit:contain}
-.qr-placeholder{
-  display:flex;flex-direction:column;align-items:center;gap:8px;
-  color:#9ca3af;font-size:13px;
-}
-.qr-spinner{
-  width:28px;height:28px;
-  border:3px solid #bfdbfe;border-top-color:#2563eb;
-  border-radius:50%;animation:spin .7s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* INFO */
-.info-section{flex:1;min-width:180px}
-.serial-box{
-  background:#eff6ff;
-  border:1px solid #bfdbfe;
-  border-radius:10px;
-  padding:12px;
-  margin-bottom:12px;
-}
-.serial-label{font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
-.serial-value{
-  font-family:monospace;font-weight:700;font-size:15px;
-  color:#1e3a8a;
-  word-break:break-all;
-}
-.info-row{
-  display:flex;justify-content:space-between;
-  padding:8px 0;
-  border-bottom:1px dashed #e5e7eb;
-  font-size:13px;gap:8px;
-}
-.info-row:last-child{border-bottom:none}
-.info-lbl{color:#6b7280;flex-shrink:0}
-.info-val{font-weight:600;color:#111827;text-align:right}
-
-/* ── BUTTONS ── */
-.btn-row{
-  display:flex;gap:10px;flex-wrap:wrap;
-  margin-top:20px;
-  padding-top:16px;
-  border-top:1px solid #f3f4f6;
-}
-.btn{
-  padding:10px 16px;border-radius:10px;border:none;
-  font-size:13px;font-weight:600;cursor:pointer;
-  display:inline-flex;align-items:center;gap:6px;
-  transition:.15s;text-decoration:none;
-}
-.btn-primary{background:#2563eb;color:#fff}
-.btn-primary:hover{background:#1d4ed8}
-.btn-outline{background:#fff;border:1.5px solid #e5e7eb;color:#374151}
-.btn-outline:hover{background:#f9fafb}
-.btn-teal{background:#0d9488;color:#fff}
-.btn-teal:hover{background:#0f766e}
-
-/* ── FOOTER ── */
-.footer-bar{
-  text-align:center;font-size:12px;color:#9ca3af;
-  padding:12px 24px;
-  border-top:1px solid #f3f4f6;
-}
-
-@media(max-width:480px){
-  .main{flex-direction:column}
-  .qr-section{flex:none;width:100%}
-  .qr-wrap{width:100%;aspect-ratio:1;height:auto}
+  h1, .controls, .btn-row { display: none !important; }
+  .preview-area { border: none; padding: 0; background: #fff; }
+  #qrDisplay { border: 1px solid #000; }
+  body { padding: 0; background: #fff; }
+  .container { box-shadow: none; padding: 0; }
 }
 </style>
 </head>
 <body>
 
-<header class="site-header no-print">
-  <div class="logo-icon">📦</div>
-  <div>
-    <div class="logo-text">Equipment Management</div>
-    <div class="logo-sub">QR Code Generator</div>
-  </div>
-</header>
+<h1>🔖 QR Code Generator</h1>
 
-<div class="page">
-<div class="card">
-
-  <div class="card-header-bar no-print">🔖 QR Code อุปกรณ์</div>
-
-  <div class="card-body">
-
-    <div class="error-box" id="errorBox">⚠️ ไม่พบ Serial Number</div>
-
-    <div id="printArea">
-      <div class="main">
-
-        <div class="qr-section">
-          <div class="qr-wrap" id="qrWrap">
-            <div class="qr-placeholder">
-              <div class="qr-spinner"></div>
-              <span>กำลังสร้าง QR</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <div class="serial-box">
-            <div class="serial-label">Serial Number</div>
-            <div class="serial-value" id="serialValue">-</div>
-          </div>
-          <div class="info-row">
-            <span class="info-lbl">Part Number</span>
-            <span class="info-val" id="partNumber">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-lbl">ชื่ออุปกรณ์</span>
-            <span class="info-val" id="assetName">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-lbl">ไซต์งาน</span>
-            <span class="info-val" id="siteName">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-lbl">สถานที่</span>
-            <span class="info-val" id="locationVal">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-lbl">สถานะ</span>
-            <span class="info-val" id="statusVal">-</span>
-          </div>
-        </div>
-
+<div class="container">
+  <!-- Controls -->
+  <div class="controls">
+    <div class="group">
+      <label>📐 กว้าง</label>
+      <div class="size-row">
+        <input type="number" id="widthInput" min="60" max="500" oninput="onSizeChange()">
+        <span class="unit">px</span>
       </div>
     </div>
-
-    <!-- ปุ่ม (ไม่ export) -->
-    <div class="btn-row no-print" id="btnRow" style="display:none">
-      <button class="btn btn-primary" onclick="downloadQR()">⬇️ ดาวน์โหลด PNG</button>
-      <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์</button>
-      <a class="btn btn-teal" id="traceLink" href="#">📋 ประวัติ</a>
+    <div class="group">
+      <label>📐 สูง</label>
+      <div class="size-row">
+        <input type="number" id="heightInput" min="60" max="500" oninput="onSizeChange()">
+        <span class="unit">px</span>
+      </div>
     </div>
-
+    <div class="group">
+      <label>🟦 ขอบกรอบ</label>
+      <div class="size-row">
+        <input type="number" id="paddingInput" min="0" max="80" oninput="onSizeChange()">
+        <span class="unit">px</span>
+      </div>
+    </div>
+    <div class="group">
+      <label>🔤 Serial size</label>
+      <div class="size-row">
+        <input type="number" id="serialSizeInput" min="10" max="50" oninput="onSizeChange()">
+        <span class="unit">px</span>
+      </div>
+    </div>
+    <div class="group">
+      <label>🔤 Part/Name size</label>
+      <div class="size-row">
+        <input type="number" id="otherSizeInput" min="10" max="50" oninput="onSizeChange()">
+        <span class="unit">px</span>
+      </div>
+    </div>
+    <div class="group">
+      <label>🎨 พื้นหลัง</label>
+      <select id="bgColorSelect" onchange="onSizeChange()">
+        <option value="light">ขาว</option>
+        <option value="dark">ดำ</option>
+      </select>
+    </div>
+    <button class="save-btn" onclick="saveTemplate()">💾 เซฟเป็น Template</button>
   </div>
 
-  <div class="footer-bar no-print" id="footerText">กรุณารอสักครู่...</div>
+  <!-- Error -->
+  <div id="errorMsg" class="error"></div>
 
-</div>
+  <!-- Preview -->
+  <div class="preview-area">
+    <div id="qrDisplay">
+      <div class="qr-image">
+        <img id="qrImg" src="" alt="QR" style="display:block;background:#fff;">
+      </div>
+      <div class="info">
+        <div class="row">
+          <span class="label">Serial:</span>
+          <span class="serial-value" id="dispSerial">-</span>
+        </div>
+        <div class="row">
+          <span class="label">Part:</span>
+          <span class="part-value" id="dispPart">-</span>
+        </div>
+        <div class="row">
+          <span class="label">ชื่ออุปกรณ์:</span>
+          <span class="name-value" id="dispName">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="downloadQR()">⬇️ ดาวน์โหลด PNG</button>
+    <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์</button>
+    <a class="btn btn-teal" id="traceLink" href="#">📋 ประวัติ</a>
+  </div>
 </div>
 
 <script>
-let currentSerial = "";
+let currentSerial = '';
+let assetInfo = {};
+const STORAGE_KEY = 'qrTemplate';
 
-async function loadQR(){
-  const serial = new URLSearchParams(window.location.search).get("serial");
-  currentSerial = serial || "";
+// ── โหลด template จาก localStorage ──
+function loadTemplate() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const t = JSON.parse(saved);
+      document.getElementById('widthInput').value = t.width || 180;
+      document.getElementById('heightInput').value = t.height || 180;
+      document.getElementById('paddingInput').value = t.padding || 18;
+      document.getElementById('serialSizeInput').value = t.serialSize || 20;
+      document.getElementById('otherSizeInput').value = t.otherSize || 16;
+      document.getElementById('bgColorSelect').value = t.bgColor || 'light';
+    } else {
+      // default
+      document.getElementById('widthInput').value = 180;
+      document.getElementById('heightInput').value = 180;
+      document.getElementById('paddingInput').value = 18;
+      document.getElementById('serialSizeInput').value = 20;
+      document.getElementById('otherSizeInput').value = 16;
+      document.getElementById('bgColorSelect').value = 'light';
+    }
+  } catch {
+    // fallback
+    document.getElementById('widthInput').value = 180;
+    document.getElementById('heightInput').value = 180;
+    document.getElementById('paddingInput').value = 18;
+    document.getElementById('serialSizeInput').value = 20;
+    document.getElementById('otherSizeInput').value = 16;
+    document.getElementById('bgColorSelect').value = 'light';
+  }
+}
 
-  if(!serial){
-    document.getElementById("errorBox").style.display = "block";
-    document.getElementById("footerText").textContent = "ไม่พบ Serial Number ใน URL";
+// ── บันทึก template ──
+function saveTemplate() {
+  const w = parseInt(document.getElementById('widthInput').value) || 180;
+  const h = parseInt(document.getElementById('heightInput').value) || 180;
+  const p = parseInt(document.getElementById('paddingInput').value) || 18;
+  const s = parseInt(document.getElementById('serialSizeInput').value) || 20;
+  const o = parseInt(document.getElementById('otherSizeInput').value) || 16;
+  const bg = document.getElementById('bgColorSelect').value;
+  const template = { width: w, height: h, padding: p, serialSize: s, otherSize: o, bgColor: bg };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(template));
+  alert('✅ เซฟ Template เรียบร้อย');
+}
+
+// ── เรียกเมื่อค่ามีการเปลี่ยนแปลง ──
+function onSizeChange() {
+  updatePreview();
+}
+
+// ── ดึงค่า ──
+function getSize() {
+  const w = parseInt(document.getElementById('widthInput').value) || 180;
+  const h = parseInt(document.getElementById('heightInput').value) || 180;
+  const p = parseInt(document.getElementById('paddingInput').value) || 18;
+  const s = parseInt(document.getElementById('serialSizeInput').value) || 20;
+  const o = parseInt(document.getElementById('otherSizeInput').value) || 16;
+  const bg = document.getElementById('bgColorSelect').value;
+  return { w, h, p, s, o, bg };
+}
+
+// ── อัปเดต Preview ──
+function updatePreview() {
+  const { w, h, p, s, o, bg } = getSize();
+  const img = document.getElementById('qrImg');
+  img.style.width = w + 'px';
+  img.style.height = h + 'px';
+
+  // ปรับ padding ของกรอบ
+  const display = document.getElementById('qrDisplay');
+  display.style.padding = p + 'px';
+
+  // ปรับขนาดตัวหนังสือ
+  document.querySelector('.serial-value').style.fontSize = s + 'px';
+  document.querySelector('.part-value').style.fontSize = o + 'px';
+  document.querySelector('.name-value').style.fontSize = o + 'px';
+
+  // ปรับสีพื้นหลังและเส้นขอบ
+  if (bg === 'dark') {
+    display.classList.add('dark');
+    display.style.borderColor = '#ffffff';
+    // ปรับสีเส้นขอบของรูป QR ให้เป็นขาว
+    const qrBorder = document.querySelector('.qr-image img');
+    if (qrBorder) qrBorder.style.borderColor = '#ffffff';
+  } else {
+    display.classList.remove('dark');
+    display.style.borderColor = '#d1d5db';
+    const qrBorder = document.querySelector('.qr-image img');
+    if (qrBorder) qrBorder.style.borderColor = '#f1f5f9';
+  }
+}
+
+// ── โหลด QR ──
+async function loadQR() {
+  const serial = new URLSearchParams(window.location.search).get('serial') || '';
+  currentSerial = serial;
+  if (!serial) {
+    document.getElementById('errorMsg').textContent = '⚠️ ไม่พบ Serial Number';
     return;
   }
-
-  document.getElementById("serialValue").textContent = serial;
-  document.getElementById("traceLink").href = `/trace.html?serial=${encodeURIComponent(serial)}`;
+  document.getElementById('dispSerial').textContent = serial;
+  document.getElementById('traceLink').href = `/trace.html?serial=${encodeURIComponent(serial)}`;
 
   try {
-    /* ✅ BUG FIX: ใช้ /api/qrcode/:serial ซึ่ง return ทั้ง qrImage + asset info
-       ไม่ต้อง fetch /api/assets แยก (ซึ่ง require login) */
     const res = await fetch(`/api/qrcode/${encodeURIComponent(serial)}`);
-
-    if(!res.ok){
-      if(res.status === 401){
-        /* ยังไม่ login → ใช้ public endpoint แทน */
-        await loadQRPublic(serial);
+    if (!res.ok) {
+      if (res.status === 401) {
+        // fallback public
+        const pub = await fetch(`/api/public/asset/${encodeURIComponent(serial)}`);
+        const d = await pub.json();
+        if (d.qr) {
+          document.getElementById('qrImg').src = d.qr;
+          document.getElementById('dispPart').textContent = d.partNumber || '-';
+          document.getElementById('dispName').textContent = d.name || '-';
+          assetInfo = d;
+          updatePreview();
+        }
         return;
       }
-      throw new Error("api error");
+      throw new Error('not ok');
     }
-
     const data = await res.json();
-
-    /* แสดง QR */
-    const img = document.createElement("img");
-    img.src = data.qrImage;
-    document.getElementById("qrWrap").innerHTML = "";
-    document.getElementById("qrWrap").appendChild(img);
-
-    /* แสดงข้อมูล asset */
-    const a = data.asset || {};
-    document.getElementById("partNumber").textContent  = a.partNumber  || "-";
-    document.getElementById("assetName").textContent   = a.name        || "-";
-    document.getElementById("siteName").textContent    = a.siteName    || "-";
-    document.getElementById("locationVal").textContent = a.location    || "-";
-    document.getElementById("statusVal").textContent   = a.status      || "-";
-
-    document.getElementById("btnRow").style.display = "flex";
-    document.getElementById("footerText").textContent = "พร้อมใช้งาน";
-
-  } catch(e){
-    console.error(e);
-    document.getElementById("errorBox").style.display = "block";
-    document.getElementById("errorBox").textContent = "⚠️ โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่";
-    document.getElementById("footerText").textContent = "เกิดข้อผิดพลาด";
-  }
-}
-
-/* fallback สำหรับกรณีไม่ได้ login */
-async function loadQRPublic(serial){
-  try {
-    const res = await fetch(`/api/public/asset/${encodeURIComponent(serial)}`);
-    if(!res.ok) throw new Error("not found");
-    const d = await res.json();
-
-    if(d.qr){
-      const img = document.createElement("img");
-      img.src = d.qr;
-      document.getElementById("qrWrap").innerHTML = "";
-      document.getElementById("qrWrap").appendChild(img);
-    } else {
-      document.getElementById("qrWrap").innerHTML = `<div class="qr-placeholder">ไม่มี QR</div>`;
+    if (data.qrImage) {
+      document.getElementById('qrImg').src = data.qrImage;
     }
-
-    document.getElementById("partNumber").textContent  = d.partNumber || "-";
-    document.getElementById("assetName").textContent   = d.name       || "-";
-    document.getElementById("siteName").textContent    = d.siteName   || "-";
-    document.getElementById("locationVal").textContent = d.location   || "-";
-    document.getElementById("statusVal").textContent   = d.status     || "-";
-
-    document.getElementById("btnRow").style.display = "flex";
-    document.getElementById("footerText").textContent = "Public View";
-  } catch(e){
-    document.getElementById("errorBox").style.display = "block";
-    document.getElementById("errorBox").textContent = "⚠️ ไม่พบข้อมูลอุปกรณ์นี้";
-    document.getElementById("footerText").textContent = "ไม่พบข้อมูล";
+    const a = data.asset || {};
+    document.getElementById('dispPart').textContent = a.partNumber || '-';
+    document.getElementById('dispName').textContent = a.name || '-';
+    assetInfo = a;
+    updatePreview();
+  } catch (e) {
+    document.getElementById('errorMsg').textContent = '⚠️ โหลดข้อมูลไม่สำเร็จ';
+    console.error(e);
   }
 }
 
-/* =========================
-   DOWNLOAD QR
-========================= */
-async function downloadQR(){
-  const el = document.getElementById("printArea");
+// ── ดาวน์โหลด PNG ──
+async function downloadQR() {
+  const el = document.getElementById('qrDisplay');
   try {
     const canvas = await html2canvas(el, {
-      backgroundColor:"#ffffff",scale:2,useCORS:true
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true
     });
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
     link.download = `QR-${currentSerial}.png`;
     link.click();
-  } catch(e){
-    alert("ไม่สามารถดาวน์โหลดได้ กรุณาลองอีกครั้ง");
+  } catch (e) {
+    alert('ไม่สามารถดาวน์โหลดได้');
   }
 }
 
-loadQR();
+// ── เริ่มต้น ──
+window.onload = function() {
+  loadTemplate();
+  loadQR();
+};
 </script>
 </body>
 </html>
-
