@@ -240,10 +240,10 @@ async function loadAsset(){
         timelineHtml+=`</div></div>`;
       }
 
-      // ปุ่มจัดการ
+      // ✅ ปุ่มจัดการ (แก้ไขลิงก์ประวัติให้มี ?from=internal)
       const actionsHtml=`
         <div class="actions">
-          <button class="btn btn-blue" onclick="window.location.href='/trace.html?serial=${encodeURIComponent(serial)}'">📋 ประวัติเต็ม</button>
+          <button class="btn btn-blue" onclick="window.location.href='/trace.html?serial=${encodeURIComponent(serial)}&from=internal'">📋 ประวัติเต็ม</button>
           <button class="btn btn-teal" onclick="window.location.href='/qr.html?serial=${encodeURIComponent(serial)}'">🖨️ พิมพ์ QR</button>
           <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์หน้านี้</button>
         </div>`;

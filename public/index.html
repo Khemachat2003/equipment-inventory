@@ -1225,7 +1225,7 @@ function _renderPartTable(data){
     <td>${a.location||"-"}</td>
     <td>${a.siteName||"-"}</td>
     <td>${a.user||"-"}</td>
-    <td><a href="/trace.html?serial=${enc}" target="_blank" class="btn btn-out btn-sm">📜</a></td>
+    <td><a href="/trace.html?serial=${enc}&from=internal" target="_blank" class="btn btn-out btn-sm">📜</a></td>
     <td><a href="/qr.html?serial=${enc}" target="_blank" class="btn btn-teal btn-sm">📷</a></td>
     <td><button class="btn btn-blue btn-sm" onclick="openTransferModal('${s}','${(a.status||"").replace(/'/g,"\\'")}','${(a.location||"").replace(/'/g,"\\'")}','${(a.siteName||"").replace(/'/g,"\\'")}','${(a.user||"").replace(/'/g,"\\'")}')">🚚</button></td>
   </tr>`}).join("")
@@ -1252,7 +1252,7 @@ function renderAssetTable(data, tbId) {
       <td>${a.location || "-"}</td>
       <td>${a.siteName || "-"}</td>
       <td>${a.user || "-"}</td>
-      <td><a href="/trace.html?serial=${enc}" target="_blank" class="btn btn-out btn-sm">📜</a></td>
+      <td><a href="/trace.html?serial=${enc}&from=internal" target="_blank" class="btn btn-out btn-sm">📜</a></td>
       <td><a href="/qr.html?serial=${enc}" target="_blank" class="btn btn-teal btn-sm">📷</a></td>
       <td><button class="btn btn-blue btn-sm" onclick="openTransferModal('${s}','${(a.status || "").replace(/'/g, "\\'")}','${(a.location || "").replace(/'/g, "\\'")}','${(a.siteName || "").replace(/'/g, "\\'")}','${(a.user || "").replace(/'/g, "\\'")}')">🚚</button></td>
     </tr>`;
@@ -1441,7 +1441,7 @@ function _renderMonitorTable(data){
     <td>${a.location||"-"}</td>
     <td>${a.siteName||"-"}</td>
     <td>${a.user||"-"}</td>
-    <td><a href="/trace.html?serial=${enc}" target="_blank" class="btn btn-out btn-sm">📜</a></td>
+    <td><a href="/trace.html?serial=${enc}&from=internal" target="_blank" class="btn btn-out btn-sm">📜</a></td>
     <td><a href="/qr.html?serial=${enc}" target="_blank" class="btn btn-teal btn-sm">📷</a></td>
     <td><button class="btn btn-blue btn-sm" onclick="openTransferModal('${s}','${(a.status||"").replace(/'/g,"\\'")}','${(a.location||"").replace(/'/g,"\\'")}','${(a.siteName||"").replace(/'/g,"\\'")}','${(a.user||"").replace(/'/g,"\\'")}')">🚚</button></td>
   </tr>`}).join("")
@@ -1695,7 +1695,7 @@ async function viewAssetHistory(serial){
   if(!serial||serial==="ไม่มี Serial"){alert("ไม่พบ Serial Number");return}
   document.getElementById("modalSerialTitle").textContent=serial;
   document.getElementById("hmCounter").textContent="";
-  document.getElementById("hmExtLink").href=`/trace.html?serial=${encodeURIComponent(serial)}`;
+  document.getElementById("hmExtLink").href = `/trace.html?serial=${encodeURIComponent(serial)}&from=internal`;
   document.getElementById("historyModalBody").innerHTML='<div style="text-align:center;padding:40px 0"><div class="spin"></div><p style="color:var(--tmuted);margin-top:12px;font-size:13px">กำลังโหลด...</p></div>';
   openModal("historyModal");
   try{const data=await(await fetch(`/api/asset-history/${encodeURIComponent(serial)}`)).json();
