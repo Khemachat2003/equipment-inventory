@@ -405,6 +405,23 @@ body{
 }
 .search-hint p{color:var(--blue);font-size:14px;line-height:1.7}
 
+/* ── ACCESS DENIED ── */
+.access-denied{
+  background:var(--white);
+  border:1px solid var(--red-border);
+  border-radius:var(--radius-lg);
+  padding:60px 24px;
+  text-align:center;
+  box-shadow:var(--shadow-sm);
+}
+.access-denied .icon{font-size:48px;margin-bottom:12px}
+.access-denied .title{font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:6px}
+.access-denied .sub{font-size:14px;color:var(--text-secondary)}
+.access-denied .btn{
+  margin-top:16px;
+  display:inline-block;
+}
+
 /* ── RESPONSIVE ── */
 @media(max-width:640px){
   .page{padding:0 16px 40px}
@@ -458,10 +475,16 @@ function getSerial(){
   return new URLSearchParams(window.location.search).get("serial") || "";
 }
 
+// ✅ ฟังก์ชันตรวจสอบแหล่งที่มาของการเข้าถึง
+function getSource() {
+  const q = new URLSearchParams(window.location.search);
+  return q.get("from") || "external";
+}
+
 function search(){
   const v = document.getElementById("serialInput").value.trim();
   if(!v){ return; }
-  window.location.href = `trace.html?serial=${encodeURIComponent(v)}`;
+  window.location.href = `trace.html?serial=${encodeURIComponent(v)}&from=internal`;
 }
 
 function getStatusClass(s=""){
@@ -497,8 +520,11 @@ function getInitials(name=""){
 
 async function loadFromURL(){
   const serial = getSerial();
+  const source = getSource();  // ✅ ตรวจสอบแหล่งที่มา
+
   if(serial) document.getElementById("serialInput").value = serial;
 
+  // ✅ ถ้าไม่มี serial หรือมาจากภายนอก → redirect ไป public view
   if(!serial){
     root.innerHTML = `
       <div class="search-hint">
@@ -508,6 +534,14 @@ async function loadFromURL(){
     return;
   }
 
+  // ✅ ถ้ามาจากภายนอก (ไม่มี ?from=internal) → redirect ไป asset.html (Public View)
+  if(source !== "internal"){
+    // เปลี่ยนเส้นทางไปที่ asset.html (Public View)
+    window.location.href = `/a/${encodeURIComponent(serial)}`;
+    return;
+  }
+
+  // --- ถ้ามาจาก internal → แสดงประวัติเต็ม ---
   root.innerHTML = `
     <div class="state-box">
       <div class="spinner"></div>
