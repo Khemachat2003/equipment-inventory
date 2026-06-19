@@ -130,6 +130,12 @@ function getSerial(){
   return "";
 }
 
+// ✅ ฟังก์ชันตรวจสอบแหล่งที่มาของการสแกน
+function getSource() {
+  const q = new URLSearchParams(window.location.search);
+  return q.get("from") || "external"; // ถ้าไม่มี from=internal → external
+}
+
 function getStatusBadgeClass(s=""){
   const t=s.toLowerCase();
   if(t.includes("ซ่อม")) return "sb-rep";
@@ -185,8 +191,11 @@ async function loadAsset(){
     const name=d.name||"อุปกรณ์";
     const statusText=d.status||"ไม่ระบุ";
 
-    // --- ถ้าเป็น admin (login) แสดงแบบเต็ม ---
-    if(isAdmin){
+    // ✅ ตรวจสอบแหล่งที่มาของการสแกน
+    const source = getSource();
+
+    // --- ถ้าเป็น admin และมาจาก internal scan (สแกนผ่านเว็บของเรา) เท่านั้น ---
+    if(isAdmin && source === "internal"){
       // สร้าง QR HTML
       const qrHtml=d.qr ? `<img src="${d.qr}" alt="QR">` : `<span style="color:#94a3b8">ไม่มี QR</span>`;
 
@@ -269,7 +278,7 @@ async function loadAsset(){
         <div style="text-align:center;font-size:12px;color:#94a3b8;padding:12px">ข้อมูล ณ ${new Date().toLocaleDateString("th-TH",{year:"numeric",month:"long",day:"numeric"})}</div>
       `;
     } else {
-      // --- โหมดสาธารณะ (ไม่ login) แสดงเฉพาะสถานะปัจจุบัน ---
+      // --- โหมดสาธารณะ (ไม่ login หรือสแกนจากภายนอก) แสดงเฉพาะสถานะปัจจุบัน ---
       const badge=getStatusBadgeClass(d.status);
       const icon2=getStatusIcon(d.status);
       document.getElementById("root").innerHTML=`
