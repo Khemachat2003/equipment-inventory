@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Equipment Management System</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 <style>
   /* Dashboard Enhanced */
 .dash-grid {
@@ -646,7 +646,11 @@ tbody tr:last-child td{border-bottom:none}
      </select>
     </div>
     <div class="ff"><label>Location</label><input type="text" id="newAssetLocation" placeholder="สถานที่"></div>
-    <div class="ff"><label>Site</label><input type="text" id="newAssetSite" placeholder="ไซต์งาน"></div>
+    <div class="ff"><label>Site</label>
+      <select id="newAssetSite" onchange="onSiteSelect(this.value)">
+        <option value="บริษัท Intranin">🏢 บริษัท Intranin (คลังกลาง)</option>
+      </select>
+    </div>
     <div class="ff"><label>ผู้ใช้งาน</label><input type="text" id="newAssetUser" placeholder="ชื่อผู้ดูแล"></div>
    </div>
   </div>
@@ -767,8 +771,11 @@ tbody tr:last-child td{border-bottom:none}
     <div class="ff"><label>จำนวนที่เพิ่ม *</label><input type="number" id="bulkQty" placeholder="10" min="1" max="200"></div>
     <div class="ff"><label>สถานะ</label>
      <select id="bulkStatus"><option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option></select>
-    <div class="ff"><label>ไซต์งาน (Site)</label><select id="bulkSite"><option value="บริษัท Intranin">🏢 บริษัท Intranin (คลังกลาง)</option></select></div>
-<div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="newAssetLocation" placeholder="เช่น ห้องเก็บอุปกรณ์ A"></div>
+    </div>
+    <div class="ff"><label>ไซต์งาน (Site)</label>
+      <select id="bulkSite"><option value="บริษัท Intranin">🏢 บริษัท Intranin (คลังกลาง)</option></select>
+    </div>
+    <div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="bulkLocation" placeholder="เช่น ห้องเก็บอุปกรณ์ A"></div>
     <div class="ff"><label>ผู้รับผิดชอบ</label><input type="text" id="bulkUser" placeholder="ชื่อผู้ดูแล"></div>
     <div id="bulkPreview" style="grid-column:1/-1;background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;font-size:13px;color:var(--g600);display:none"></div>
    </div>
@@ -797,6 +804,9 @@ tbody tr:last-child td{border-bottom:none}
 </div>
 
 <script>
+// ── VERSION CONTROL FOR IMAGES (เปลี่ยนเฉพาะตอนอัปโหลดรูปใหม่ทั้งระบบ) ──
+const IMAGE_CACHE_VERSION = "1.0.0";
+
 // ── โหลด Part Catalog เพื่อตรวจสอบว่า Part มีอยู่แล้วหรือไม่ ──
 let partCatalogList = [];
 
@@ -813,7 +823,7 @@ async function loadPartCatalogForSelect() {
   }
   generateAssetId();
   generateSerial();
-  await loadSiteDropdown(); // ✅ เพิ่มบรรทัดนี้
+  await loadSiteDropdown();
 }
 
 // ── สร้าง Asset ID อัตโนมัติ ──
@@ -858,27 +868,35 @@ function generateSerial() {
   const nextNum = String(maxNum + 1).padStart(4, '0');
   document.getElementById('newAssetSerialAuto').value = `${prefix}-${nextNum}`;
 }
+
 async function loadSiteDropdown() {
   try {
     const res = await fetch('/api/farm-sites');
-    const sites = await res.json();
+    if (!res.ok) {
+      console.warn('Farm sites API error:', res.status);
+      return;
+    }
+    const data = await res.json();
+    const sites = Array.isArray(data) ? data : [];
+    
     const sel = document.getElementById('newAssetSite');
-    // เก็บตัวเลือกคลังกลางไว้
+    if (!sel) return;
+    
     sel.innerHTML = '<option value="บริษัท Intranin">🏢 บริษัท Intranin (คลังกลาง)</option>';
     sites.forEach(s => {
-      if (s.siteName !== 'บริษัท Intranin') {
+      if (s.siteName && s.siteName !== 'บริษัท Intranin') {
         const opt = document.createElement('option');
         opt.value = s.siteName;
         opt.textContent = s.siteName;
         sel.appendChild(opt);
       }
     });
-    // ตั้งค่าเริ่มต้น
-    sel.value = 'Intranin';
+    sel.value = 'บริษัท Intranin';
   } catch(e) {
     console.error('Load sites error:', e);
   }
 }
+
 // ── เพิ่ม Part + Asset ──
 async function addAssetNewPart() {
   const partNumber = document.getElementById('newPartNumber').value.trim().toUpperCase();
@@ -894,7 +912,6 @@ async function addAssetNewPart() {
     return;
   }
 
-  // ✅ ถ้า Serial ยังไม่มี ให้สร้างใหม่
   if (!serialNumber) {
     generateSerial();
     serialNumber = document.getElementById('newAssetSerialAuto').value.trim();
@@ -904,14 +921,12 @@ async function addAssetNewPart() {
     return;
   }
 
-  // ตรวจสอบว่า Part มีอยู่แล้วหรือไม่
   const exists = partCatalogList.some(p => p.partNumber === partNumber);
   if (exists) {
     alert(`⚠️ Part Number "${partNumber}" มีอยู่แล้วในระบบ\nกรุณาใช้ "📦 เพิ่มหลายชิ้น" เพื่อเพิ่ม Asset ภายใต้ Part นี้`);
     return;
   }
 
-  // Step 1: เพิ่ม Part ลง Part_Catalog
   const partRes = await fetch('/api/add-part', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -929,7 +944,6 @@ async function addAssetNewPart() {
     return;
   }
 
-  // Step 2: เพิ่ม Asset
   const body = {
     assetId: assetId,
     name: partName,
@@ -952,12 +966,10 @@ async function addAssetNewPart() {
   if (assetDataResult.success) {
     alert(`✅ เพิ่ม Part + Asset สำเร็จ\nPart: ${partNumber}\nAsset ID: ${assetId}\nSerial: ${serialNumber}`);
     closeModal('addAssetModal');
-    // รีเซ็ตฟอร์ม
     ['newPartNumber','newPartName','newPartCategory','newPartDescription','newAssetLocation','newAssetSite','newAssetUser'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('newAssetSerialAuto').value = '';
-    // รีโหลดข้อมูล
     await loadAssets();
     await loadPartCatalog();
     await loadPartCatalogForSelect();
@@ -972,9 +984,9 @@ let historyChart,currentMonitorFarm="ALL",allFarms=[];
 let partCatalog=[];
 let farmSites=[];
 
-// ✅ สถานะสำหรับ Asset (Part Sidebar)
 let currentPart="ALL";
 let partSearchTerm="";
+let _stockLoaded = false; // ใช้เช็คว่าโหลด Stock แล้วหรือยัง
 
 /* ── MODAL ── */
 function openModal(id){document.getElementById(id).classList.add("open")}
@@ -1001,12 +1013,20 @@ function showApp(){document.getElementById("loginPage").style.display="none";doc
 
 /* ── INIT ── */
 function initApp(){
-  loadCurrentUser();loadDashboard();loadStock();loadHistory();loadAssets();loadHistoryChart();
-  loadFarmSites();loadPartCatalog();
-  loadDashboardExtended();
+  loadCurrentUser();
+  
+  // ✅ ใช้ API เดียวสำหรับ Dashboard
+  loadDashboardFull();
+  
+  // 📦 Stock โหลดเฉพาะตอนเปิด Tab (ไม่โหลดตอน login)
+  // loadStock();  ← เอาออก
+  
+  loadHistory();
+  loadAssets();
+  
   const last=localStorage.getItem("activeTab")||"dashboard";
   openTab(last);
-  setInterval(refreshDashboard,120000);
+  setInterval(refreshDashboard, 120000);
 }
 
 /* ── TAB ── */
@@ -1020,18 +1040,100 @@ function openTab(id){
   if(nb)nb.classList.add("active");
   localStorage.setItem("activeTab",id);
   
+  // ✅ โหลด Stock เฉพาะตอนเปิด Tab (Lazy Load)
+  if(id==="stock" && !_stockLoaded){
+    loadStock();
+    _stockLoaded = true;
+  }
+  
   if(id==="farmMonitorTab") renderMonitorView();
-  if(id==="asset") renderAssetSidebar(); // ✅ แทนที่ renderPartView
+  if(id==="asset") renderAssetSidebar();
 }
 
-/* ── DASHBOARD ── */
+/* ── DASHBOARD FULL (ใช้ API เดียว) ── */
+async function loadDashboardFull() {
+  try {
+    const res = await fetch('/api/dashboard-full');
+    if (!res.ok) {
+      console.warn('Dashboard Full API error:', res.status);
+      // Fallback: ใช้ของเดิม
+      await loadDashboard();
+      await loadDashboardExtended();
+      await loadHistoryChart();
+      return;
+    }
+    const d = await res.json();
+    
+    // ── Dashboard หลัก ──
+    document.getElementById('totalItems').textContent = d.totalItems || 0;
+    document.getElementById('totalOffice').textContent = d.totalOffice || 0;
+    document.getElementById('totalSite').textContent = d.totalSite || 0;
+    document.getElementById('todayBorrow').textContent = d.todayBorrow || 0;
+    document.getElementById('todayReturn').textContent = d.todayReturn || 0;
+    
+    // ── Extended Stats ──
+    document.getElementById('totalFarms').textContent = d.totalFarms || 0;
+    document.getElementById('totalFarmAssets').textContent = d.totalFarmAssets || 0;
+    document.getElementById('totalStockAssets').textContent = d.totalStockAssets || 0;
+    
+    if (d.topFarms && d.topFarms.length > 0) {
+      document.getElementById('topFarmName').textContent = 
+        `${d.topFarms[0].name} (${d.topFarms[0].count})`;
+    }
+    
+    // ── Chart ──
+    if (d.chartData) {
+      allChartData = d.chartData;
+      renderChart(currentChartRange);
+    }
+    
+    // ── Cache Farm Sites ──
+    if (d.farmSites) {
+      farmSites = d.farmSites;
+    }
+    
+    // ── Cache Part Catalog ──
+    if (d.partCatalog) {
+      partCatalog = d.partCatalog;
+      populatePartSelect();
+    }
+    
+    // ── Cache Assets ──
+    if (d.assets) {
+      assetData = d.assets.map(a => ({
+        assetId: a.assetId,
+        code: a.code,
+        name: a.name,
+        partNumber: a.partNumber,
+        serialNumber: a.serialNumber,
+        status: a.status,
+        location: a.location,
+        siteName: a.siteName,
+        user: a.user,
+      }));
+    }
+    
+    console.log('✅ Dashboard loaded with 1 API call');
+    
+  } catch(e) {
+    console.error('Dashboard Full error:', e);
+    await loadDashboard();
+    await loadDashboardExtended();
+    await loadHistoryChart();
+  }
+}
+
+/* ── DASHBOARD (เก่า ไว้ Fallback) ── */
 async function loadDashboard(){
   try{const res=await fetch("/api/dashboard");const d=await res.json();
   ["totalItems","totalOffice","totalSite","todayBorrow","todayReturn"].forEach(k=>{document.getElementById(k).textContent=d[k]??0})}catch(e){}
 }
-function refreshDashboard(){loadDashboard();loadHistoryChart();loadDashboardExtended();}
 
-// ใน index.html แทนที่ฟังก์ชัน loadDashboardExtended()
+function refreshDashboard(){
+  // เคลียร์ cache และโหลดใหม่
+  loadDashboardFull();
+}
+
 async function loadDashboardExtended() {
   try {
     const res = await fetch('/api/dashboard-asset');
@@ -1077,18 +1179,20 @@ function renderChart(days){
   ]},options:{responsive:true,interaction:{intersect:false,mode:"index"},plugins:{legend:{position:"top",labels:{usePointStyle:true,padding:20,font:{size:12,weight:"600"}}},tooltip:{backgroundColor:"#1e293b",titleColor:"#f1f5f9",bodyColor:"#94a3b8",cornerRadius:10,padding:12}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:"#94a3b8",maxTicksLimit:10}},y:{beginAtZero:true,grid:{color:"rgba(0,0,0,.04)"},ticks:{precision:0,font:{size:10},color:"#94a3b8"}}}}});
 }
 
-/* ── STOCK ── */
+/* ── STOCK (Optimized with Image Cache) ── */
 async function loadStock(){try{const r=await fetch("/api/stock");stockData=await r.json();renderStockTable(stockData)}catch(e){}}
+
 function renderStockTable(data){
   const tb=document.getElementById("stockBody");
   if(!data.length){tb.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--tmuted)">ไม่มีข้อมูล</td></tr>`;return}
   tb.innerHTML=data.map(item=>{
     const ext=item.ext||"jpg";
-    const img=`https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${item.code}.${ext}?v=${Date.now()}`;
+    // ✅ ใช้ Cache Version แทน Date.now() เพื่อให้ Browser Cache รูป
+    const img = `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${item.code}.${ext}?v=${IMAGE_CACHE_VERSION}`;
     const oq=parseInt(item.office)||0;
     return`<tr ${oq<1?'class="row-out"':""}>
       <td><span style="font-family:monospace;font-weight:600">${item.code}</span></td>
-      <td><img src="${img}" width="46" height="46" style="object-fit:cover;border-radius:8px;border:1px solid var(--g200)" onerror="this.src='/image/noimage.jpg'"></td>
+      <td><img src="${img}" width="46" height="46" loading="lazy" style="object-fit:cover;border-radius:8px;border:1px solid var(--g200)" onerror="this.src='/image/noimage.jpg'"></td>
       <td style="font-weight:500">${item.name}</td>
       <td>${item.total}</td>
       <td>${oq<1?'<span class="out-text">🔴 หมด</span>':oq}</td>
@@ -1101,6 +1205,7 @@ function renderStockTable(data){
       </div></td>
     </tr>`;}).join("")
 }
+
 function filterTable(){const k=document.getElementById("search").value.toLowerCase();renderStockTable(stockData.filter(i=>i.code.toLowerCase().includes(k)||i.name.toLowerCase().includes(k)))}
 async function editTotal(code,cur){const n=prompt("แก้ไขจำนวนทั้งหมด:",cur);if(n===null)return;const r=await(await fetch("/api/update-total",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,newTotal:parseInt(n)})})).json();if(r.error)alert(r.error);else{await loadStock();await loadDashboard()}}
 async function addItem(){
@@ -1142,12 +1247,12 @@ function getStatusBadge(s=""){const t=s.toLowerCase();
 
 async function loadAssets(){
   try{const r=await fetch("/api/assets");if(!r.ok)throw new Error(r.status);assetData=await r.json();
-    renderAssetSidebar(); // ✅ ใช้ sidebar แทน
+    renderAssetSidebar();
   }catch(e){}
 }
 
 /* ══════════════════════════════════════
-   ASSET SIDEBAR — เหมือน Monitor ฟาร์ม
+   ASSET SIDEBAR
 ══════════════════════════════════════ */
 function renderAssetSidebar(){
   if(!assetData.length){loadAssets().then(()=>_buildAssetSidebar());return;}
@@ -1155,7 +1260,6 @@ function renderAssetSidebar(){
 }
 
 function _buildAssetSidebar(){
-  // สร้าง Part Map
   const partMap={};
   assetData.forEach(a=>{
     const pn=a.partNumber||"ไม่ระบุ";
@@ -1164,7 +1268,6 @@ function _buildAssetSidebar(){
   });
   const allParts=Object.keys(partMap).sort();
   
-  // ✅ เลือก Part แรกเป็น default ถ้ายังไม่ได้เลือก
   if(currentPart==="ALL" && allParts.length>0){
     currentPart=allParts[0];
   }
@@ -1266,7 +1369,6 @@ function _renderPartTable(data){
   </tr>`}).join("")
 }
 
-// ── ASSET (เดิม) ──
 function renderAssetTable(data, tbId) {
   const tb = document.getElementById(tbId);
   if (!tb) return;
@@ -1353,7 +1455,7 @@ async function addFarmHouse(){
 }
 
 /* ══════════════════════════════════════
-   MONITOR FARM — GROUPED VERSION
+   MONITOR FARM
 ══════════════════════════════════════ */
 function renderMonitorView(){
   if(!assetData.length){loadAssets().then(()=>_buildMonitorGrouped());return;}
@@ -1610,7 +1712,6 @@ function onBulkPartChange(pn){
   if(part){document.getElementById("bulkPartNumber").value=part.partNumber;document.getElementById("bulkPartName").value=part.partName;}
 }
 
-// ── ฟังก์ชัน Preview การ Add หลายชิ้น (Bulk) ──
 function previewBulkSerial(){
   const pn = (document.getElementById("bulkPartNumber").value || "").trim().toUpperCase();
   const qty = parseInt(document.getElementById("bulkQty").value) || 0;
@@ -1622,7 +1723,6 @@ function previewBulkSerial(){
              now.getFullYear();
   const prefix = `SN-${pn}-${ds}`;
 
-  // หา running number ของวันที่นี้ (ไม่สน Part)
   let maxNum = 0;
   (assetData || []).forEach(a => {
     const s = a.serialNumber || '';

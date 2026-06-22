@@ -1199,32 +1199,72 @@ app.get("/api/assets", requireLogin, async (req, res) => {
 });
 
 // =====================
-// ASSET HISTORY (with cache)
+// ASSET HISTORY (with cache) — รองรับ Serial แบบเต็มและแบบสั้น
 // =====================
 app.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
   try {
-    const serialNumber = req.params.serial;
-    const cacheKey = `assetHistory_${serialNumber}`;
+    const serialInput = req.params.serial;
+    const cacheKey = `assetHistory_${serialInput}`;
     let cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
 
     const sheets = await getSheetsClient();
+
+    // หา Serial เต็มจาก Asset_List
+    const assetRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!A2:E",
+    });
+    const assetRows = assetRes.data.values || [];
+    let fullSerial = null;
+
+    let found = assetRows.find(r => r[4] && r[4].trim() === serialInput.trim());
+    if (!found) {
+      found = assetRows.find(r => {
+        const s = r[4] ? r[4].trim() : "";
+        return s && s.endsWith(serialInput.trim());
+      });
+    }
+    if (found) {
+      fullSerial = found[4].trim();
+    }
+
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "Asset_History!A2:G",
     });
     const rows = response.data.values || [];
-    const filteredHistory = rows
-      .filter((row) => row[1] && row[1].trim() === serialNumber.trim())
-      .map((row) => ({
-        date: row[0] || "-",
-        serialNumber: row[1] || "-",
-        action: row[2] || "-",
-        from: row[3] || "-",
-        to: row[4] || "-",
-        user: row[5] || "-",
-        remark: row[6] || "-",
-      }));
+
+    let filteredHistory = [];
+    if (fullSerial) {
+      filteredHistory = rows
+        .filter((row) => row[1] && row[1].trim() === fullSerial)
+        .map((row) => ({
+          date: row[0] || "-",
+          serialNumber: row[1] || "-",
+          action: row[2] || "-",
+          from: row[3] || "-",
+          to: row[4] || "-",
+          user: row[5] || "-",
+          remark: row[6] || "-",
+        }));
+    } else {
+      filteredHistory = rows
+        .filter((row) => {
+          const s = row[1] ? row[1].trim() : "";
+          return s && s.endsWith(serialInput.trim());
+        })
+        .map((row) => ({
+          date: row[0] || "-",
+          serialNumber: row[1] || "-",
+          action: row[2] || "-",
+          from: row[3] || "-",
+          to: row[4] || "-",
+          user: row[5] || "-",
+          remark: row[6] || "-",
+        }));
+    }
+
     const result = filteredHistory.reverse();
     cache.set(cacheKey, result, CACHE_TTL_HISTORY);
     res.json(result);
@@ -1235,37 +1275,81 @@ app.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
 });
 
 // =====================
-// PUBLIC ASSET HISTORY
+// PUBLIC ASSET HISTORY — รองรับ Serial แบบเต็มและแบบสั้น
 // =====================
 app.get("/api/public-asset-history/:serial", async (req, res) => {
   try {
-    const serialNumber = req.params.serial;
-    const cacheKey = `publicAssetHistory_${serialNumber}`;
+    const serialInput = req.params.serial;
+    const cacheKey = `publicAssetHistory_${serialInput}`;
     let cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
 
     const sheets = await getSheetsClient();
+
+    // 1. หา Serial เต็มจาก Asset_List (ใช้ endsWith)
+    const assetRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!A2:E",
+    });
+    const assetRows = assetRes.data.values || [];
+    let fullSerial = null;
+
+    // ค้นหาแบบตรงก่อน
+    let found = assetRows.find(r => r[4] && r[4].trim() === serialInput.trim());
+    if (!found) {
+      // ถ้าไม่เจอ ค้นหาแบบ endsWith
+      found = assetRows.find(r => {
+        const s = r[4] ? r[4].trim() : "";
+        return s && s.endsWith(serialInput.trim());
+      });
+    }
+    if (found) {
+      fullSerial = found[4].trim();
+    }
+
+    // 2. ดึงประวัติจาก Asset_History
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "Asset_History!A2:G",
     });
     const rows = response.data.values || [];
-    const filteredHistory = rows
-      .filter((row) => row[1] && row[1].trim() === serialNumber.trim())
-      .map((row) => ({
-        date: row[0] || "-",
-        serialNumber: row[1] || "-",
-        action: row[2] || "-",
-        from: row[3] || "-",
-        to: row[4] || "-",
-        user: row[5] || "-",
-        remark: row[6] || "-",
-      }));
+
+    let filteredHistory = [];
+    if (fullSerial) {
+      filteredHistory = rows
+        .filter((row) => row[1] && row[1].trim() === fullSerial)
+        .map((row) => ({
+          date: row[0] || "-",
+          serialNumber: row[1] || "-",
+          action: row[2] || "-",
+          from: row[3] || "-",
+          to: row[4] || "-",
+          user: row[5] || "-",
+          remark: row[6] || "-",
+        }));
+    } else {
+      // ถ้าไม่พบ serial ที่ตรง ให้ค้นหาแบบ endsWith ในประวัติโดยตรง
+      filteredHistory = rows
+        .filter((row) => {
+          const s = row[1] ? row[1].trim() : "";
+          return s && s.endsWith(serialInput.trim());
+        })
+        .map((row) => ({
+          date: row[0] || "-",
+          serialNumber: row[1] || "-",
+          action: row[2] || "-",
+          from: row[3] || "-",
+          to: row[4] || "-",
+          user: row[5] || "-",
+          remark: row[6] || "-",
+        }));
+    }
+
     const result = filteredHistory.reverse();
     cache.set(cacheKey, result, CACHE_TTL_HISTORY);
     res.json(result);
   } catch (error) {
-    console.error(error);
+    console.error("Public asset history error:", error);
     res.status(500).json([]);
   }
 });
@@ -1507,7 +1591,7 @@ app.get("/api/qrcode/:serial", requireLogin, async (req, res) => {
 });
 
 // =====================
-// PUBLIC ASSET VIEW
+// PUBLIC ASSET VIEW (รองรับ Serial แบบเต็มและแบบสั้น)
 // =====================
 app.get("/api/public/asset/:code", async (req, res) => {
   try {
@@ -1522,8 +1606,28 @@ app.get("/api/public/asset/:code", async (req, res) => {
       range: "Asset_List!A2:M",
     });
     const rows = assetRes.data.values || [];
-    const row = rows.find((r) => r[4] && r[4].trim() === code.trim());
-    if (!row) return res.status(404).json({ error: "not found" });
+
+    let row = null;
+    
+    // 1. ค้นหาแบบตรง (Serial เต็ม)
+    row = rows.find((r) => r[4] && r[4].trim() === code.trim());
+    
+    // 2. ถ้าไม่เจอ ค้นหาแบบ endsWith (Serial สั้น)
+    if (!row) {
+      row = rows.find((r) => {
+        const serial = r[4] ? r[4].trim() : "";
+        return serial && serial.endsWith(code.trim());
+      });
+    }
+
+    // 3. ถ้ายังไม่เจอ ลองค้นหาในคอลัมน์ Code (เผื่อกรณีอื่น)
+    if (!row) {
+      row = rows.find((r) => r[1] && r[1].trim() === code.trim());
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: "not found" });
+    }
 
     const qrUrl = `${req.protocol}://${req.get("host")}/a/${encodeURIComponent(code)}`;
     const qrImage = await QRCode.toDataURL(qrUrl);
@@ -2244,6 +2348,159 @@ app.get("/api/dashboard-stats-extended", requireLogin, async (req, res) => {
   } catch (error) {
     console.error("Dashboard stats extended error:", error);
     res.status(500).json({ error: "Dashboard stats error" });
+  }
+});
+// ============================================================
+//  DASHBOARD FULL API (รวมทุกอย่างในครั้งเดียว)
+//  ลด API Calls จาก 5 เหลือ 1
+// ============================================================
+app.get('/api/dashboard-full', requireLogin, async (req, res) => {
+  const cacheKey = 'dashboardFull';
+  let cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    const sheets = await getSheetsClient();
+    
+    // ─── ดึงข้อมูลทั้งหมดพร้อมกัน (Parallel) ───
+    const [assetRes, stockRes, officeRes, siteRes, logRes, farmRes, partRes] = await Promise.all([
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Asset_List!A2:M' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Stock_Master!A2:I' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Stock_Office!A2:C' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Stock_Site!A2:C' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Transfer_Log!A2:H' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Farm_Sites!A2:F' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Part_Catalog!A2:G' }),
+    ]);
+
+    const assets = assetRes.data.values || [];
+    const stock = stockRes.data.values || [];
+    const office = officeRes.data.values || [];
+    const site = siteRes.data.values || [];
+    const logs = logRes.data.values || [];
+    const farms = farmRes.data.values || [];
+    const parts = partRes.data.values || [];
+
+    // ─── 1. Dashboard หลัก ───
+    const totalItems = stock.length;
+    const totalOffice = office.reduce((sum, r) => sum + parseInt(r[2] || 0), 0);
+    const totalSite = site.reduce((sum, r) => sum + parseInt(r[2] || 0), 0);
+    
+    const today = new Date().toLocaleDateString('th-TH');
+    let todayBorrow = 0, todayReturn = 0;
+    logs.forEach(row => {
+      if (row[0] && row[0].includes(today)) {
+        if (row[4] === 'เบิก') todayBorrow += parseInt(row[3] || 0);
+        if (row[4] === 'คืน') todayReturn += parseInt(row[3] || 0);
+      }
+    });
+
+    // ─── 2. สถิติฟาร์ม (จาก Asset_List) ───
+    const STOCK_SITE = 'Intranin';
+    let totalFarmAssets = 0, totalStockAssets = 0;
+    const farmCount = {};
+    const statusCount = {};
+    const siteList = new Set();
+
+    assets.forEach(row => {
+      const site = row[7] || '-';
+      const status = row[5] || 'ไม่ระบุ';
+      
+      statusCount[status] = (statusCount[status] || 0) + 1;
+      
+      if (site === STOCK_SITE) {
+        totalStockAssets++;
+      } else if (site && site !== '-') {
+        totalFarmAssets++;
+        farmCount[site] = (farmCount[site] || 0) + 1;
+        siteList.add(site);
+      }
+    });
+
+    const topFarms = Object.entries(farmCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+
+    // ─── 3. กราฟสถิติ 30 วัน ───
+    const statsMap = {};
+    const now = new Date();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      statsMap[key] = { borrow: 0, return: 0 };
+    }
+    logs.forEach(row => {
+      if (!row[0]) return;
+      const [datePart] = row[0].split(' ');
+      const [day, month, buddhistYear] = datePart.split('/');
+      const year = parseInt(buddhistYear) - 543;
+      const d = new Date(year, month - 1, day);
+      const key = d.toISOString().slice(0, 10);
+      if (statsMap[key]) {
+        if (row[4] === 'เบิก') statsMap[key].borrow++;
+        if (row[4] === 'คืน') statsMap[key].return++;
+      }
+    });
+
+    // ─── 4. ข้อมูลฟาร์มทั้งหมด ───
+    const farmSites = farms.map(row => ({
+      siteId: row[0] || '',
+      siteName: row[1] || '',
+      farmType: row[2] || '',
+      province: row[3] || '',
+      manager: row[4] || '',
+      note: row[5] || '',
+    }));
+
+    // ─── 5. Part Catalog (ย่อ) ───
+    const partList = parts.map(row => ({
+      partNumber: row[0] || '',
+      partName: row[1] || '',
+      totalQty: parseInt(row[5]) || 0,
+    }));
+
+    const result = {
+      // Dashboard หลัก
+      totalItems,
+      totalOffice,
+      totalSite,
+      todayBorrow,
+      todayReturn,
+      // Extended stats
+      totalFarms: farmSites.length,
+      totalFarmAssets,
+      totalStockAssets,
+      topFarms,
+      statusCount,
+      // Chart data
+      chartData: statsMap,
+      // Farm sites
+      farmSites,
+      // Part catalog (ย่อ)
+      partCatalog: partList,
+      // Assets (ย่อ สำหรับหน้า Asset)
+      assets: assets.map(row => ({
+        assetId: row[0] || '-',
+        code: row[1] || '-',
+        name: row[2] || '-',
+        partNumber: row[3] || '-',
+        serialNumber: row[4] || '-',
+        status: row[5] || '-',
+        location: row[6] || '-',
+        siteName: row[7] || '-',
+        user: row[8] || '-',
+      })),
+    };
+
+    // Cache 10 นาที (ข้อมูลไม่เปลี่ยนแปลงบ่อย)
+    cache.set(cacheKey, result, 600);
+    res.json(result);
+    
+  } catch (error) {
+    console.error('Dashboard Full Error:', error);
+    res.status(500).json({ error: 'Dashboard error' });
   }
 });
 // ─────────────────────────────────────────────────────────────

@@ -567,36 +567,36 @@ async function loadFromURL(){
     const latest = data[0];
     const oldest = data[data.length - 1];
 
-    /* ── asset card ── */
-    const assetCardHTML = `
-      <div class="asset-card" style="margin-bottom:24px">
-        <div class="asset-card-header">
-          <div>
-            <div class="asset-name">${latest.remark && latest.remark.includes(":") ? latest.remark.split(":").pop().trim() : serial}</div>
-            <div class="asset-serial-tag">S/N : ${serial}</div>
-          </div>
-          <span class="status-pill status-ok">📍 ${latest.to || "ในระบบ"}</span>
-        </div>
-        <div class="asset-meta-grid">
-          <div class="meta-cell">
-            <div class="meta-label">รายการทั้งหมด</div>
-            <div class="meta-value">${data.length} รายการ</div>
-          </div>
-          <div class="meta-cell">
-            <div class="meta-label">ลงทะเบียนเมื่อ</div>
-            <div class="meta-value">${oldest.date || "-"}</div>
-          </div>
-          <div class="meta-cell">
-            <div class="meta-label">อัปเดตล่าสุด</div>
-            <div class="meta-value">${latest.date || "-"}</div>
-          </div>
-          <div class="meta-cell">
-            <div class="meta-label">ตำแหน่งล่าสุด</div>
-            <div class="meta-value">${latest.to || "-"}</div>
-          </div>
-        </div>
-      </div>`;
-
+    // ── asset card ──
+const displaySerial = latest.serialNumber || serial; // ใช้ Serial เต็มจากประวัติ (ถ้ามี)
+const assetCardHTML = `
+  <div class="asset-card" style="margin-bottom:24px">
+    <div class="asset-card-header">
+      <div>
+        <div class="asset-name">${latest.remark && latest.remark.includes(":") ? latest.remark.split(":").pop().trim() : displaySerial}</div>
+        <div class="asset-serial-tag">S/N : ${displaySerial}</div>
+      </div>
+      <span class="status-pill status-ok">📍 ${latest.to || "ในระบบ"}</span>
+    </div>
+    <div class="asset-meta-grid">
+      <div class="meta-cell">
+        <div class="meta-label">รายการทั้งหมด</div>
+        <div class="meta-value">${data.length} รายการ</div>
+      </div>
+      <div class="meta-cell">
+        <div class="meta-label">ลงทะเบียนเมื่อ</div>
+        <div class="meta-value">${oldest.date || "-"}</div>
+      </div>
+      <div class="meta-cell">
+        <div class="meta-label">อัปเดตล่าสุด</div>
+        <div class="meta-value">${latest.date || "-"}</div>
+      </div>
+      <div class="meta-cell">
+        <div class="meta-label">ตำแหน่งล่าสุด</div>
+        <div class="meta-value">${latest.to || "-"}</div>
+      </div>
+    </div>
+  </div>`;
     /* ── actions bar ── */
     const actionsHTML = `
       <div class="actions-bar">
