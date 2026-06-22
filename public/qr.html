@@ -3,497 +3,1429 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Code Generator</title>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<title>Label Studio — EMS Barcode Generator</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ── Font ── */
-@font-face {
-  font-family: 'THSarabunNew';
-  src: url('/fonts/THSarabunNew.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:          #080c12;
+  --surf0:       #0d1117;
+  --surf1:       #131920;
+  --surf2:       #1a2230;
+  --surf3:       #1e2840;
+  --border:      #1e2d42;
+  --border-hi:   #2a3f5c;
+  --accent:      #3b82f6;
+  --accent-dim:  rgba(59,130,246,.12);
+  --accent-glow: rgba(59,130,246,.25);
+  --green:       #10b981;
+  --green-dim:   rgba(16,185,129,.12);
+  --amber:       #f59e0b;
+  --amber-dim:   rgba(245,158,11,.12);
+  --red:         #ef4444;
+  --red-dim:     rgba(239,68,68,.12);
+  --cyan:        #06b6d4;
+  --purple:      #8b5cf6;
+  --text:        #e2e8f0;
+  --text-2:      #94a3b8;
+  --text-3:      #475569;
+  --text-4:      #1e293b;
+  --r:           8px;
+  --r-sm:        5px;
+  --r-lg:        12px;
+  --shadow:      0 4px 24px rgba(0,0,0,.4);
+  --shadow-lg:   0 8px 40px rgba(0,0,0,.6);
+  --sidebar-w:   320px;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { 
-  font-family: 'Segoe UI', system-ui, sans-serif; 
-  background: #f1f5f9; 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  padding: 24px; 
+body {
+  font-family: 'Inter', 'Sarabun', sans-serif;
+  background: var(--bg);
+  color: var(--text);
   min-height: 100vh;
-}
-h1 { 
-  margin-bottom: 20px; 
-  color: #0f172a; 
-  font-weight: 700;
-  font-size: 24px;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-}
-.container { 
-  background: #fff; 
-  border-radius: 16px; 
-  padding: 28px; 
-  box-shadow: 0 4px 20px rgba(0,0,0,.08); 
-  max-width: 760px; 
-  width: 100%; 
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-/* ── Controls ── */
-.controls { 
-  display: flex; 
-  gap: 16px; 
-  flex-wrap: wrap; 
-  margin-bottom: 20px; 
-  align-items: flex-end; 
-}
-.controls .group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.controls label { 
-  font-weight: 600; 
-  color: #475569; 
-  font-size: 12px; 
-  text-transform: uppercase;
-  letter-spacing: .4px;
-}
-.controls input[type="number"],
-.controls select { 
-  padding: 8px 10px; 
-  border: 1.5px solid #d1d5db; 
-  border-radius: 8px; 
-  font-size: 14px;
-  font-weight: 600;
-  outline: none;
-  transition: .2s;
-  background: #fff;
-}
-.controls input[type="number"] { width: 76px; }
-.controls select { width: 120px; cursor: pointer; }
-.controls input[type="number"]:focus,
-.controls select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
-}
-.controls .unit {
-  font-size: 13px;
-  color: #94a3b8;
-  margin-left: 2px;
-}
-.controls .size-row {
+/* ───────── TOPBAR ───────── */
+.topbar {
+  height: 52px;
+  background: var(--surf1);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 4px;
+  padding: 0 20px;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
 }
-.controls .save-btn {
-  background: #0d9488;
-  color: #fff;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  transition: .2s;
-  margin-left: auto;
-}
-.controls .save-btn:hover { background: #0f766e; }
-
-/* ── Error ── */
-.error { 
-  color: #dc2626; 
-  margin-bottom: 12px; 
+.topbar-logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--cyan) 100%);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
   font-size: 14px;
+  flex-shrink: 0;
+}
+.topbar-title { font-size: 14px; font-weight: 700; letter-spacing: -.2px; }
+.topbar-sub   { font-size: 11px; color: var(--text-3); margin-top: 1px; letter-spacing: .2px; }
+.topbar-spacer{ flex: 1; }
+.topbar-pill {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.pill-blue   { background: var(--accent-dim); color: var(--accent); border-color: rgba(59,130,246,.3); }
+.pill-green  { background: var(--green-dim);  color: var(--green);  border-color: rgba(16,185,129,.3); }
+.topbar-btn  {
+  padding: 6px 12px;
+  background: var(--surf2);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: 12px;
   font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: .15s;
+  display: flex; align-items: center; gap: 5px;
 }
+.topbar-btn:hover { background: var(--surf3); color: var(--text); border-color: var(--accent); }
 
-/* ── Preview Area ── */
-.preview-area { 
-  border: 2px solid #e5e7eb; 
-  border-radius: 12px; 
-  padding: 20px; 
-  background: #fafbfc; 
-  display: flex; 
-  justify-content: center; 
+/* ───────── MAIN LAYOUT ───────── */
+.app-body {
+  display: grid;
+  grid-template-columns: 1fr var(--sidebar-w);
+  height: calc(100vh - 52px);
+  overflow: hidden;
 }
+.main-col  { overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+.side-col  { border-left: 1px solid var(--border); overflow-y: auto; background: var(--surf0); display: flex; flex-direction: column; }
 
-#qrDisplay { 
-  display: flex; 
-  align-items: center; 
-  gap: 24px; 
-  border: 1.5px solid #d1d5db; 
-  border-radius: 10px; 
-  background: #ffffff; 
-  max-width: 100%; 
-  transition: all 0.2s; 
-  min-width: 280px;
-  font-family: 'THSarabunNew', 'Segoe UI', system-ui, sans-serif;
+/* ───────── CARDS ───────── */
+.card {
+  background: var(--surf1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
 }
-#qrDisplay .qr-image { 
-  flex-shrink: 0; 
+.card-header {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-#qrDisplay .qr-image img { 
-  display: block; 
-  background: #fff; 
-  border: 1px solid #f1f5f9;
-  border-radius: 4px;
+.card-header-icon {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
 }
-
-/* ── Info (ขวา) ── */
-#qrDisplay .info { 
-  font-size: 14px; 
-  color: #0f172a; 
-  line-height: 1.7; 
-  min-width: 120px;
+.icon-blue   { background: var(--accent-dim); }
+.icon-green  { background: var(--green-dim); }
+.icon-purple { background: rgba(139,92,246,.15); }
+.icon-amber  { background: var(--amber-dim); }
+.card-header h2 {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--text-2);
   flex: 1;
 }
-#qrDisplay .info .label { 
-  font-weight: 500; 
-  color: #64748b; 
-  font-size: 0.9em;
+.card-header .card-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
 }
-#qrDisplay .info .serial-value {
-  font-weight: 800;          /* หนาขึ้น */
-  color: #0f172a;
-  letter-spacing: 0.2px;
-  font-family: 'Courier New', monospace;
-  word-break: break-all;
+.card-body { padding: 14px 16px; }
+
+/* ───────── SEARCH ROW ───────── */
+.search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.search-wrap { flex: 1; position: relative; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; }
+.search-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  padding: 7px 10px 7px 32px;
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
 }
-#qrDisplay .info .part-value {
-  font-weight: 700;          /* หนาขึ้น */
-  color: #1e293b;
+.search-input:focus { border-color: var(--accent); }
+.search-input::placeholder { color: var(--text-3); }
+
+/* ───────── STATUS FILTER CHIPS ───────── */
+.filter-bar { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+.filter-chip {
+  padding: 4px 11px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-3);
+  font-family: inherit;
+  transition: .12s;
 }
-#qrDisplay .info .name-value {
-  font-weight: 700;          /* หนาขึ้น */
-  color: #1e293b;
+.filter-chip:hover               { border-color: var(--border-hi); color: var(--text-2); }
+.filter-chip[data-active="true"] { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+.filter-chip.fc-active  { border-color: var(--green);  background: var(--green-dim);  color: var(--green); }
+.filter-chip.fc-maint   { border-color: var(--amber);  background: var(--amber-dim);  color: var(--amber); }
+.filter-chip.fc-repair  { border-color: var(--red);    background: var(--red-dim);    color: var(--red); }
+.filter-chip.fc-storage { border-color: var(--cyan);   background: rgba(6,182,212,.1); color: var(--cyan); }
+
+/* ───────── ASSET TABLE ───────── */
+.table-wrap { border: 1px solid var(--border); border-radius: var(--r-sm); overflow: auto; max-height: 320px; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead th {
+  background: var(--surf2);
+  padding: 8px 11px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--text-3);
+  position: sticky; top: 0; z-index: 1;
+  white-space: nowrap;
 }
-#qrDisplay .info .row {
+thead th:first-child { width: 34px; text-align: center; }
+tbody tr { border-top: 1px solid rgba(30,45,66,.6); transition: background .1s; cursor: pointer; }
+tbody tr:hover    { background: var(--surf2); }
+tbody tr.selected { background: rgba(59,130,246,.08); }
+tbody td { padding: 8px 11px; vertical-align: middle; }
+tbody td:first-child { text-align: center; }
+input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; }
+.sn-mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent); white-space: nowrap; letter-spacing: .3px; }
+.name-col { color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 600; white-space: nowrap;
+}
+.sb-active  { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(16,185,129,.25); }
+.sb-maint   { background: var(--amber-dim);  color: var(--amber);  border: 1px solid rgba(245,158,11,.25); }
+.sb-repair  { background: var(--red-dim);    color: var(--red);    border: 1px solid rgba(239,68,68,.25); }
+.sb-storage { background: rgba(6,182,212,.1); color: var(--cyan);  border: 1px solid rgba(6,182,212,.25); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.table-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; border-top: 1px solid var(--border);
+  font-size: 11.5px; color: var(--text-3);
+}
+.link-btn {
+  background: none; border: none; color: var(--accent); font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: inherit; padding: 0;
+}
+.link-btn:hover { text-decoration: underline; }
+
+/* ───────── SELECTED CHIPS ───────── */
+.chips-wrap { display: flex; flex-wrap: wrap; gap: 5px; min-height: 26px; margin-top: 10px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--accent-dim); border: 1px solid rgba(59,130,246,.3); color: var(--accent);
+  border-radius: 20px; font-size: 10.5px; font-weight: 600; padding: 2px 9px 2px 8px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; margin-top: -1px; opacity: .7; }
+.chip button:hover { opacity: 1; color: var(--red); }
+.chips-empty { font-size: 11.5px; color: var(--text-3); font-style: italic; }
+
+/* ───────── SIDEBAR ───────── */
+.side-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.side-section:last-child { border-bottom: none; }
+.sec-head {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-3);
+  margin-bottom: 11px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
-  padding: 2px 0;
+}
+.sec-head::after { content:''; flex:1; height:1px; background: var(--border); }
+
+/* ── MODE TABS ── */
+.mode-tabs { display: flex; background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
+.mode-tab {
+  flex: 1; padding: 8px 6px; background: transparent; border: none;
+  color: var(--text-3); font-size: 11.5px; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: .15s; text-align: center; line-height: 1.3;
+}
+.mode-tab span { font-size: 9.5px; font-weight: 400; opacity: .7; display: block; margin-top: 1px; }
+.mode-tab.active { background: var(--accent); color: #fff; }
+.mode-tab:not(.active):hover { background: var(--surf2); color: var(--text); }
+
+/* ── FIELD GROUP ── */
+.field-group { display: flex; flex-direction: column; gap: 9px; }
+.field { display: flex; flex-direction: column; gap: 3px; }
+.field label { font-size: 10.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.input-wrap { display: flex; align-items: stretch; }
+.input-wrap input, .input-wrap select {
+  flex: 1;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  outline: none;
+  min-width: 0;
+  transition: border-color .15s;
+}
+.input-wrap input:focus, .input-wrap select:focus { border-color: var(--accent); }
+.input-unit {
+  padding: 0 7px;
+  background: var(--surf2);
+  border: 1.5px solid var(--border);
+  border-left: none;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: 10px;
+  color: var(--text-3);
+  display: flex; align-items: center;
+  white-space: nowrap;
+}
+.input-full { border-radius: var(--r-sm) !important; }
+
+/* Color picker special */
+.color-wrap { display: flex; align-items: center; gap: 8px; }
+.color-swatch {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  border: 2px solid var(--border-hi);
+  cursor: pointer;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.color-swatch input[type=color] { width: 200%; height: 200%; margin: -50%; border: none; cursor: pointer; }
+.color-name { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--text-2); flex: 1; }
+.color-presets { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.color-dot {
+  width: 22px; height: 22px; border-radius: 5px; cursor: pointer;
+  border: 2px solid transparent; transition: .12s; flex-shrink: 0;
+}
+.color-dot:hover, .color-dot.active { border-color: var(--text); transform: scale(1.1); }
+
+/* Toggle switch */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+.toggle-label { font-size: 12px; color: var(--text-2); }
+.toggle-label small { font-size: 10.5px; color: var(--text-3); display: block; margin-top: 1px; }
+.toggle {
+  position: relative; width: 36px; height: 20px;
+  background: var(--surf3); border: 1.5px solid var(--border-hi);
+  border-radius: 20px; cursor: pointer; transition: .2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--accent); border-color: var(--accent); }
+.toggle::after {
+  content: '';
+  position: absolute; top: 1px; left: 1px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--text-3); transition: .2s;
+}
+.toggle.on::after { left: 17px; background: #fff; }
+
+/* ── PRESETS ── */
+.preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.preset-btn {
+  padding: 6px 8px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--border);
+  font-size: 11px; font-weight: 600;
+  cursor: pointer; background: transparent;
+  color: var(--text-3); font-family: inherit;
+  transition: .12s; text-align: left; line-height: 1.3;
+}
+.preset-btn span { font-size: 9.5px; opacity: .7; display: block; font-weight: 400; }
+.preset-btn:hover { border-color: var(--border-hi); color: var(--text-2); background: var(--surf2); }
+.preset-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+
+/* ── HINT ── */
+.hint {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 11.5px; border-radius: var(--r-sm); padding: 8px 10px; line-height: 1.5;
+  margin-top: 8px;
+}
+.hint.ok   { background: var(--green-dim); color: var(--green);  border: 1px solid rgba(16,185,129,.25); }
+.hint.warn { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,.25); }
+.hint.err  { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(239,68,68,.25); }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 8px 16px; border: none; border-radius: var(--r-sm);
+  font-weight: 600; cursor: pointer; font-size: 12.5px;
+  font-family: inherit; display: inline-flex; align-items: center;
+  gap: 6px; transition: .15s; text-decoration: none; white-space: nowrap;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #2563eb; }
+.btn-success { background: var(--green); color: #052e16; font-weight: 700; }
+.btn-success:hover:not(:disabled) { background: #059669; }
+.btn-ghost { background: transparent; border: 1.5px solid var(--border-hi); color: var(--text-2); }
+.btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.btn-danger { background: var(--red-dim); border: 1.5px solid rgba(239,68,68,.3); color: var(--red); }
+.btn-danger:hover:not(:disabled) { background: rgba(239,68,68,.2); }
+.btn-sm { padding: 5px 10px; font-size: 11.5px; }
+.btn-row { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+/* ── A4 INFO ── */
+.a4-info { font-size: 11.5px; color: var(--text-2); line-height: 1.8; padding: 8px 10px; background: var(--surf2); border-radius: var(--r-sm); margin-top: 8px; }
+.a4-info strong { color: var(--green); }
+
+/* ───────── PREVIEW PANEL ───────── */
+.preview-panel {
+  background: var(--surf0);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.preview-header {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surf1);
+}
+.preview-header h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--text-3); flex: 1; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.preview-body {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: 20px 16px;
+  gap: 16px;
+  overflow-y: auto;
+}
+.preview-stage {
+  background: repeating-conic-gradient(#131920 0% 25%, #0d1117 0% 50%) 0 0 / 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  display: flex; justify-content: center; align-items: center;
+  min-height: 140px;
+  width: 100%;
+  padding: 20px;
+  position: relative;
+}
+.preview-stage.a4-stage {
+  min-height: 300px;
+  overflow: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 12px;
+}
+#labelEl {
+  display: flex; flex-direction: column; align-items: stretch;
+  border-radius: 4px; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,.6);
+  transition: width .15s, height .15s;
+}
+#labelEl .bc-zone { display: flex; justify-content: center; align-items: flex-end; }
+#labelEl .bc-zone svg { display: block; }
+#labelEl .sep { height: 1px; flex-shrink: 0; }
+#labelEl .txt-zone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.s-serial { font-family:'IBM Plex Mono',monospace; font-weight:600; letter-spacing:.8px; line-height:1.2; text-align:center; white-space:nowrap; }
+.s-name   { font-family:'Sarabun',sans-serif; font-weight:400; line-height:1.2; text-align:center; white-space:nowrap; max-width:96%; overflow:hidden; text-overflow:ellipsis; }
+.status-badge-label {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 5px; border-radius: 3px; font-size: 7px; font-weight: 700;
+  font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: .5px;
 }
 
-/* ── Dark mode (background ดำ) ── */
-#qrDisplay.dark {
-  background: #1a1a1a;
-  border-color: #ffffff;
-}
-#qrDisplay.dark .info .label { color: #9ca3af; }
-#qrDisplay.dark .info .serial-value { color: #ffffff; }
-#qrDisplay.dark .info .part-value { color: #f3f4f6; }
-#qrDisplay.dark .info .name-value { color: #f3f4f6; }
-#qrDisplay.dark .qr-image img { border-color: #374151; }
+#a4PreviewWrap { width: 100%; overflow: auto; }
+#a4Sheet { position: relative; flex-shrink: 0; box-shadow: var(--shadow-lg); }
 
-/* ── Buttons ── */
-.btn-row { 
-  display: flex; 
-  gap: 12px; 
-  margin-top: 20px; 
-  flex-wrap: wrap; 
-}
-.btn { 
-  padding: 10px 24px; 
-  border: none; 
-  border-radius: 8px; 
-  font-weight: 600; 
-  cursor: pointer; 
-  transition: .2s; 
-  font-size: 14px;
-}
-.btn-primary { background: #2563eb; color: #fff; }
-.btn-primary:hover { background: #1d4ed8; }
-.btn-outline { background: #fff; border: 1.5px solid #d1d5db; color: #0f172a; }
-.btn-outline:hover { background: #f1f5f9; }
-.btn-teal { background: #0d9488; color: #fff; }
-.btn-teal:hover { background: #0f766e; }
+.preview-stats { width: 100%; }
+.stat-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.stat-row:last-child { border-bottom: none; }
+.stat-key { font-size: 11px; color: var(--text-3); }
+.stat-val { font-size: 11px; font-weight: 600; color: var(--text-2); font-family: 'IBM Plex Mono', monospace; }
 
-/* ── Responsive ── */
-@media (max-width: 550px) {
-  #qrDisplay {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 16px;
-    min-width: unset;
-  }
-  #qrDisplay .info .row {
-    justify-content: center;
-  }
-  .controls {
-    gap: 10px;
-  }
-  .controls .save-btn {
-    margin-left: 0;
-    width: 100%;
-  }
+/* ───────── TEMPLATE MANAGER ───────── */
+.tmpl-list { display: flex; flex-direction: column; gap: 5px; max-height: 140px; overflow-y: auto; margin-bottom: 8px; }
+.tmpl-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  background: var(--surf2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); cursor: pointer; transition: .12s;
 }
+.tmpl-item:hover { border-color: var(--border-hi); background: var(--surf3); }
+.tmpl-item.active { border-color: var(--accent); background: var(--accent-dim); }
+.tmpl-name { flex: 1; font-size: 12px; font-weight: 500; }
+.tmpl-meta { font-size: 10px; color: var(--text-3); }
+.tmpl-del { background: none; border: none; color: var(--text-3); cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
+.tmpl-del:hover { color: var(--red); }
+.tmpl-empty { font-size: 11.5px; color: var(--text-3); font-style: italic; text-align: center; padding: 12px 0; }
+.save-row { display: flex; gap: 6px; }
+.save-input {
+  flex: 1; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--r-sm); color: var(--text); padding: 6px 9px;
+  font-size: 12px; font-family: inherit; outline: none;
+}
+.save-input:focus { border-color: var(--accent); }
 
-/* ── Print ── */
+/* ───────── NOTIFICATIONS ───────── */
+#toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surf2); border: 1px solid var(--border-hi); border-radius: var(--r);
+  padding: 10px 18px; font-size: 13px; font-weight: 500; color: var(--text);
+  box-shadow: var(--shadow); transition: transform .25s ease, opacity .25s;
+  z-index: 9999; opacity: 0; pointer-events: none; white-space: nowrap;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ───────── PRINT STYLES ───────── */
 @media print {
-  h1, .controls, .btn-row { display: none !important; }
-  .preview-area { border: none; padding: 0; background: #fff; }
-  #qrDisplay { border: 1px solid #000; }
-  body { padding: 0; background: #fff; }
-  .container { box-shadow: none; padding: 0; }
+  body * { visibility: hidden !important; }
+  #printArea, #printArea * { visibility: visible !important; }
+  #printArea {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: white; display: flex; justify-content: center; align-items: flex-start;
+  }
+  #a4Sheet { box-shadow: none !important; }
 }
 </style>
 </head>
 <body>
 
-<h1>🔖 QR Code Generator</h1>
-
-<div class="container">
-  <!-- Controls -->
-  <div class="controls">
-    <div class="group">
-      <label>📐 กว้าง</label>
-      <div class="size-row">
-        <input type="number" id="widthInput" min="60" max="500" oninput="onSizeChange()">
-        <span class="unit">px</span>
-      </div>
-    </div>
-    <div class="group">
-      <label>📐 สูง</label>
-      <div class="size-row">
-        <input type="number" id="heightInput" min="60" max="500" oninput="onSizeChange()">
-        <span class="unit">px</span>
-      </div>
-    </div>
-    <div class="group">
-      <label>🟦 ขอบกรอบ</label>
-      <div class="size-row">
-        <input type="number" id="paddingInput" min="0" max="80" oninput="onSizeChange()">
-        <span class="unit">px</span>
-      </div>
-    </div>
-    <div class="group">
-      <label>🔤 Serial size</label>
-      <div class="size-row">
-        <input type="number" id="serialSizeInput" min="10" max="50" oninput="onSizeChange()">
-        <span class="unit">px</span>
-      </div>
-    </div>
-    <div class="group">
-      <label>🔤 Part/Name size</label>
-      <div class="size-row">
-        <input type="number" id="otherSizeInput" min="10" max="50" oninput="onSizeChange()">
-        <span class="unit">px</span>
-      </div>
-    </div>
-    <div class="group">
-      <label>🎨 พื้นหลัง</label>
-      <select id="bgColorSelect" onchange="onSizeChange()">
-        <option value="light">ขาว</option>
-        <option value="dark">ดำ</option>
-      </select>
-    </div>
-    <button class="save-btn" onclick="saveTemplate()">💾 เซฟเป็น Template</button>
+<!-- ═══════════════ TOPBAR ═══════════════ -->
+<div class="topbar">
+  <div class="topbar-logo">🔖</div>
+  <div>
+    <div class="topbar-title">Label Studio</div>
+    <div class="topbar-sub">Equipment Management System</div>
   </div>
-
-  <!-- Error -->
-  <div id="errorMsg" class="error"></div>
-
-  <!-- Preview -->
-  <div class="preview-area">
-    <div id="qrDisplay">
-      <div class="qr-image">
-        <img id="qrImg" src="" alt="QR" style="display:block;background:#fff;">
-      </div>
-      <div class="info">
-        <div class="row">
-          <span class="label">Serial:</span>
-          <span class="serial-value" id="dispSerial">-</span>
-        </div>
-        <div class="row">
-          <span class="label">Part:</span>
-          <span class="part-value" id="dispPart">-</span>
-        </div>
-        <div class="row">
-          <span class="label">ชื่ออุปกรณ์:</span>
-          <span class="name-value" id="dispName">-</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Buttons -->
-  <div class="btn-row">
-    <button class="btn btn-primary" onclick="downloadQR()">⬇️ ดาวน์โหลด PNG</button>
-    <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์</button>
-    <a class="btn btn-teal" id="traceLink" href="#">📋 ประวัติ</a>
-  </div>
+  <div class="topbar-spacer"></div>
+  <span class="topbar-pill pill-blue">CODE 128</span>
+  <button class="topbar-btn" onclick="refreshAssets()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+    โหลดข้อมูล
+  </button>
+  <a class="topbar-btn" href="/" style="text-decoration:none;">
+    ← กลับหน้าหลัก
+  </a>
 </div>
 
+<!-- ═══════════════ BODY ═══════════════ -->
+<div class="app-body">
+
+  <!-- ── LEFT / MAIN ── -->
+  <div class="main-col">
+
+    <!-- ASSET TABLE CARD -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon icon-blue">📋</div>
+        <h2>เลือกอุปกรณ์เพื่อพิมพ์</h2>
+        <span class="card-pill pill-blue" id="selCount">0 รายการ</span>
+        <span class="card-pill pill-green" id="totalCount" style="margin-left:4px;">0 ทั้งหมด</span>
+      </div>
+      <div class="card-body">
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input class="search-input" id="searchInput" placeholder="ค้นหา Serial / ชื่ออุปกรณ์..." oninput="filterTable()">
+          </div>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-chip" data-status="all" data-active="true" onclick="setStatusFilter('all',this)">ทั้งหมด</button>
+          <button class="filter-chip fc-active"  data-status="active"      onclick="setStatusFilter('active',this)">● ใช้งาน</button>
+          <button class="filter-chip fc-maint"   data-status="maintenance" onclick="setStatusFilter('maintenance',this)">● ซ่อมบำรุง</button>
+          <button class="filter-chip fc-repair"  data-status="repair"      onclick="setStatusFilter('repair',this)">● ส่งซ่อม</button>
+          <button class="filter-chip fc-storage" data-status="storage"     onclick="setStatusFilter('storage',this)">● ในคลัง</button>
+        </div>
+        <div class="table-wrap">
+          <table id="assetTable">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="cbAll" onchange="toggleAll(this)"></th>
+                <th>Serial Number</th>
+                <th>ชื่ออุปกรณ์</th>
+                <th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="assetBody">
+              <tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);">⏳ กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span id="tableInfo" style="font-size:11.5px;color:var(--text-3);">–</span>
+          <button class="link-btn" onclick="selectAllFiltered()">เลือกทั้งหมดในหน้า</button>
+        </div>
+        <div class="chips-wrap" id="selectedChips">
+          <span class="chips-empty">ยังไม่ได้เลือกอุปกรณ์</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT / SIDEBAR ── -->
+  <div class="side-col">
+
+    <!-- SECTION: MODE -->
+    <div class="side-section">
+      <div class="sec-head">โหมดการพิมพ์</div>
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tabLabel" onclick="setMode('label')">
+          🏷️ Label Printer
+          <span>พิมพ์ทีละใบ</span>
+        </button>
+        <button class="mode-tab" id="tabA4" onclick="setMode('a4')">
+          📄 A4 Sheet
+          <span>หลายดวงต่อแผ่น</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SECTION: LABEL SIZE PRESETS (shared) -->
+    <div class="side-section">
+      <div class="sec-head">ขนาด Label</div>
+      <div class="preset-grid">
+        <button class="preset-btn" data-pid="small"  onclick="applyPreset('small')">Small<span>38 × 20 mm</span></button>
+        <button class="preset-btn active" data-pid="medium" onclick="applyPreset('medium')">Medium<span>50 × 25 mm</span></button>
+        <button class="preset-btn" data-pid="large"  onclick="applyPreset('large')">Large<span>60 × 30 mm</span></button>
+        <button class="preset-btn" data-pid="rack"   onclick="applyPreset('rack')">Rack Strip<span>100 × 40 mm</span></button>
+      </div>
+      <div class="divider"></div>
+      <div class="field-group">
+        <div class="field-row">
+          <div class="field">
+            <label>กว้าง</label>
+            <div class="input-wrap">
+              <input type="number" id="lW" min="20" max="200" step="1" value="50" oninput="markCustom();renderActive()">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>สูง</label>
+            <div class="input-wrap">
+              <input type="number" id="lH" min="12" max="100" step="1" value="25" oninput="markCustom();renderActive()">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>ขอบ Label</label>
+          <div class="input-wrap">
+            <input type="number" id="lMargin" min="0.5" max="10" step="0.5" value="2" oninput="renderActive()">
+            <span class="input-unit">mm</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: A4 LAYOUT (only visible in a4 mode) -->
+    <div class="side-section" id="a4LayoutSection">
+      <div class="sec-head">การจัดวาง A4</div>
+      <div class="field-group">
+        <div class="field">
+          <label>ขอบกระดาษ (ทุกด้าน)</label>
+          <div class="input-wrap">
+            <input type="number" id="a4PM" min="0" max="25" step="0.5" value="10" oninput="renderActive()">
+            <span class="input-unit">mm</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>ช่องว่าง H</label>
+            <div class="input-wrap">
+              <input type="number" id="a4GX" min="0" max="15" step="0.5" value="3" oninput="renderActive()">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>ช่องว่าง V</label>
+            <div class="input-wrap">
+              <input type="number" id="a4GY" min="0" max="15" step="0.5" value="3" oninput="renderActive()">
+              <span class="input-unit">mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="a4-info" id="a4InfoEl">–</div>
+    </div>
+
+    <!-- SECTION: DESIGN -->
+    <div class="side-section">
+      <div class="sec-head">ดีไซน์</div>
+      <div class="field-group">
+        <div class="field">
+          <label>สีพื้นหลัง Label</label>
+          <div class="color-wrap">
+            <div class="color-swatch">
+              <input type="color" id="bgColor" value="#ffffff" oninput="updateColorDisplay();renderActive()">
+            </div>
+            <div>
+              <div class="color-name" id="bgColorTxt">#ffffff</div>
+              <div style="font-size:10px;color:var(--text-3)" id="invertHint">— บาร์โค้ดปกติ (พื้นขาว)</div>
+            </div>
+          </div>
+          <div class="color-presets">
+            <div class="color-dot active" style="background:#ffffff;border:1.5px solid #ccc" title="ขาว" onclick="setColor('#ffffff',this)"></div>
+            <div class="color-dot" style="background:#f8fafc" title="ขาวครีม" onclick="setColor('#f8fafc',this)"></div>
+            <div class="color-dot" style="background:#fef9c3" title="เหลืองอ่อน" onclick="setColor('#fef9c3',this)"></div>
+            <div class="color-dot" style="background:#dbeafe" title="ฟ้าอ่อน" onclick="setColor('#dbeafe',this)"></div>
+            <div class="color-dot" style="background:#dcfce7" title="เขียวอ่อน" onclick="setColor('#dcfce7',this)"></div>
+            <div class="color-dot" style="background:#1e293b" title="กรมท่า" onclick="setColor('#1e293b',this)"></div>
+            <div class="color-dot" style="background:#0f172a" title="น้ำเงินเข้ม" onclick="setColor('#0f172a',this)"></div>
+            <div class="color-dot" style="background:#111827" title="ดำ" onclick="setColor('#111827',this)"></div>
+          </div>
+        </div>
+        <div class="divider" style="margin:4px 0;"></div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            แสดง Status Badge บนป้าย
+            <small>แถบสีสถานะอุปกรณ์ (เปิด/ปิดได้)</small>
+          </div>
+          <div class="toggle" id="toggleBadge" onclick="this.classList.toggle('on');renderActive()"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: TEMPLATES -->
+    <div class="side-section">
+      <div class="sec-head">เทมเพลตการตั้งค่า</div>
+      <div class="tmpl-list" id="tmplList">
+        <div class="tmpl-empty">ยังไม่มีเทมเพลต</div>
+      </div>
+      <div class="save-row">
+        <input class="save-input" id="tmplNameInput" type="text" placeholder="ชื่อเทมเพลต..." maxlength="40">
+        <button class="btn btn-primary btn-sm" onclick="saveTemplate()">💾 บันทึก</button>
+      </div>
+    </div>
+
+    <!-- SECTION: PREVIEW -->
+    <div style="border-top:1px solid var(--border);flex:1;display:flex;flex-direction:column;">
+      <div class="preview-header">
+        <h3>Live Preview</h3>
+        <div class="live-dot"></div>
+      </div>
+      <div class="preview-body">
+
+        <!-- LABEL PREVIEW -->
+        <div id="labelPreviewArea" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <div class="preview-stage" id="labelStage">
+            <div id="labelEl">
+              <div class="bc-zone"><svg id="bcSvg"></svg></div>
+              <div class="sep"></div>
+              <div class="txt-zone">
+                <div class="s-serial" id="sSerial">SN-0000001</div>
+                <div class="s-name"   id="sName">ชื่ออุปกรณ์</div>
+              </div>
+            </div>
+          </div>
+          <div class="hint ok" id="hintEl" style="width:100%;">✅ กำลังโหลด...</div>
+          <div class="preview-stats" id="labelStats"></div>
+          <div class="btn-row" style="width:100%;margin-top:4px;">
+            <button class="btn btn-success btn-sm" onclick="downloadLabelPdf()">📄 PDF</button>
+            <button class="btn btn-ghost btn-sm"   onclick="window.print()">🖨️ พิมพ์</button>
+            <a      class="btn btn-ghost btn-sm"   id="traceLink" href="#">📋 ประวัติ</a>
+          </div>
+        </div>
+
+        <!-- A4 PREVIEW -->
+        <div id="a4PreviewArea" style="width:100%;display:none;flex-direction:column;gap:10px;">
+          <div class="preview-stage a4-stage" id="a4Stage">
+            <div id="a4PreviewWrap">
+              <div id="a4Sheet"></div>
+            </div>
+          </div>
+          <div class="btn-row" style="width:100%;margin-top:4px;">
+            <button class="btn btn-success btn-sm" id="btnA4Pdf"   onclick="downloadA4Pdf()"  disabled>📄 PDF A4</button>
+            <button class="btn btn-ghost btn-sm"   id="btnA4Print" onclick="printA4()"        disabled>🖨️ พิมพ์</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /side-col -->
+
+</div><!-- /app-body -->
+
+<!-- HIDDEN PRINT AREA -->
+<div id="printArea" style="display:none;"></div>
+<!-- TOAST -->
+<div id="toast"></div>
+
 <script>
-let currentSerial = '';
-let assetInfo = {};
-const STORAGE_KEY = 'qrTemplate';
+/* ══════════════════════════════════════════════════════
+   CONSTANTS & STATE
+══════════════════════════════════════════════════════ */
+const MM2IN       = 25.4;
+const SCREEN_DPI  = 96;
+const A4W_MM      = 210;
+const A4H_MM      = 297;
+const SCALE_PREV  = 1.8; // mm→px for A4 preview
 
-// ── โหลด template จาก localStorage ──
-function loadTemplate() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const t = JSON.parse(saved);
-      document.getElementById('widthInput').value = t.width || 180;
-      document.getElementById('heightInput').value = t.height || 180;
-      document.getElementById('paddingInput').value = t.padding || 18;
-      document.getElementById('serialSizeInput').value = t.serialSize || 20;
-      document.getElementById('otherSizeInput').value = t.otherSize || 16;
-      document.getElementById('bgColorSelect').value = t.bgColor || 'light';
-    } else {
-      // default
-      document.getElementById('widthInput').value = 180;
-      document.getElementById('heightInput').value = 180;
-      document.getElementById('paddingInput').value = 18;
-      document.getElementById('serialSizeInput').value = 20;
-      document.getElementById('otherSizeInput').value = 16;
-      document.getElementById('bgColorSelect').value = 'light';
-    }
-  } catch {
-    // fallback
-    document.getElementById('widthInput').value = 180;
-    document.getElementById('heightInput').value = 180;
-    document.getElementById('paddingInput').value = 18;
-    document.getElementById('serialSizeInput').value = 20;
-    document.getElementById('otherSizeInput').value = 16;
-    document.getElementById('bgColorSelect').value = 'light';
+const PRESETS = {
+  small:  [38,  20],
+  medium: [50,  25],
+  large:  [60,  30],
+  rack:   [100, 40]
+};
+
+const STATUS_MAP = {
+  active:      { label:'ใช้งาน',    cls:'sb-active',  dotColor:'#10b981', badgeBg:'#10b981', badgeText:'#fff' },
+  maintenance: { label:'ซ่อมบำรุง', cls:'sb-maint',   dotColor:'#f59e0b', badgeBg:'#f59e0b', badgeText:'#000' },
+  repair:      { label:'ส่งซ่อม',   cls:'sb-repair',  dotColor:'#ef4444', badgeBg:'#ef4444', badgeText:'#fff' },
+  storage:     { label:'ในคลัง',    cls:'sb-storage', dotColor:'#06b6d4', badgeBg:'#06b6d4', badgeText:'#000' }
+};
+
+let allAssets     = [];
+let filteredRows  = [];
+let selectedItems = new Set();
+let currentMode   = 'label';
+let statusFilter  = 'all';
+
+/* ══════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════ */
+function g(id) { return document.getElementById(id); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function getNameFor(serial){ const a=allAssets.find(x=>x.serial===serial); return a?a.name:''; }
+function getStatusFor(serial){ const a=allAssets.find(x=>x.serial===serial); return a?a.status:'active'; }
+function mmToPx(mm,sc=1){ return (mm/MM2IN)*SCREEN_DPI*sc; }
+
+function toast(msg, type='ok'){
+  const el=g('toast');
+  el.textContent=msg;
+  el.style.borderColor=type==='ok'?'rgba(16,185,129,.4)':type==='err'?'rgba(239,68,68,.4)':'var(--border-hi)';
+  el.style.color=type==='ok'?'var(--green)':type==='err'?'var(--red)':'var(--text)';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+function isLightColor(hex){
+  const r=parseInt(hex.slice(1,3),16),g2=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return (r*299+g2*587+b*114)/1000>128;
+}
+
+function getLabelBgColor(){ return g('bgColor').value||'#ffffff'; }
+function getShowBadge(){ return g('toggleBadge').classList.contains('on'); }
+function bcDataFor(serial){
+  if(!serial) return 'PREVIEW001';
+  const p=serial.split('-');
+  return p.length>=2?p.slice(-2).join('-'):serial;
+}
+
+/* ══════════════════════════════════════════════════════
+   ASSET LOADING
+══════════════════════════════════════════════════════ */
+async function refreshAssets(){
+  g('assetBody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);">⏳ กำลังโหลด...</td></tr>';
+  try{
+    let res=await fetch('/api/assets');
+    if(!res.ok) res=await fetch('/api/public/assets');
+    if(res.ok){
+      const data=await res.json();
+      allAssets=(data.assets||data||[]).map(a=>({
+        serial: a.serial||a.serialNumber||'',
+        name:   a.name||a.assetName||'',
+        status: a.status||'active'
+      }));
+    } else throw new Error();
+  } catch(e){
+    allAssets=[
+      {serial:'SN-PCB001-21062025-0001',name:'อุปกรณ์ควบคุมฟาร์ม A',status:'active'},
+      {serial:'SN-PCB001-21062025-0002',name:'อุปกรณ์ควบคุมฟาร์ม B',status:'active'},
+      {serial:'SN-SENS-21062025-0001',  name:'เซนเซอร์อุณหภูมิ',     status:'active'},
+      {serial:'SN-SENS-21062025-0002',  name:'เซนเซอร์ความชื้น',     status:'maintenance'},
+      {serial:'SN-SENS-21062025-0003',  name:'เซนเซอร์ pH',           status:'repair'},
+      {serial:'SN-GATE-21062025-0001',  name:'Gateway IoT หลัก',      status:'active'},
+      {serial:'SN-CAM-21062025-0001',   name:'กล้องตรวจสอบไข่',       status:'active'},
+      {serial:'SN-CTRL-21062025-0001',  name:'ตัวควบคุม Relay 8CH',   status:'storage'},
+      {serial:'SN-PSU-21062025-0001',   name:'Power Supply 24V/10A',  status:'active'},
+      {serial:'SN-HMI-21062025-0001',   name:'หน้าจอ HMI 7"',         status:'storage'},
+    ];
+    toast('⚠️ ใช้ข้อมูลตัวอย่าง (API ไม่พร้อม)','warn');
   }
+  g('totalCount').textContent=allAssets.length+' ทั้งหมด';
+  applyFilters();
 }
 
-// ── บันทึก template ──
-function saveTemplate() {
-  const w = parseInt(document.getElementById('widthInput').value) || 180;
-  const h = parseInt(document.getElementById('heightInput').value) || 180;
-  const p = parseInt(document.getElementById('paddingInput').value) || 18;
-  const s = parseInt(document.getElementById('serialSizeInput').value) || 20;
-  const o = parseInt(document.getElementById('otherSizeInput').value) || 16;
-  const bg = document.getElementById('bgColorSelect').value;
-  const template = { width: w, height: h, padding: p, serialSize: s, otherSize: o, bgColor: bg };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(template));
-  alert('✅ เซฟ Template เรียบร้อย');
+function applyFilters(){
+  const q=(g('searchInput').value||'').toLowerCase().trim();
+  filteredRows=allAssets.filter(a=>{
+    const matchStatus=statusFilter==='all'||a.status===statusFilter;
+    const matchQ=!q||(a.serial.toLowerCase().includes(q)||a.name.toLowerCase().includes(q));
+    return matchStatus&&matchQ;
+  });
+  renderTable();
 }
 
-// ── เรียกเมื่อค่ามีการเปลี่ยนแปลง ──
-function onSizeChange() {
-  updatePreview();
+function filterTable(){ applyFilters(); }
+
+function setStatusFilter(status, btn){
+  statusFilter=status;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.dataset.active='false');
+  btn.dataset.active='true';
+  applyFilters();
 }
 
-// ── ดึงค่า ──
-function getSize() {
-  const w = parseInt(document.getElementById('widthInput').value) || 180;
-  const h = parseInt(document.getElementById('heightInput').value) || 180;
-  const p = parseInt(document.getElementById('paddingInput').value) || 18;
-  const s = parseInt(document.getElementById('serialSizeInput').value) || 20;
-  const o = parseInt(document.getElementById('otherSizeInput').value) || 16;
-  const bg = document.getElementById('bgColorSelect').value;
-  return { w, h, p, s, o, bg };
-}
-
-// ── อัปเดต Preview ──
-function updatePreview() {
-  const { w, h, p, s, o, bg } = getSize();
-  const img = document.getElementById('qrImg');
-  img.style.width = w + 'px';
-  img.style.height = h + 'px';
-
-  // ปรับ padding ของกรอบ
-  const display = document.getElementById('qrDisplay');
-  display.style.padding = p + 'px';
-
-  // ปรับขนาดตัวหนังสือ
-  document.querySelector('.serial-value').style.fontSize = s + 'px';
-  document.querySelector('.part-value').style.fontSize = o + 'px';
-  document.querySelector('.name-value').style.fontSize = o + 'px';
-
-  // ปรับสีพื้นหลังและเส้นขอบ
-  if (bg === 'dark') {
-    display.classList.add('dark');
-    display.style.borderColor = '#ffffff';
-    // ปรับสีเส้นขอบของรูป QR ให้เป็นขาว
-    const qrBorder = document.querySelector('.qr-image img');
-    if (qrBorder) qrBorder.style.borderColor = '#ffffff';
-  } else {
-    display.classList.remove('dark');
-    display.style.borderColor = '#d1d5db';
-    const qrBorder = document.querySelector('.qr-image img');
-    if (qrBorder) qrBorder.style.borderColor = '#f1f5f9';
-  }
-}
-
-// ── โหลด QR ──
-async function loadQR() {
-  const serial = new URLSearchParams(window.location.search).get('serial') || '';
-  currentSerial = serial;
-  if (!serial) {
-    document.getElementById('errorMsg').textContent = '⚠️ ไม่พบ Serial Number';
+function renderTable(){
+  const tbody=g('assetBody');
+  if(!filteredRows.length){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);">ไม่พบข้อมูล</td></tr>';
+    g('tableInfo').textContent='0 รายการ';
     return;
   }
-  document.getElementById('dispSerial').textContent = serial;
-  document.getElementById('traceLink').href = `/trace.html?serial=${encodeURIComponent(serial)}`;
-
-  try {
-    const res = await fetch(`/api/qrcode/${encodeURIComponent(serial)}`);
-    if (!res.ok) {
-      if (res.status === 401) {
-        // fallback public
-        const pub = await fetch(`/api/public/asset/${encodeURIComponent(serial)}`);
-        const d = await pub.json();
-        if (d.qr) {
-          document.getElementById('qrImg').src = d.qr;
-          document.getElementById('dispPart').textContent = d.partNumber || '-';
-          document.getElementById('dispName').textContent = d.name || '-';
-          assetInfo = d;
-          updatePreview();
-        }
-        return;
-      }
-      throw new Error('not ok');
-    }
-    const data = await res.json();
-    if (data.qrImage) {
-      document.getElementById('qrImg').src = data.qrImage;
-    }
-    const a = data.asset || {};
-    document.getElementById('dispPart').textContent = a.partNumber || '-';
-    document.getElementById('dispName').textContent = a.name || '-';
-    assetInfo = a;
-    updatePreview();
-  } catch (e) {
-    document.getElementById('errorMsg').textContent = '⚠️ โหลดข้อมูลไม่สำเร็จ';
-    console.error(e);
-  }
+  tbody.innerHTML=filteredRows.map(a=>{
+    const st=STATUS_MAP[a.status]||STATUS_MAP.active;
+    return `<tr class="${selectedItems.has(a.serial)?'selected':''}" onclick="toggleRow('${esc(a.serial)}')">
+      <td><input type="checkbox" ${selectedItems.has(a.serial)?'checked':''} onchange="toggleRow('${esc(a.serial)}');event.stopPropagation()" onclick="event.stopPropagation()"></td>
+      <td class="sn-mono">${esc(a.serial)}</td>
+      <td class="name-col" title="${esc(a.name)}">${esc(a.name)}</td>
+      <td><span class="status-badge ${st.cls}"><span class="status-dot" style="background:${st.dotColor}"></span>${st.label}</span></td>
+    </tr>`;
+  }).join('');
+  g('tableInfo').textContent=filteredRows.length+' รายการ';
+  const cbAll=g('cbAll');
+  cbAll.checked=filteredRows.length>0&&filteredRows.every(a=>selectedItems.has(a.serial));
+  cbAll.indeterminate=!cbAll.checked&&filteredRows.some(a=>selectedItems.has(a.serial));
 }
 
-// ── ดาวน์โหลด PNG ──
-async function downloadQR() {
-  const el = document.getElementById('qrDisplay');
-  try {
-    const canvas = await html2canvas(el, {
-      backgroundColor: '#ffffff',
-      scale: 2,
-      useCORS: true
+function toggleRow(serial){
+  selectedItems.has(serial)?selectedItems.delete(serial):selectedItems.add(serial);
+  renderTable(); renderChips(); updateSelCount(); renderActive();
+}
+function toggleAll(cb){
+  filteredRows.forEach(a=>cb.checked?selectedItems.add(a.serial):selectedItems.delete(a.serial));
+  renderTable(); renderChips(); updateSelCount(); renderActive();
+}
+function selectAllFiltered(){
+  filteredRows.forEach(a=>selectedItems.add(a.serial));
+  renderTable(); renderChips(); updateSelCount(); renderActive();
+}
+function deselect(serial){
+  selectedItems.delete(serial);
+  renderTable(); renderChips(); updateSelCount(); renderActive();
+}
+function updateSelCount(){
+  g('selCount').textContent=selectedItems.size+' รายการ';
+}
+function renderChips(){
+  const wrap=g('selectedChips');
+  if(!selectedItems.size){ wrap.innerHTML='<span class="chips-empty">ยังไม่ได้เลือกอุปกรณ์</span>'; return; }
+  wrap.innerHTML=[...selectedItems].map(s=>
+    `<span class="chip">${esc(s)}<button onclick="deselect('${esc(s)}')" title="ยกเลิก">×</button></span>`
+  ).join('');
+}
+
+/* ══════════════════════════════════════════════════════
+   MODE SWITCHING
+══════════════════════════════════════════════════════ */
+function setMode(mode){
+  currentMode=mode;
+  g('tabLabel').classList.toggle('active',mode==='label');
+  g('tabA4').classList.toggle('active',mode==='a4');
+  g('a4LayoutSection').style.display=mode==='a4'?'':'none';
+  g('labelPreviewArea').style.display=mode==='label'?'flex':'none';
+  g('a4PreviewArea').style.display=mode==='a4'?'flex':'none';
+  renderActive();
+}
+
+function renderActive(){
+  if(currentMode==='label') renderLabel();
+  else renderA4();
+}
+
+/* ══════════════════════════════════════════════════════
+   LABEL SETTINGS
+══════════════════════════════════════════════════════ */
+function getLabelSettings(){
+  return {
+    w:      parseFloat(g('lW').value)||50,
+    h:      parseFloat(g('lH').value)||25,
+    margin: parseFloat(g('lMargin').value)||2,
+  };
+}
+
+/* ══════════════════════════════════════════════════════
+   LABEL RENDER  (Isolation Design: barcode & text separated)
+══════════════════════════════════════════════════════ */
+function renderLabel(){
+  const {w,h,margin}=getLabelSettings();
+  const bgHex=getLabelBgColor();
+  const isLight=isLightColor(bgHex);
+  const textColor=isLight?'#0f172a':'#f1f5f9';
+  const textColorDim=isLight?'#475569':'#94a3b8';
+  const bcFg=isLight?'#000000':'#ffffff';
+  const bcBg=isLight?bgHex:'#ffffff'; // white patch for dark bg
+  const showBadge=getShowBadge();
+
+  const sc=Math.min(3.4,480/mmToPx(w));
+  const pxW=Math.round(mmToPx(w,sc));
+  const pxH=Math.round(mmToPx(h,sc));
+  const mPx=mmToPx(margin,sc);
+
+  // ── Vertical partitioning: barcode=60%, text=40% (badge uses 8px from text if shown)
+  const innerH=pxH-mPx*2;
+  const badgeH=showBadge?12:0;
+  const BC_RATIO=0.60;
+  const bcZoneH=Math.round((innerH-badgeH)*BC_RATIO);
+  const txtZoneH=innerH-bcZoneH-1-badgeH;
+
+  // ── Barcode modules calculation (independent of text)
+  const firstSerial=selectedItems.size>0?[...selectedItems][0]:null;
+  const bcData=bcDataFor(firstSerial);
+  const estMods=bcData.length*11+35;
+  const innerW=pxW-mPx*2;
+  const quietZoneMm=Math.max(3,Math.min(6,(w*0.05)));
+  const quietPx=Math.round(mmToPx(quietZoneMm,sc));
+  const availBcW=innerW-quietPx*2;
+  const bwPx=Math.max(1,Math.floor(availBcW/estMods));
+  const barWidthMm=(bwPx/(SCREEN_DPI*sc))*MM2IN;
+
+  const lEl=g('labelEl');
+  lEl.style.cssText=`width:${pxW}px;height:${pxH}px;border-radius:4px;overflow:hidden;display:flex;flex-direction:column;background:${bgHex};`;
+
+  // barcode zone
+  const bcZone=lEl.querySelector('.bc-zone');
+  bcZone.style.cssText=`height:${bcZoneH+mPx}px;min-height:${bcZoneH+mPx}px;display:flex;justify-content:center;align-items:flex-end;background:${isLight?bgHex:'#ffffff'};padding:${Math.round(mPx*0.4)}px ${Math.round(mPx)}px 0;`;
+
+  // separator
+  const sep=lEl.querySelector('.sep');
+  sep.style.cssText=`height:1px;background:${isLight?'rgba(0,0,0,.12)':'rgba(255,255,255,.2)'};flex-shrink:0;`;
+
+  // text zone
+  const txtZone=lEl.querySelector('.txt-zone');
+  txtZone.style.cssText=`height:${txtZoneH}px;min-height:${txtZoneH}px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bgHex};padding:0 ${Math.round(mPx*0.5)}px;gap:${Math.max(1,Math.round(txtZoneH*0.06))}px;`;
+
+  // Text sizes (INDEPENDENT from barcode dimensions)
+  const serialPx=Math.max(8,Math.min(14,Math.round(txtZoneH*0.46)));
+  const namePx  =Math.max(7,Math.min(12,Math.round(txtZoneH*0.34)));
+
+  const sSerialEl=g('sSerial');
+  sSerialEl.style.cssText=`font-size:${serialPx}px;color:${textColor};font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.8px;line-height:1.2;text-align:center;white-space:nowrap;`;
+  sSerialEl.textContent=firstSerial||'SN-0000001';
+
+  const sNameEl=g('sName');
+  sNameEl.style.cssText=`font-size:${namePx}px;color:${textColorDim};font-family:'Sarabun',sans-serif;font-weight:400;line-height:1.2;text-align:center;white-space:nowrap;max-width:96%;overflow:hidden;text-overflow:ellipsis;`;
+  sNameEl.textContent=getNameFor(firstSerial)||'ชื่ออุปกรณ์';
+
+  // status badge on label
+  let badgeEl=lEl.querySelector('.status-badge-label');
+  if(showBadge&&firstSerial){
+    const st=STATUS_MAP[getStatusFor(firstSerial)]||STATUS_MAP.active;
+    if(!badgeEl){
+      badgeEl=document.createElement('div');
+      badgeEl.className='status-badge-label';
+      lEl.appendChild(badgeEl);
+    }
+    badgeEl.style.cssText=`background:${st.badgeBg};color:${st.badgeText};font-size:7px;font-weight:700;padding:1px 5px;border-radius:0 0 4px 4px;width:100%;text-align:center;letter-spacing:.5px;flex-shrink:0;`;
+    badgeEl.textContent=st.label.toUpperCase();
+  } else {
+    if(badgeEl) badgeEl.remove();
+  }
+
+  // render barcode
+  try{
+    JsBarcode('#bcSvg',bcData,{
+      format:'CODE128',
+      width:bwPx,
+      height:Math.round(bcZoneH*0.75),
+      displayValue:false,
+      background:isLight?bgHex:'#ffffff',
+      lineColor:bcFg,
+      marginLeft:quietPx,
+      marginRight:quietPx,
+      marginTop:Math.round(bcZoneH*0.08),
+      marginBottom:Math.round(bcZoneH*0.05),
     });
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = `QR-${currentSerial}.png`;
-    link.click();
-  } catch (e) {
-    alert('ไม่สามารถดาวน์โหลดได้');
+  } catch(e){console.error('JsBarcode:',e);}
+
+  // hint
+  const hEl=g('hintEl');
+  if(barWidthMm<0.17){
+    hEl.className='hint err';hEl.textContent=`❌ X-dim ${barWidthMm.toFixed(2)} mm ต่ำกว่ามาตรฐาน — เพิ่มความกว้าง Label`;
+  } else if(barWidthMm<0.20){
+    hEl.className='hint warn';hEl.textContent=`⚠️ X-dim ${barWidthMm.toFixed(2)} mm (แนะนำ ≥0.20) — อาจสแกนยากบางอุปกรณ์`;
+  } else {
+    hEl.className='hint ok';hEl.textContent=`✅ ${w}×${h} mm | X-dim ≈ ${barWidthMm.toFixed(2)} mm | Quiet zone ${quietZoneMm.toFixed(1)} mm`;
   }
+  if(!isLight){
+    hEl.className='hint warn';
+    hEl.textContent+=' | 🎨 Dark bg: White patch isolating barcode';
+  }
+
+  // stats
+  g('labelStats').innerHTML=`
+    <div class="stat-row"><span class="stat-key">ขนาดจริง</span><span class="stat-val">${w} × ${h} mm</span></div>
+    <div class="stat-row"><span class="stat-key">ขอบ Label</span><span class="stat-val">${margin} mm</span></div>
+    <div class="stat-row"><span class="stat-key">X-dimension</span><span class="stat-val">${barWidthMm.toFixed(3)} mm</span></div>
+    <div class="stat-row"><span class="stat-key">โหมดสี</span><span class="stat-val">${isLight?'Light':'Dark (White Patch)'}</span></div>
+  `;
+
+  g('traceLink').href=firstSerial?`/trace.html?serial=${encodeURIComponent(firstSerial)}`:'#';
+  updateInvertHint();
 }
 
-// ── เริ่มต้น ──
-window.onload = function() {
-  loadTemplate();
-  loadQR();
-};
+/* ══════════════════════════════════════════════════════
+   A4 RENDER — Physical Alignment Fix
+   Formula:  x = pageMargin + col*(labelW+gapX)
+             y = pageMargin + row*(labelH+gapY)
+   This keeps every label at its exact grid center with correct
+   margin deduction and gap spacing — no leftward drift.
+══════════════════════════════════════════════════════ */
+function getA4Settings(){
+  return {
+    lw:   parseFloat(g('lW').value)||50,
+    lh:   parseFloat(g('lH').value)||25,
+    lm:   parseFloat(g('lMargin').value)||2,
+    pm:   parseFloat(g('a4PM').value)||10,
+    gapX: parseFloat(g('a4GX').value)||3,
+    gapY: parseFloat(g('a4GY').value)||3,
+  };
+}
+
+function renderA4(){
+  const {lw,lh,lm,pm,gapX,gapY}=getA4Settings();
+  const bgHex=getLabelBgColor();
+  const isLight=isLightColor(bgHex);
+  const showBadge=getShowBadge();
+
+  // Grid calculation
+  const innerW=A4W_MM-pm*2;
+  const innerH=A4H_MM-pm*2;
+  const cols=Math.max(1,Math.floor((innerW+gapX)/(lw+gapX)));
+  const rows=Math.max(1,Math.floor((innerH+gapY)/(lh+gapY)));
+  const perPage=cols*rows;
+
+  const items=selectedItems.size>0
+    ?[...selectedItems].map(s=>({serial:s,name:getNameFor(s),status:getStatusFor(s)}))
+    :[{serial:'SN-PREVIEW-0001',name:'Preview Label',status:'active'}];
+
+  const pages=Math.ceil(items.length/perPage);
+  g('a4InfoEl').innerHTML=`จัด <strong>${cols} คอลัมน์ × ${rows} แถว = ${perPage} ดวง/หน้า</strong> | เลือก ${items.length} ดวง → <strong>${pages} หน้า A4</strong>`;
+
+  const SC=SCALE_PREV;
+  const sheetEl=g('a4Sheet');
+  sheetEl.style.cssText=`width:${A4W_MM*SC}px;height:${A4H_MM*SC}px;background:white;position:relative;overflow:hidden;`;
+  sheetEl.innerHTML='';
+
+  // Page margin guide lines (visual only)
+  const guide=document.createElement('div');
+  guide.style.cssText=`position:absolute;left:${pm*SC}px;top:${pm*SC}px;width:${innerW*SC}px;height:${innerH*SC}px;border:1px dashed rgba(59,130,246,.25);pointer-events:none;box-sizing:border-box;`;
+  sheetEl.appendChild(guide);
+
+  const pageItems=items.slice(0,perPage);
+  pageItems.forEach((item,i)=>{
+    const col=i%cols;
+    const row=Math.floor(i/cols);
+
+    // ── CORRECTED POSITION: exact grid alignment from page margin
+    const x=pm+col*(lw+gapX);
+    const y=pm+row*(lh+gapY);
+
+    const cellW=lw*SC;
+    const cellH=lh*SC;
+    const mPx  =lm*SC;
+
+    const cell=document.createElement('div');
+    cell.style.cssText=`
+      position:absolute;
+      left:${x*SC}px;
+      top:${y*SC}px;
+      width:${cellW}px;
+      height:${cellH}px;
+      background:${bgHex};
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      box-shadow:0 0 0 0.5px rgba(0,0,0,.2);
+    `;
+
+    const textColor=isLight?'#0f172a':'#f1f5f9';
+    const textColorDim=isLight?'#475569':'#94a3b8';
+    const bcBgLocal=isLight?bgHex:'#ffffff';
+
+    // Vertical layout partitioning
+    const badgeH=showBadge?8:0;
+    const innerCellH=cellH-mPx*2-badgeH;
+    const bcZoneH=Math.round(innerCellH*0.60);
+    const txtZoneH=innerCellH-bcZoneH-1;
+
+    // Barcode: independent width from text
+    const bcData=bcDataFor(item.serial);
+    const estMods=bcData.length*11+35;
+    const innerCellW=cellW-mPx*2;
+    const quietZoneMm=Math.max(2,lw*0.05);
+    const quietPx=Math.round((quietZoneMm/MM2IN)*SCREEN_DPI*SC);
+    const availBcW=innerCellW-quietPx*2;
+    const bwPx=Math.max(1,Math.floor(availBcW/estMods));
+
+    const svgId=`bc_a4_${i}`;
+    const serialPx=Math.max(4,Math.round(txtZoneH*0.42));
+    const namePx  =Math.max(4,Math.round(txtZoneH*0.32));
+
+    const st=STATUS_MAP[item.status]||STATUS_MAP.active;
+
+    cell.innerHTML=`
+      <div style="flex:0 0 ${bcZoneH+mPx}px;display:flex;justify-content:center;align-items:flex-end;background:${bcBgLocal};padding:${Math.round(mPx*0.4)}px ${Math.round(mPx)}px 0;">
+        <svg id="${svgId}"></svg>
+      </div>
+      <div style="height:1px;background:${isLight?'rgba(0,0,0,.1)':'rgba(255,255,255,.2)'};flex-shrink:0;"></div>
+      <div style="flex:0 0 ${txtZoneH}px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;padding:0 2px;gap:${Math.max(1,Math.round(txtZoneH*0.06))}px;background:${bgHex};">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:${serialPx}px;font-weight:600;color:${textColor};white-space:nowrap;letter-spacing:.4px;overflow:hidden;max-width:96%;text-overflow:ellipsis;">${esc(item.serial)}</div>
+        <div style="font-family:'Sarabun',sans-serif;font-size:${namePx}px;color:${textColorDim};white-space:nowrap;max-width:96%;overflow:hidden;text-overflow:ellipsis;">${esc(item.name||'')}</div>
+      </div>
+      ${showBadge?`<div style="flex:0 0 ${badgeH}px;background:${st.badgeBg};color:${st.badgeText};font-family:'Inter',sans-serif;font-size:6px;font-weight:700;text-align:center;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;text-transform:uppercase;">${esc(st.label)}</div>`:''}
+    `;
+    sheetEl.appendChild(cell);
+
+    setTimeout(()=>{
+      try{
+        JsBarcode(`#${svgId}`,bcData,{
+          format:'CODE128',
+          width:bwPx,
+          height:Math.round(bcZoneH*0.75),
+          displayValue:false,
+          background:bcBgLocal,
+          lineColor:isLight?'#000000':'#000000',
+          marginLeft:quietPx,
+          marginRight:quietPx,
+          marginTop:Math.round(bcZoneH*0.08),
+          marginBottom:Math.round(bcZoneH*0.05),
+        });
+      }catch(e){console.error(e);}
+    },0);
+  });
+
+  g('btnA4Pdf').disabled   =selectedItems.size===0;
+  g('btnA4Print').disabled =selectedItems.size===0;
+}
+
+/* ══════════════════════════════════════════════════════
+   PRESET HANDLERS
+══════════════════════════════════════════════════════ */
+function applyPreset(id){
+  document.querySelectorAll('[data-pid]').forEach(b=>b.classList.remove('active'));
+  const btn=document.querySelector(`[data-pid="${id}"]`);
+  if(btn) btn.classList.add('active');
+  if(PRESETS[id]){
+    g('lW').value=PRESETS[id][0];
+    g('lH').value=PRESETS[id][1];
+  }
+  renderActive();
+}
+function markCustom(){
+  document.querySelectorAll('[data-pid]').forEach(b=>b.classList.remove('active'));
+  const c=document.querySelector('[data-pid="rack"]');
+  // no active = custom
+}
+
+/* ══════════════════════════════════════════════════════
+   COLOR CONTROLS
+══════════════════════════════════════════════════════ */
+function updateColorDisplay(){
+  const hex=getLabelBgColor();
+  g('bgColorTxt').textContent=hex;
+  document.querySelectorAll('.color-dot').forEach(d=>{
+    d.classList.toggle('active',d.title&&hex.toLowerCase()===d.style.background.replace(/\s/g,''));
+  });
+  updateInvertHint();
+}
+function updateInvertHint(){
+  const hex=getLabelBgColor();
+  const isLight=isLightColor(hex);
+  g('invertHint').textContent=isLight?'— บาร์โค้ดปกติ (dark on light)':'🔄 Dark bg: White patch + dark bars';
+  g('invertHint').style.color=isLight?'var(--text-3)':'var(--amber)';
+}
+function setColor(hex,dotEl){
+  g('bgColor').value=hex;
+  updateColorDisplay();
+  renderActive();
+}
+
+/* ══════════════════════════════════════════════════════
+   TEMPLATE SYSTEM (localStorage)
+══════════════════════════════════════════════════════ */
+const TMPL_KEY='ems_label_templates_v2';
+
+function loadTemplates(){
+  try{ return JSON.parse(localStorage.getItem(TMPL_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+function saveTemplates(arr){ localStorage.setItem(TMPL_KEY,JSON.stringify(arr)); }
+
+function getCurrentConfig(){
+  return {
+    mode:     currentMode,
+    lW:       g('lW').value,
+    lH:       g('lH').value,
+    lMargin:  g('lMargin').value,
+    a4PM:     g('a4PM').value,
+    a4GX:     g('a4GX').value,
+    a4GY:     g('a4GY').value,
+    bgColor:  getLabelBgColor(),
+    showBadge:getShowBadge(),
+  };
+}
+
+function applyConfig(cfg){
+  if(cfg.mode)    setMode(cfg.mode);
+  if(cfg.lW)      g('lW').value=cfg.lW;
+  if(cfg.lH)      g('lH').value=cfg.lH;
+  if(cfg.lMargin) g('lMargin').value=cfg.lMargin;
+  if(cfg.a4PM)    g('a4PM').value=cfg.a4PM;
+  if(cfg.a4GX)    g('a4GX').value=cfg.a4GX;
+  if(cfg.a4GY)    g('a4GY').value=cfg.a4GY;
+  if(cfg.bgColor){ g('bgColor').value=cfg.bgColor; updateColorDisplay(); }
+  if(cfg.showBadge!=null){
+    const t=g('toggleBadge');
+    cfg.showBadge?t.classList.add('on'):t.classList.remove('on');
+  }
+  renderActive();
+}
+
+function saveTemplate(){
+  const name=(g('tmplNameInput').value||'').trim();
+  if(!name){ toast('⚠️ กรุณาใส่ชื่อเทมเพลต','warn'); return; }
+  const templates=loadTemplates();
+  templates.unshift({ id:Date.now(), name, config:getCurrentConfig() });
+  saveTemplates(templates.slice(0,20));
+  g('tmplNameInput').value='';
+  renderTemplateList();
+  toast('✅ บันทึกเทมเพลต: '+name);
+}
+
+function loadTemplate(id){
+  const templates=loadTemplates();
+  const t=templates.find(x=>x.id===id);
+  if(!t) return;
+  applyConfig(t.config);
+  toast('📂 โหลดเทมเพลต: '+t.name);
+}
+
+function deleteTemplate(id){
+  const templates=loadTemplates().filter(x=>x.id!==id);
+  saveTemplates(templates);
+  renderTemplateList();
+  toast('🗑️ ลบเทมเพลตแล้ว');
+}
+
+function renderTemplateList(){
+  const templates=loadTemplates();
+  const wrap=g('tmplList');
+  if(!templates.length){
+    wrap.innerHTML='<div class="tmpl-empty">ยังไม่มีเทมเพลต</div>';
+    return;
+  }
+  wrap.innerHTML=templates.map(t=>`
+    <div class="tmpl-item" onclick="loadTemplate(${t.id})">
+      <div>
+        <div class="tmpl-name">${esc(t.name)}</div>
+        <div class="tmpl-meta">${t.config.lW}×${t.config.lH} mm | ${t.config.mode==='a4'?'A4 Sheet':'Label'}</div>
+      </div>
+      <button class="tmpl-del" onclick="event.stopPropagation();deleteTemplate(${t.id})" title="ลบ">✕</button>
+    </div>
+  `).join('');
+}
+
+/* ══════════════════════════════════════════════════════
+   PDF / PRINT ACTIONS
+══════════════════════════════════════════════════════ */
+function downloadLabelPdf(){
+  const {w,h,margin}=getLabelSettings();
+  const items=[...selectedItems];
+  if(!items.length){ toast('⚠️ เลือกอุปกรณ์ก่อน','warn'); return; }
+  const params=new URLSearchParams({
+    serial:items[0],name:getNameFor(items[0])||'',
+    width:w,height:h,margin,
+    bgColor:getLabelBgColor(),
+    showBadge:getShowBadge()?1:0,
+    status:getStatusFor(items[0])
+  });
+  window.open('/api/label/pdf?'+params,'_blank');
+}
+
+function downloadA4Pdf(){
+  if(!selectedItems.size){ toast('⚠️ เลือกอุปกรณ์ก่อน','warn'); return; }
+  const {lw,lh,lm,pm,gapX,gapY}=getA4Settings();
+  const items=[...selectedItems].map(s=>({serial:s,name:getNameFor(s)||'',status:getStatusFor(s)}));
+  const payload={
+    items,labelW:lw,labelH:lh,labelMargin:lm,
+    pageMarginTop:pm,pageMarginBottom:pm,pageMarginLeft:pm,pageMarginRight:pm,
+    gapX,gapY,bgColor:getLabelBgColor(),showBadge:getShowBadge()
+  };
+  fetch('/api/label/a4pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  .then(r=>r.blob())
+  .then(blob=>{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='labels_a4.pdf';a.click();
+    URL.revokeObjectURL(url);
+  })
+  .catch(()=>toast('❌ เกิดข้อผิดพลาดในการสร้าง PDF','err'));
+}
+
+function printA4(){
+  const printArea=g('printArea');
+  const sheet=g('a4Sheet');
+  printArea.style.display='flex';
+  printArea.innerHTML=sheet.outerHTML;
+  // Scale from preview px back to 210×297mm for print
+  const s=printArea.querySelector('#a4Sheet')||printArea.firstChild;
+  if(s){
+    const factor=1/SCALE_PREV;
+    s.style.transform=`scale(${factor})`;
+    s.style.transformOrigin='top left';
+  }
+  window.print();
+  setTimeout(()=>{ printArea.style.display='none'; printArea.innerHTML=''; },1200);
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+async function init(){
+  // Init UI state
+  g('a4LayoutSection').style.display='none';
+  g('a4PreviewArea').style.display='none';
+  updateColorDisplay();
+  renderTemplateList();
+
+  // Load assets
+  await refreshAssets();
+
+  // URL param: auto-select serial
+  const urlSerial=new URLSearchParams(location.search).get('serial');
+  if(urlSerial){
+    selectedItems.add(urlSerial);
+    renderChips(); updateSelCount(); renderTable();
+  }
+
+  renderLabel();
+}
+window.onload=init;
 </script>
 </body>
 </html>

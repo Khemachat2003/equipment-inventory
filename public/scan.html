@@ -101,6 +101,7 @@ let scanner=null,cameraOn=false,debounce=null;
    1. URL เต็ม: https://...?serial=30-F-17062026-0001
    2. Path: /a/30-F-17062026-0001
    3. Serial ธรรมดา: 30-F-17062026-0001
+   4. (ใหม่) Barcode plain text: 30-F-17062026-0001 (เหมือนข้อ 3)
 ════════════════════════════════════════════ */
 function extractSerial(raw){
   raw=(raw||"").trim();
@@ -109,14 +110,11 @@ function extractSerial(raw){
   /* กรณี URL */
   try{
     const url=new URL(raw);
-    /* ?serial=xxx */
     const qs=url.searchParams.get("serial");
     if(qs) return decodeURIComponent(qs);
-    /* path /a/xxx หรือ /asset.html → ดึงส่วนท้าย */
     const parts=url.pathname.split("/").filter(Boolean);
     if(parts.length>0){
       const last=parts[parts.length-1];
-      /* ถ้าไม่ใช่ชื่อไฟล์ html → น่าจะเป็น serial */
       if(!last.endsWith(".html")) return decodeURIComponent(last);
     }
   }catch(e){}
@@ -126,7 +124,7 @@ function extractSerial(raw){
     return decodeURIComponent(raw.replace("/a/",""));
   }
 
-  /* กรณีธรรมดา → คืนเดิม */
+  /* กรณีธรรมดา → คืนเดิม (ใช้ได้กับ Barcode plain text) */
   return raw;
 }
 
@@ -160,7 +158,6 @@ function submitManual(){
 /* ── HANDLE SCAN ── */
 function handleScan(raw){
   const serial=extractSerial(raw);
-
   if(!serial){showToast("⚠️ ไม่พบ Serial Number");return}
 
   /* แสดง preview */
@@ -187,9 +184,23 @@ function startCamera(){
   Html5Qrcode.getCameras().then(devices=>{
     if(!devices||!devices.length){showToast("⚠️ ไม่พบกล้อง");stopCamera();return}
     const camId=devices.length>1?devices[devices.length-1].id:devices[0].id;
-    scanner.start(camId,{fps:10,qrbox:{width:220,height:220}},(decoded)=>{
-      handleScan(decoded);stopCamera();
-    },null).catch(err=>{showToast("⚠️ เปิดกล้องไม่ได้");stopCamera()});
+    // ✅ ตั้งค่ารองรับ Barcode และ QR
+    const config = {
+      fps: 10,
+      qrbox: { width: 220, height: 220 },
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.UPC_A,
+        // เพิ่มเพิ่มถ้าต้องการ
+      ]
+    };
+    scanner.start(camId, config, (decoded)=>{
+      handleScan(decoded);
+      stopCamera(); // ปิดกล้องอัตโนมัติหลังจากสแกน
+    }, null).catch(err=>{showToast("⚠️ เปิดกล้องไม่ได้");stopCamera()});
     cameraOn=true;
   }).catch(()=>{showToast("⚠️ ขอสิทธิ์กล้องไม่สำเร็จ");stopCamera()});
 }

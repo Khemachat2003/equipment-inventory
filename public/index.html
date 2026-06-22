@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Equipment Management System</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"crossorigin="anonymous"></script>
 <style>
   /* Dashboard Enhanced */
 .dash-grid {
@@ -626,7 +626,7 @@ tbody tr:last-child td{border-bottom:none}
    </div>
    <div class="fg">
     <!-- Part Number -->
-    <div class="ff"><label>Part Number *</label><input type="text" id="newPartNumber" placeholder="FAN30"></div>
+   <div class="ff"><label>Part Number *</label><input type="text" id="newPartNumber" placeholder="FAN30" oninput="generateSerial()"></div>
     <div class="ff"><label>ชื่ออุปกรณ์ (Part Name) *</label><input type="text" id="newPartName" placeholder="พัดลมระบายอากาศ"></div>
     <div class="ff"><label>หมวดหมู่</label><input type="text" id="newPartCategory" placeholder="อุปกรณ์"></div>
     <div class="ff"><label>หน่วย</label>
@@ -767,9 +767,8 @@ tbody tr:last-child td{border-bottom:none}
     <div class="ff"><label>จำนวนที่เพิ่ม *</label><input type="number" id="bulkQty" placeholder="10" min="1" max="200"></div>
     <div class="ff"><label>สถานะ</label>
      <select id="bulkStatus"><option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option></select>
-    </div>
-    <div class="ff"><label>ไซต์งาน</label><input type="text" id="bulkSite" placeholder="Office / ฟาร์ม"></div>
-    <div class="ff"><label>Location</label><input type="text" id="bulkLocation" placeholder="สถานที่เก็บ"></div>
+    <div class="ff"><label>ไซต์งาน (Site)</label><select id="bulkSite"><option value="บริษัท Intranin">🏢 บริษัท Intranin (คลังกลาง)</option></select></div>
+<div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="newAssetLocation" placeholder="เช่น ห้องเก็บอุปกรณ์ A"></div>
     <div class="ff"><label>ผู้รับผิดชอบ</label><input type="text" id="bulkUser" placeholder="ชื่อผู้ดูแล"></div>
     <div id="bulkPreview" style="grid-column:1/-1;background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;font-size:13px;color:var(--g600);display:none"></div>
    </div>
@@ -801,16 +800,20 @@ tbody tr:last-child td{border-bottom:none}
 // ── โหลด Part Catalog เพื่อตรวจสอบว่า Part มีอยู่แล้วหรือไม่ ──
 let partCatalogList = [];
 
+// ── โหลด Part Catalog และ Asset Data ──
 async function loadPartCatalogForSelect() {
+  if (!assetData || !assetData.length) {
+    await loadAssets();
+  }
   try {
     const res = await fetch('/api/part-catalog');
     partCatalogList = await res.json();
-    // คำนวณ Asset ID ล่าสุด
-    generateAssetId();
-    generateSerial();
   } catch(e) {
     partCatalogList = [];
   }
+  generateAssetId();
+  generateSerial();
+  await loadSiteDropdown(); // ✅ เพิ่มบรรทัดนี้
 }
 
 // ── สร้าง Asset ID อัตโนมัติ ──
@@ -838,44 +841,70 @@ function generateSerial() {
              String(now.getMonth() + 1).padStart(2, '0') +
              now.getFullYear();
   const prefix = `SN-${partNumber}-${ds}`;
-  // หา Serial ล่าสุดของ part นี้
-  const existing = (assetData || [])
-    .map(a => a.serialNumber || '')
-    .filter(s => s.startsWith(prefix));
+  
   let maxNum = 0;
-  existing.forEach(s => {
+  (assetData || []).forEach(a => {
+    const s = a.serialNumber || '';
     const parts = s.split('-');
-    const num = parseInt(parts[parts.length - 1]);
-    if (!isNaN(num) && num > maxNum) maxNum = num;
+    if (parts.length >= 3) {
+      const dStr = parts[parts.length - 2];
+      const runStr = parts[parts.length - 1];
+      if (dStr === ds) {
+        const num = parseInt(runStr);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    }
   });
   const nextNum = String(maxNum + 1).padStart(4, '0');
   document.getElementById('newAssetSerialAuto').value = `${prefix}-${nextNum}`;
 }
-
-// ── เมื่อเปลี่ยน Part Number ให้คำนวณ Serial ใหม่ ──
-document.addEventListener('DOMContentLoaded', function() {
-  const partInput = document.getElementById('newPartNumber');
-  if (partInput) {
-    partInput.addEventListener('input', generateSerial);
+async function loadSiteDropdown() {
+  try {
+    const res = await fetch('/api/farm-sites');
+    const sites = await res.json();
+    const sel = document.getElementById('newAssetSite');
+    // เก็บตัวเลือกคลังกลางไว้
+    sel.innerHTML = '<option value="บริษัท Intranin">🏢 บริษัท Intranin (คลังกลาง)</option>';
+    sites.forEach(s => {
+      if (s.siteName !== 'บริษัท Intranin') {
+        const opt = document.createElement('option');
+        opt.value = s.siteName;
+        opt.textContent = s.siteName;
+        sel.appendChild(opt);
+      }
+    });
+    // ตั้งค่าเริ่มต้น
+    sel.value = 'Intranin';
+  } catch(e) {
+    console.error('Load sites error:', e);
   }
-});
-
-// ── ฟังก์ชันหลัก: เพิ่ม Part + Asset ──
+}
+// ── เพิ่ม Part + Asset ──
 async function addAssetNewPart() {
   const partNumber = document.getElementById('newPartNumber').value.trim().toUpperCase();
   const partName = document.getElementById('newPartName').value.trim();
   const category = document.getElementById('newPartCategory').value.trim();
   const unit = document.getElementById('newPartUnit').value;
   const description = document.getElementById('newPartDescription').value.trim();
-  const assetId = document.getElementById('newAssetIdAuto').value;
-  const serialNumber = document.getElementById('newAssetSerialAuto').value;
+  let assetId = document.getElementById('newAssetIdAuto').value;
+  let serialNumber = document.getElementById('newAssetSerialAuto').value.trim();
 
   if (!partNumber || !partName) {
     alert('กรุณากรอก Part Number และชื่ออุปกรณ์');
     return;
   }
 
-  // ตรวจสอบว่า Part Number มีอยู่แล้วหรือไม่
+  // ✅ ถ้า Serial ยังไม่มี ให้สร้างใหม่
+  if (!serialNumber) {
+    generateSerial();
+    serialNumber = document.getElementById('newAssetSerialAuto').value.trim();
+  }
+  if (!serialNumber) {
+    alert('❌ ไม่สามารถสร้าง Serial Number ได้ กรุณาตรวจสอบ Part Number');
+    return;
+  }
+
+  // ตรวจสอบว่า Part มีอยู่แล้วหรือไม่
   const exists = partCatalogList.some(p => p.partNumber === partNumber);
   if (exists) {
     alert(`⚠️ Part Number "${partNumber}" มีอยู่แล้วในระบบ\nกรุณาใช้ "📦 เพิ่มหลายชิ้น" เพื่อเพิ่ม Asset ภายใต้ Part นี้`);
@@ -900,7 +929,7 @@ async function addAssetNewPart() {
     return;
   }
 
-  // Step 2: เพิ่ม Asset ลง Asset_List (ใช้ API เดียวกับ add-asset)
+  // Step 2: เพิ่ม Asset
   const body = {
     assetId: assetId,
     name: partName,
@@ -909,7 +938,7 @@ async function addAssetNewPart() {
     serialNumber: serialNumber,
     status: document.getElementById('newAssetStatus').value,
     location: document.getElementById('newAssetLocation').value.trim() || '-',
-    siteName: document.getElementById('newAssetSite').value.trim() || '-',
+    siteName: document.getElementById('newAssetSite').value,
     user: document.getElementById('newAssetUser').value.trim() || ''
   };
 
@@ -927,6 +956,7 @@ async function addAssetNewPart() {
     ['newPartNumber','newPartName','newPartCategory','newPartDescription','newAssetLocation','newAssetSite','newAssetUser'].forEach(id => {
       document.getElementById(id).value = '';
     });
+    document.getElementById('newAssetSerialAuto').value = '';
     // รีโหลดข้อมูล
     await loadAssets();
     await loadPartCatalog();
@@ -1001,20 +1031,25 @@ async function loadDashboard(){
 }
 function refreshDashboard(){loadDashboard();loadHistoryChart();loadDashboardExtended();}
 
-/* ── DASHBOARD EXTENDED STATS ── */
-async function loadDashboardExtended(){
-  try{
-    const res=await fetch("/api/dashboard-stats-extended");
-    const d=await res.json();
-    document.getElementById("totalFarms").textContent=d.totalFarms||0;
-    document.getElementById("totalFarmAssets").textContent=d.totalFarmAssets||0;
-    document.getElementById("totalStockAssets").textContent=d.totalStockAssets||0;
-    if(d.topFarms && d.topFarms.length>0){
-      document.getElementById("topFarmName").textContent=`${d.topFarms[0].name} (${d.topFarms[0].count})`;
+// ใน index.html แทนที่ฟังก์ชัน loadDashboardExtended()
+async function loadDashboardExtended() {
+  try {
+    const res = await fetch('/api/dashboard-asset');
+    const d = await res.json();
+    
+    document.getElementById('totalFarms').textContent = d.totalFarms || 0;
+    document.getElementById('totalFarmAssets').textContent = d.totalFarm || 0;
+    document.getElementById('totalStockAssets').textContent = d.totalStock || 0;
+    
+    if (d.topFarms && d.topFarms.length > 0) {
+      document.getElementById('topFarmName').textContent = 
+        `${d.topFarms[0].name} (${d.topFarms[0].count})`;
     } else {
-      document.getElementById("topFarmName").textContent="-";
+      document.getElementById('topFarmName').textContent = '-';
     }
-  }catch(e){}
+  } catch(e) {
+    console.error('Dashboard extended error:', e);
+  }
 }
 
 /* ── CHART ── */
@@ -1575,27 +1610,30 @@ function onBulkPartChange(pn){
   if(part){document.getElementById("bulkPartNumber").value=part.partNumber;document.getElementById("bulkPartName").value=part.partName;}
 }
 
+// ── ฟังก์ชัน Preview การ Add หลายชิ้น (Bulk) ──
 function previewBulkSerial(){
   const pn = (document.getElementById("bulkPartNumber").value || "").trim().toUpperCase();
   const qty = parseInt(document.getElementById("bulkQty").value) || 0;
   if (!pn || !qty) { alert("กรอก Part Number และจำนวนก่อน"); return; }
-
-  const existingSerials = (assetData || [])
-    .map(a => a.serialNumber || "")
-    .filter(s => s.startsWith(`SN-${pn}`));
-
-  let maxNum = 0;
-  existingSerials.forEach(s => {
-    const parts = s.split("-");
-    const num = parseInt(parts[parts.length - 1]);
-    if (!isNaN(num) && num > maxNum) maxNum = num;
-  });
 
   const now = new Date();
   const ds = String(now.getDate()).padStart(2, "0") +
              String(now.getMonth() + 1).padStart(2, "0") +
              now.getFullYear();
   const prefix = `SN-${pn}-${ds}`;
+
+  // หา running number ของวันที่นี้ (ไม่สน Part)
+  let maxNum = 0;
+  (assetData || []).forEach(a => {
+    const s = a.serialNumber || '';
+    const parts = s.split('-');
+    if (parts.length >= 3) {
+      if (parts[parts.length - 2] === ds) {
+        const num = parseInt(parts[parts.length - 1]);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    }
+  });
   
   const lines = [`Serial ที่จะสร้าง (${qty} ชิ้น):`];
   for (let i = 1; i <= Math.min(qty, 5); i++) {

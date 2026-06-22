@@ -14,7 +14,10 @@ const rateLimit = require("express-rate-limit");
 const NodeCache = require("node-cache");
 const { body, validationResult } = require("express-validator");
 const os = require("os");
-
+const svgToPDF = require('svg-to-pdfkit');
+const JsBarcode = require('jsbarcode');
+const { createCanvas } = require('canvas'); // optional ถ้าใช้ canvas
+const { execFile } = require('child_process');
 // -------------------- CONFIG --------------------
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const PORT = process.env.PORT || 3000;
@@ -30,7 +33,7 @@ const cache = new NodeCache({ stdTTL: CACHE_TTL, checkperiod: 60 });
 // -------------------- RATE LIMIT --------------------
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 200,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
@@ -122,13 +125,6 @@ function validate(req, res, next) {
   }
   next();
 }
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error("❌ Unhandled error:", err);
-  res.status(500).json({ error: "Internal server error", message: err.message });
-});
-
 // -------------------- GOOGLE SHEETS HELPERS --------------------
 let sheetsClient = null;
 async function getSheetsClient() {
@@ -1754,7 +1750,7 @@ app.post(
       } = req.body;
       const sheets = await getSheetsClient();
 
-      // ── สร้าง date string DDMMYYYY
+      // ── สร้าง date string DDMMYYYY ──
       const now = new Date();
       const dd = String(now.getDate()).padStart(2, "0");
       const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -1762,23 +1758,25 @@ app.post(
       const dateStr = `${dd}${mm}${yyyy}`;
       const prefix = `SN-${partNumber}-${dateStr}`;
 
-      // ── หา running number ล่าสุดของ prefix นี้
+      // ── หา running number ล่าสุดของวันนี้ (Global Daily) ──
       const assetRes = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: "Asset_List!A2:M",
       });
       const existingRows = assetRes.data.values || [];
-      const existingSerials = existingRows
-        .map((r) => r[4] || "")
-        .filter((s) => s.startsWith(prefix));
       let maxNum = 0;
-      existingSerials.forEach((s) => {
+      existingRows.forEach((r) => {
+        const s = r[4] || "";
         const parts = s.split("-");
-        const num = parseInt(parts[parts.length - 1]);
-        if (!isNaN(num) && num > maxNum) maxNum = num;
+        if (parts.length >= 3) {
+          if (parts[parts.length - 2] === dateStr) {
+            const num = parseInt(parts[parts.length - 1]);
+            if (!isNaN(num) && num > maxNum) maxNum = num;
+          }
+        }
       });
 
-      // ── สร้าง Asset ID running
+      // ── สร้าง Asset ID running ──
       const assetIdRes = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: "Asset_List!A2:A",
@@ -1874,12 +1872,68 @@ app.post(
     }
   }
 );
+app.get('/api/dashboard-asset', requireLogin, async (req, res) => {
+  try {
+    const sheets = await getSheetsClient();
+    const assetRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Asset_List!A2:M',
+    });
+    const assets = assetRes.data.values || [];
 
+    // ✅ กำหนดชื่อคลังกลาง (ตามที่คุณใช้)
+    const STOCK_SITE = 'Intranin';
+
+    let total = 0;
+    let totalStock = 0;
+    let totalFarm = 0;
+    const bySite = {};
+    const byStatus = {};
+    const farmCount = {};
+
+    assets.forEach(row => {
+      const site = row[7] || '-';
+      const status = row[5] || 'ไม่ระบุ';
+      
+      total++;
+
+      byStatus[status] = (byStatus[status] || 0) + 1;
+
+      // ✅ แยก Stock และ Farm
+      if (site === STOCK_SITE) {
+        totalStock++;
+        bySite[site] = (bySite[site] || 0) + 1;
+      } else if (site && site !== '-') {
+        totalFarm++;
+        bySite[site] = (bySite[site] || 0) + 1;
+        farmCount[site] = (farmCount[site] || 0) + 1;
+      }
+    });
+
+    const topFarms = Object.entries(farmCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+
+    res.json({
+      total,
+      totalStock,
+      totalFarm,
+      bySite,
+      byStatus,
+      topFarms,
+      totalFarms: Object.keys(farmCount).length,
+    });
+
+  } catch (error) {
+    console.error('Dashboard Asset Error:', error);
+    res.status(500).json({ error: 'Dashboard error' });
+  }
+});
 // =====================================================
 // TRANSFER ASSET (extended)
 // =====================================================
-app.post(
-  "/api/transfer-asset",
+app.post("/api/transfer-asset",
   requireLogin,
   [
     body("serialNumber").trim().notEmpty(),
@@ -1916,45 +1970,45 @@ app.post(
       const sheets = await getSheetsClient();
       const currentDate = new Date().toLocaleString("th-TH");
 
-      // หาแถวใน Asset_List
+      // ── 1. หาแถวของ Asset นี้ใน Asset_List ──
       const assetRes = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: "Asset_List!A2:E",
+        range: "Asset_List!A2:M",
       });
       const assetRows = assetRes.data.values || [];
-      const rowIndex =
-        assetRows.findIndex(
-          (r) => r[4] && r[4].trim() === serialNumber.trim()
-        ) + 2;
+      
+      // ค้นหา index ของ serialNumber
+      const rowIndex = assetRows.findIndex(
+        (row) => row[4] && row[4].trim() === serialNumber.trim()
+      ) + 2; // +2 เพราะ row 0 คือ header และ index เริ่มที่ 0
+
       if (rowIndex === 1) {
         return res.status(400).json({
           success: false,
-          error: "ไม่พบ Serial Number",
+          error: "ไม่พบ Serial Number นี้ในระบบ",
         });
       }
 
-      // อัปเดต F:M
+      // ── 2. อัปเดตข้อมูลใน Asset_List (F:M) ──
+      const updateValues = [
+        status,
+        location || "-",
+        siteName || "-",
+        user || req.session.user.username,
+        currentDate,
+        farmType || "-",
+        houseId || "-",
+        houseName || "-",
+      ];
+
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `Asset_List!F${rowIndex}:M${rowIndex}`,
         valueInputOption: "USER_ENTERED",
-        requestBody: {
-          values: [
-            [
-              status,
-              location,
-              siteName,
-              user || req.session.user.username,
-              currentDate,
-              farmType || "-",
-              houseId || "-",
-              houseName || "-",
-            ],
-          ],
-        },
+        requestBody: { values: [updateValues] },
       });
 
-      // บันทึก History พร้อมรายละเอียดเพิ่มเติม
+      // ── 3. บันทึกประวัติลง Asset_History ──
       const remarkFull = [
         remark,
         farmType ? `ประเภทฟาร์ม: ${farmType}` : "",
@@ -1975,7 +2029,7 @@ app.post(
               serialNumber,
               action,
               fromLocation || "-",
-              `${siteName || "-"} (${location || "-"}) [${houseName || "-"}]`,
+              `${siteName || "-"} (${location || "-"})${houseName ? ` [${houseName}]` : ""}`,
               req.session.user.username,
               remarkFull || "-",
             ],
@@ -1983,9 +2037,11 @@ app.post(
         },
       });
 
+      // ── 4. เคลียร์ Cache ──
       clearAssetCache();
       cache.del(`assetHistory_${serialNumber}`);
       cache.del(`publicAssetHistory_${serialNumber}`);
+
       res.json({ success: true });
     } catch (error) {
       console.error("Transfer asset error:", error);
@@ -2190,6 +2246,106 @@ app.get("/api/dashboard-stats-extended", requireLogin, async (req, res) => {
     res.status(500).json({ error: "Dashboard stats error" });
   }
 });
+// ─────────────────────────────────────────────────────────────
+//  BARCODE LABEL GENERATION API (Industrial Grade)
+// ─────────────────────────────────────────────────────────────
+
+/* ── Single Label PDF ── */
+app.get('/api/label/pdf', async (req, res) => {
+  try {
+    const {
+      serial = 'SN-0000001',
+      width = '50',
+      height = '25',
+      theme = 'light',
+      fontSizeSerial = '12'
+    } = req.query;
+
+    const tmpOut = path.join(os.tmpdir(), `label_${Date.now()}.pdf`);
+    const args = [
+      path.join(__dirname, 'generate_label.py'),
+      '--mode', 'single',
+      '--serial', String(serial),
+      '--width', String(width),
+      '--height', String(height),
+      '--theme', String(theme),
+      '--font-size-serial', String(fontSizeSerial),
+      '--output', tmpOut,
+    ];
+
+    execFile('python', args, { timeout: 15000 }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('generate_label.py error:', stderr);
+        return res.status(500).json({ error: 'PDF generation failed', detail: stderr });
+      }
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="label_${serial}.pdf"`);
+      const stream = fs.createReadStream(tmpOut);
+      stream.pipe(res);
+      stream.on('end', () => { try { fs.unlinkSync(tmpOut); } catch(_) {} });
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error', detail: e.message });
+  }
+});
+
+/* ── A4 Bulk PDF ── */
+app.post('/api/label/a4pdf', express.json({ limit: '2mb' }), async (req, res) => {
+  try {
+    const {
+      items = [],
+      labelW = 50,
+      labelH = 25,
+      marginTop = 10,
+      marginBottom = 10,
+      marginLeft = 10,
+      marginRight = 10,
+      gapX = 3,
+      gapY = 3,
+      theme = 'light',
+      fontSizeSerial = 12
+    } = req.body;
+
+    if (!items.length) {
+      return res.status(400).json({ error: 'No items provided' });
+    }
+
+    const tmpJson = path.join(os.tmpdir(), `labels_${Date.now()}.json`);
+    const tmpOut = path.join(os.tmpdir(), `a4_${Date.now()}.pdf`);
+
+    const data = {
+      items,
+      labelW, labelH,
+      marginTop, marginBottom, marginLeft, marginRight,
+      gapX, gapY,
+      theme,
+      fontSizeSerial
+    };
+    fs.writeFileSync(tmpJson, JSON.stringify(data));
+
+    const args = [
+      path.join(__dirname, 'generate_label.py'),
+      '--mode', 'a4',
+      '--json-input', tmpJson,
+      '--output', tmpOut,
+    ];
+
+    execFile('python', args, { timeout: 30000 }, (err, stdout, stderr) => {
+      try { fs.unlinkSync(tmpJson); } catch(_) {}
+      if (err) {
+        console.error('generate_label.py (a4) error:', stderr);
+        return res.status(500).json({ error: 'A4 PDF generation failed', detail: stderr });
+      }
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="labels_a4.pdf"');
+      const stream = fs.createReadStream(tmpOut);
+      stream.pipe(res);
+      stream.on('end', () => { try { fs.unlinkSync(tmpOut); } catch(_) {} });
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error', detail: e.message });
+  }
+});
 // =====================================================
 // FRONTEND ROUTES
 // =====================================================
@@ -2211,7 +2367,10 @@ app.use(express.static("public"));
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", uptime: process.uptime() });
 });
-
+app.use((err, req, res, next) => {
+  console.error("❌ Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error", message: err.message });
+});
 // =====================================================
 // START SERVER
 // =====================================================
