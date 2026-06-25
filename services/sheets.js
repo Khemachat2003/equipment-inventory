@@ -1,0 +1,83 @@
+// services/sheets.js
+const { google } = require("googleapis");
+const NodeCache = require("node-cache");
+
+const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+
+let sheetsClient = null;
+let serviceAccount = null;
+
+if (process.env.GOOGLE_CREDENTIALS_ACCOUNT) {
+  try {
+    serviceAccount = JSON.parse(process.env.GOOGLE_CREDENTIALS_ACCOUNT);
+    console.log("✅ Google credentials loaded (from service)");
+  } catch (e) {
+    console.error("❌ Invalid GOOGLE_CREDENTIALS_ACCOUNT JSON:", e.message);
+  }
+} else {
+  console.error("❌ GOOGLE_CREDENTIALS_ACCOUNT env missing");
+}
+
+const backendAuth = new google.auth.GoogleAuth({
+  credentials: serviceAccount,
+  scopes: [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+  ],
+});
+
+async function getSheetsClient() {
+  if (!sheetsClient) {
+    const authClient = await backendAuth.getClient();
+    sheetsClient = google.sheets({ version: "v4", auth: authClient });
+  }
+  return sheetsClient;
+}
+
+async function saveAssetHistory(
+  serialNumber,
+  action,
+  fromLocation,
+  toLocation,
+  username,
+  remark
+) {
+  const sheets = await getSheetsClient();
+  const currentDate = new Date().toLocaleString("th-TH");
+  const historyValues = [
+    currentDate,
+    serialNumber,
+    action,
+    fromLocation,
+    toLocation,
+    username,
+    remark,
+  ];
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "Asset_History!A:G",
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [historyValues] },
+  });
+}
+
+function clearStockCache() {
+  cache.del("stockData");
+  cache.del("dashboardData");
+  cache.del("dashboardStats");
+  cache.del("siteItems");
+}
+
+function clearAssetCache() {
+  cache.del("assetData");
+}
+
+module.exports = {
+  getSheetsClient,
+  saveAssetHistory,
+  clearStockCache,
+  clearAssetCache,
+  cache,
+  SPREADSHEET_ID
+};

@@ -117,7 +117,7 @@ def render_label_absolute(
     inner_h = h - 2 * inner_margin
 
     # ─── จัดแบ่งสัดส่วนพื้นที่: บาร์โค้ดด้านบน 60%, ข้อความด้านล่าง 40% ───
-    bc_h = inner_h * 0.60
+    bc_h = inner_h * 0.6
     txt_h = inner_h - bc_h
     
     # พิกัดฐานล่างสุดของพื้นที่บาร์โค้ด

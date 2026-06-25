@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 Audit Log - ระบบบริหารจัดการอุปกรณ์</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            font-size: 14px;
+            padding: 20px;
+        }
+        .header {
+            background: #0f172a;
+            padding: 16px 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header h1 {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header h1 span {
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, .5);
+        }
+        .header a {
+            color: rgba(255, 255, 255, .6);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 8px;
+            transition: .2s;
+        }
+        .header a:hover {
+            background: rgba(255, 255, 255, .1);
+            color: #fff;
+        }
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stats-card {
+            background: #fff;
+            padding: 14px 18px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+        }
+        .stats-card .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .stats-card .value {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 4px;
+        }
+        .filter-bar {
+            background: #fff;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .filter-bar .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+        }
+        .filter-bar input,
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            background: #fff;
+            color: #0f172a;
+            min-width: 120px;
+        }
+        .filter-bar input:focus,
+        .filter-bar select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+        }
+        .filter-bar input::placeholder {
+            color: #94a3b8;
+        }
+        .filter-bar .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: .15s;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .btn-outline {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1.5px solid #e2e8f0;
+        }
+        .btn-outline:hover {
+            background: #e2e8f0;
+        }
+        .btn-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .btn-danger:hover {
+            background: #fecaca;
+        }
+        .btn-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        .btn-success:hover {
+            background: #bbf7d0;
+        }
+        .table-wrap {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .table-scroll {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        thead th {
+            background: #f8fafc;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            white-space: nowrap;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        td {
+            padding: 11px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        tbody tr:hover {
+            background: #fafcff;
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .badge-action {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-borrow {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        .badge-return {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        .badge-transfer {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        .badge-add {
+            background: #e0e7ff;
+            color: #4f46e5;
+        }
+        .badge-bulk {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+        .badge-update {
+            background: #fce7f3;
+            color: #db2777;
+        }
+        .badge-delete {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .badge-other {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .badge-return-all {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge-return-selected {
+            background: #a7f3d0;
+            color: #064e3b;
+        }
+        .badge-module {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .mod-stock {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        .mod-asset {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+        .mod-user {
+            background: #fce7f3;
+            color: #db2777;
+        }
+        .mod-system {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .ip-mono {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: #64748b;
+        }
+        .serial-link {
+            color: #2563eb;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .serial-link:hover {
+            text-decoration: underline;
+        }
+        .pagination {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #e2e8f0;
+            font-size: 13px;
+            color: #94a3b8;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .pagination .page-info {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        .pagination .page-btns {
+            display: flex;
+            gap: 6px;
+        }
+        .pagination button {
+            padding: 6px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 6px;
+            background: #fff;
+            color: #475569;
+            cursor: pointer;
+            font-weight: 600;
+            transition: .15s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .pagination button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+        .pagination .page-num {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1.5px solid transparent;
+            background: transparent;
+            color: #475569;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .pagination .page-num.active {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+        .pagination .page-num:hover:not(.active) {
+            background: #f1f5f9;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+        .loading .spin {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #bfdbfe;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .empty-state .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .empty-state .sub {
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        .badge-count {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #475569;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+        .filter-active {
+            background: #dbeafe;
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+        @media (max-width: 768px) {
+            .filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-bar .filter-group {
+                flex-direction: column;
+            }
+            .filter-bar input,
+            .filter-bar select {
+                width: 100%;
+                min-width: unset;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .stats-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+            .table-scroll {
+                max-height: 400px;
+            }
+            th,
+            td {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            .pagination {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+        @media (max-width: 480px) {
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tooltip สำหรับ Detail ยาว */
+        .detail-cell {
+            max-width: 300px;
+            word-break: break-word;
+            cursor: default;
+        }
+        .detail-cell .full-detail {
+            display: none;
+            position: absolute;
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            max-width: 400px;
+            word-break: break-word;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+        }
+        .detail-cell:hover .full-detail {
+            display: block;
+        }
+        .detail-wrap {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+        }
+        .detail-truncate {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>
+            📋 Audit Log
+            <span>บันทึกประวัติการกระทำในระบบ</span>
+        </h1>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="/dashboard" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2);">← กลับ Dashboard</a>
+            <button onclick="exportAuditCSV()" style="background:rgba(16,185,129,.2);color:#34d399;border:1px solid rgba(16,185,129,.3);padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;">📥 Export CSV</button>
+        </div>
+    </div>
+
+    <!-- สถิติ -->
+    <div class="stats-bar" id="statsBar">
+        <div class="stats-card">
+            <div class="label">📋 รายการทั้งหมด</div>
+            <div class="value" id="totalLogs">-</div>
+        </div>
+        <div class="stats-card">
+            <div class="label">👤 ผู้ใช้ที่ทำรายการ</div>
+            <div class="value" id="totalUsers">-</div>
+        </div>
+        <div class="stats-card">
+            <div class="label">📦 Stock</div>
+            <div class="value" id="stockCount">-</div>
+        </div>
+        <div class="stats-card">
+            <div class="label">🗃️ Asset</div>
+            <div class="value" id="assetCount">-</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="filter-group">
+            <input type="text" id="filterSearch" placeholder="🔍 ค้นหา Serial, User, Detail..." style="flex:2;min-width:200px;">
+            <select id="filterModule">
+                <option value="">📂 ทั้งหมด</option>
+                <option value="Stock">📦 Stock</option>
+                <option value="Asset">🗃️ Asset</option>
+            </select>
+            <select id="filterAction">
+                <option value="">🎯 ทั้งหมด</option>
+                <option value="เบิกอุปกรณ์">📤 เบิกอุปกรณ์</option>
+                <option value="คืนอุปกรณ์">📥 คืนอุปกรณ์</option>
+                <option value="คืนอุปกรณ์ทั้งหมดจาก Site">📥 คืนทั้งหมดจาก Site</option>
+                <option value="คืนอุปกรณ์ที่เลือกจาก Site">📥 คืนที่เลือกจาก Site</option>
+                <option value="เพิ่ม Asset">➕ เพิ่ม Asset</option>
+                <option value="เพิ่ม Asset หลายชิ้น">➕ เพิ่ม Asset หลายชิ้น</option>
+                <option value="โอนย้าย Asset">🚚 โอนย้าย Asset</option>
+                <option value="อัปเดตสถานะ Asset">🔄 อัปเดตสถานะ Asset</option>
+                <option value="เพิ่มอุปกรณ์ Stock">➕ เพิ่มอุปกรณ์ Stock</option>
+                <option value="แก้ไขจำนวน Stock">✏️ แก้ไขจำนวน Stock</option>
+                <option value="เพิ่ม Stock">➕ เพิ่ม Stock</option>
+            </select>
+            <select id="filterUser">
+                <option value="">👤 ผู้ใช้ทั้งหมด</option>
+            </select>
+        </div>
+        <div class="filter-group" style="flex-wrap:wrap;">
+            <input type="date" id="filterDateFrom" style="max-width:150px;">
+            <span style="color:#94a3b8;">ถึง</span>
+            <input type="date" id="filterDateTo" style="max-width:150px;">
+            <button class="btn btn-primary" onclick="applyFilters()">🔍 ค้นหา</button>
+            <button class="btn btn-outline" onclick="clearFilters()">🗑️ ล้าง</button>
+            <button class="btn btn-outline" onclick="refreshLogs()" style="background:#0f172a;color:#fff;border-color:#0f172a;">🔄 รีเฟรช</button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+        <div class="table-scroll" id="tableScroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="min-width:140px;">📅 เวลา</th>
+                        <th style="min-width:100px;">👤 ผู้ใช้</th>
+                        <th style="min-width:80px;">📂 โมดูล</th>
+                        <th style="min-width:130px;">🎯 การกระทำ</th>
+                        <th style="min-width:200px;">📝 รายละเอียด</th>
+                        <th style="min-width:100px;">🌐 IP</th>
+                    </tr>
+                </thead>
+                <tbody id="auditBody">
+                    <tr>
+                        <td colspan="6">
+                            <div class="loading"><div class="spin"></div>กำลังโหลด...</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <span class="page-info" id="pageInfo">แสดง 0-0 จาก 0 รายการ</span>
+            <div class="page-btns">
+                <button id="prevPage" onclick="prevPage()">◀ ก่อนหน้า</button>
+                <span id="pageNumbers"></span>
+                <button id="nextPage" onclick="nextPage()">ถัดไป ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // STATE
+        // ============================================================
+        let allLogs = [];
+        let filteredLogs = [];
+        let currentPage = 1;
+        const pageSize = 50;
+        let isFiltered = false;
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        const $ = id => document.getElementById(id);
+        const tbody = $('auditBody');
+        const pageInfo = $('pageInfo');
+        const prevBtn = $('prevPage');
+        const nextBtn = $('nextPage');
+        const pageNumbers = $('pageNumbers');
+
+        // ============================================================
+        // LOAD DATA
+        // ============================================================
+        async function loadAuditLogs() {
+            try {
+                const res = await fetch('/api/audit-log');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                allLogs = await res.json();
+                console.log('📋 โหลด Audit Log:', allLogs.length, 'รายการ');
+                filteredLogs = [...allLogs];
+                updateStats();
+                populateUserFilter();
+                renderTable();
+            } catch (e) {
+                console.error('Audit log error:', e);
+                tbody.innerHTML = `
+                    <tr><td colspan="6" style="text-align:center;padding:40px;color:#dc2626;">
+                        ⚠️ ไม่สามารถโหลด Audit Log ได้: ${e.message}
+                        <br><br>
+                        <button class="btn btn-primary" onclick="refreshLogs()">🔄 ลองใหม่</button>
+                    </td></tr>
+                `;
+            }
+        }
+
+        // ============================================================
+        // STATS
+        // ============================================================
+        function updateStats() {
+            const users = new Set(allLogs.map(r => r.user).filter(Boolean));
+            const stockCount = allLogs.filter(r => r.module === 'Stock').length;
+            const assetCount = allLogs.filter(r => r.module === 'Asset').length;
+
+            $('totalLogs').textContent = allLogs.length;
+            $('totalUsers').textContent = users.size;
+            $('stockCount').textContent = stockCount;
+            $('assetCount').textContent = assetCount;
+        }
+
+        // ============================================================
+        // POPULATE USER FILTER
+        // ============================================================
+        function populateUserFilter() {
+            const users = [...new Set(allLogs.map(r => r.user).filter(Boolean))].sort();
+            const sel = $('filterUser');
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">👤 ผู้ใช้ทั้งหมด</option>';
+            users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u;
+                opt.textContent = u;
+                sel.appendChild(opt);
+            });
+            if (currentVal) sel.value = currentVal;
+        }
+
+        // ============================================================
+        // RENDER TABLE
+        // ============================================================
+        function getBadgeAction(action) {
+            const map = {
+                'เบิกอุปกรณ์': 'badge-borrow',
+                'คืนอุปกรณ์': 'badge-return',
+                'คืนอุปกรณ์ทั้งหมดจาก Site': 'badge-return-all',
+                'คืนอุปกรณ์ที่เลือกจาก Site': 'badge-return-selected',
+                'โอนย้าย Asset': 'badge-transfer',
+                'เพิ่ม Asset': 'badge-add',
+                'เพิ่ม Asset หลายชิ้น': 'badge-bulk',
+                'เพิ่มอุปกรณ์ Stock': 'badge-add',
+                'อัปเดตสถานะ Asset': 'badge-update',
+                'แก้ไขจำนวน Stock': 'badge-update',
+                'เพิ่ม Stock': 'badge-add',
+            };
+            return map[action] || 'badge-other';
+        }
+
+        function getBadgeModule(module) {
+            const map = {
+                'Stock': 'mod-stock',
+                'Asset': 'mod-asset',
+            };
+            return map[module] || 'mod-system';
+        }
+
+        function highlightSerial(text) {
+            // Highlight Serial Number ใน Detail
+            const serialRegex = /(SN-[A-Z0-9]+-[0-9]{8}-[0-9]{4})/gi;
+            return text.replace(serialRegex, match =>
+                `<span style="color:#2563eb;font-family:monospace;font-weight:600;background:#eff6ff;padding:1px 6px;border-radius:4px;">${match}</span>`
+            );
+        }
+
+        function renderTable() {
+            const start = (currentPage - 1) * pageSize;
+            const end = Math.min(start + pageSize, filteredLogs.length);
+            const pageData = filteredLogs.slice(start, end);
+
+            if (!filteredLogs.length) {
+                tbody.innerHTML = `
+                    <tr><td colspan="6">
+                        <div class="empty-state">
+                            <div class="icon">📭</div>
+                            <div class="title">ไม่มีข้อมูล</div>
+                            <div class="sub">${isFiltered ? 'ไม่พบรายการที่ตรงกับเงื่อนไข' : 'ยังไม่มี Audit Log ในระบบ'}</div>
+                        </div>
+                    </td></tr>
+                `;
+                pageInfo.textContent = 'แสดง 0-0 จาก 0 รายการ';
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                pageNumbers.innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = pageData.map(row => {
+                const detail = row.detail || '-';
+                const serialMatch = detail.match(/SN-[A-Z0-9]+-[0-9]{8}-[0-9]{4}/);
+                let detailHtml = detail;
+                if (serialMatch) {
+                    detailHtml = highlightSerial(detail);
+                }
+
+                return `
+                <tr>
+                    <td style="white-space:nowrap;font-size:12px;color:#475569;">${row.timestamp || '-'}</td>
+                    <td><strong style="color:#0f172a;">${row.user || '-'}</strong></td>
+                    <td><span class="badge-module ${getBadgeModule(row.module)}">${row.module || '-'}</span></td>
+                    <td><span class="badge-action ${getBadgeAction(row.action)}">${row.action || '-'}</span></td>
+                    <td class="detail-cell" style="max-width:350px;">
+                        <div class="detail-wrap">
+                            <div class="detail-truncate" title="${detail}">${detailHtml}</div>
+                        </div>
+                    </td>
+                    <td class="ip-mono">${row.ip || '-'}</td>
+                </tr>
+            `}).join('');
+
+            // อัปเดต Pagination
+            const totalPages = Math.ceil(filteredLogs.length / pageSize);
+            pageInfo.textContent = `แสดง ${start + 1}-${end} จาก ${filteredLogs.length} รายการ`;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage >= totalPages;
+
+            // แสดงหมายเลขหน้า
+            let pagesHtml = '';
+            const maxShow = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxShow / 2));
+            let endPage = Math.min(totalPages, startPage + maxShow - 1);
+            if (endPage - startPage < maxShow - 1) {
+                startPage = Math.max(1, endPage - maxShow + 1);
+            }
+            for (let i = startPage; i <= endPage; i++) {
+                pagesHtml += `<button class="page-num ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            pageNumbers.innerHTML = pagesHtml;
+        }
+
+        // ============================================================
+        // PAGINATION
+        // ============================================================
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredLogs.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+            // เลื่อนไปด้านบนของตาราง
+            document.getElementById('tableScroll').scrollTop = 0;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+                document.getElementById('tableScroll').scrollTop = 0;
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredLogs.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+                document.getElementById('tableScroll').scrollTop = 0;
+            }
+        }
+
+        // ============================================================
+        // FILTERS
+        // ============================================================
+        function applyFilters() {
+            const search = $('filterSearch').value.trim().toLowerCase();
+            const module = $('filterModule').value;
+            const action = $('filterAction').value;
+            const user = $('filterUser').value;
+            const dateFrom = $('filterDateFrom').value;
+            const dateTo = $('filterDateTo').value;
+
+            filteredLogs = allLogs.filter(row => {
+                // ค้นหาทั่วไป
+                if (search) {
+                    const detail = (row.detail || '').toLowerCase();
+                    const serial = (row.user || '').toLowerCase();
+                    const actionText = (row.action || '').toLowerCase();
+                    if (!detail.includes(search) && !serial.includes(search) && !actionText.includes(search)) {
+                        return false;
+                    }
+                }
+                if (module && row.module !== module) return false;
+                if (action && row.action !== action) return false;
+                if (user && row.user !== user) return false;
+                if (dateFrom) {
+                    const d = row.timestamp ? row.timestamp.split(' ')[0] : '';
+                    if (d < dateFrom) return false;
+                }
+                if (dateTo) {
+                    const d = row.timestamp ? row.timestamp.split(' ')[0] : '';
+                    if (d > dateTo) return false;
+                }
+                return true;
+            });
+
+            isFiltered = true;
+            currentPage = 1;
+            renderTable();
+        }
+
+        function clearFilters() {
+            $('filterSearch').value = '';
+            $('filterModule').value = '';
+            $('filterAction').value = '';
+            $('filterUser').value = '';
+            $('filterDateFrom').value = '';
+            $('filterDateTo').value = '';
+            filteredLogs = [...allLogs];
+            isFiltered = false;
+            currentPage = 1;
+            renderTable();
+        }
+
+        function refreshLogs() {
+            tbody.innerHTML = `
+                <tr><td colspan="6">
+                    <div class="loading"><div class="spin"></div>กำลังโหลด...</div>
+                </td></tr>
+            `;
+            loadAuditLogs();
+        }
+
+       // ============================================================
+// EXPORT CSV (Fixed: รองรับภาษาไทย)
+// ============================================================
+function exportAuditCSV() {
+    const data = filteredLogs.length > 0 ? filteredLogs : allLogs;
+    if (!data.length) {
+        alert('⚠️ ไม่มีข้อมูลที่จะ Export');
+        return;
+    }
+
+    // แปลงข้อมูลเป็น CSV
+    const headers = ['Timestamp', 'User', 'Action', 'Module', 'Detail', 'IP Address'];
+    const rows = data.map(r => [
+        r.timestamp || '',
+        r.user || '',
+        r.action || '',
+        r.module || '',
+        (r.detail || '').replace(/,/g, ';'), // เปลี่ยน , เป็น ; เพื่อไม่ให้ CSV ผิดคอลัมน์
+        r.ip || ''
+    ]);
+
+    let csv = '\uFEFF'; // ✅ เพิ่ม BOM (Byte Order Mark) เพื่อให้ Excel อ่านภาษาไทยได้
+    csv += headers.join(',') + '\n';
+    rows.forEach(row => {
+        // ✅ ใส่เครื่องหมายคำพูดรอบข้อความที่มีภาษาไทย
+        const escapedRow = row.map(cell => `"${cell.replace(/"/g, '""')}"`);
+        csv += escapedRow.join(',') + '\n';
+    });
+
+    // ✅ ใช้ charset UTF-8 with BOM
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Audit_Log_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+}
+        // ============================================================
+        // KEYBOARD SHORTCUTS
+        // ============================================================
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+
+        // ============================================================
+        // CHECK ADMIN
+        // ============================================================
+        async function checkAdmin() {
+            try {
+                const res = await fetch('/api/check-auth');
+                const data = await res.json();
+                if (!data.loggedIn || data.role !== 'admin') {
+                    window.location.href = '/';
+                }
+            } catch (e) {
+                window.location.href = '/';
+            }
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        checkAdmin();
+        loadAuditLogs();
+    </script>
+
+</body>
+</html>

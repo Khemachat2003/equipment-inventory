@@ -422,6 +422,23 @@ body{
   display:inline-block;
 }
 
+/* ── MODAL ── */
+.mo{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.mb{background:#fff;border-radius:var(--radius-lg);width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 40px 80px rgba(0,0,0,.2)}
+.mb-wide{max-width:560px}
+.mh{padding:20px 24px 16px;border-bottom:1px solid var(--gray-border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.mh-title{font-size:16px;font-weight:800;color:var(--text-primary)}
+.mc{width:30px;height:30px;border-radius:50%;background:var(--gray-light);border:none;cursor:pointer;font-size:16px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;transition:.15s}
+.mc:hover{background:var(--gray-border);color:var(--text-primary)}
+.mbd{padding:20px 24px;overflow-y:auto;flex:1}
+.mf{padding:16px 24px;border-top:1px solid var(--gray-border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px}
+.ff label{display:block;font-size:12px;font-weight:600;color:var(--gray);margin-bottom:5px}
+.ff input,.ff select,.ff textarea{width:100%;padding:9px 12px;border:1.5px solid var(--gray-border);border-radius:var(--radius-sm);font-size:13px;color:var(--text-primary);outline:none;transition:.2s;background:#fff}
+.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+
 /* ── RESPONSIVE ── */
 @media(max-width:640px){
   .page{padding:0 16px 40px}
@@ -434,11 +451,12 @@ body{
   .timeline::before{left:14px}
   .site-header-inner{flex-direction:column;align-items:flex-start}
   .header-search{max-width:100%;width:100%}
+  .mb{max-width:100%}
 }
 
 /* ── PRINT ── */
 @media print{
-  .site-header,.actions-bar,.header-search button{display:none!important}
+  .site-header,.actions-bar,.header-search button,.mo{display:none!important}
   body{background:#fff}
   .page{margin:0;padding:0 16px}
   .tl-card{box-shadow:none!important;border:1px solid #e5e7eb!important}
@@ -467,6 +485,91 @@ body{
 <main class="page">
   <div id="root"></div>
 </main>
+
+<!-- ── TRANSFER MODAL ── -->
+<div class="mo" id="transferModal">
+ <div class="mb" style="max-width:600px">
+  <div class="mh">
+    <div class="mh-title">🚚 โอนย้ายอุปกรณ์</div>
+    <button class="mc" onclick="closeModal('transferModal')">✕</button>
+  </div>
+  <div class="mbd" style="padding:16px 20px">
+   <div style="background:var(--blue-light);border:1px solid var(--blue-border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:12px;color:var(--text-secondary);font-weight:600">Serial Number</span>
+    <span id="transferSerialTitle" style="font-family:monospace;color:var(--blue-mid);font-weight:700;font-size:13px">-</span>
+   </div>
+   <input type="hidden" id="oldSiteName"><input type="hidden" id="oldLocation">
+   <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📋 ประเภทการโอนย้าย</div>
+   <div class="fg" style="margin-bottom:14px">
+    <div class="ff"><label>ประเภท</label>
+     <select id="transferAction" onchange="onActionChange()">
+      <option value="ย้ายตำแหน่งอุปกรณ์">🚚 ย้ายตำแหน่ง</option>
+      <option value="ส่งซ่อมภายนอก">🔧 ส่งซ่อมภายนอก</option>
+      <option value="โอนย้ายผู้รับผิดชอบ">👤 โอนย้ายผู้รับผิดชอบ</option>
+      <option value="คืนคลังสินค้า">📦 คืนคลังสินค้า</option>
+     </select>
+    </div>
+    <div class="ff"><label>สถานะใหม่</label>
+     <select id="transferStatus">
+      <option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option>
+      <option value="ส่งซ่อม">🔴 ส่งซ่อม</option><option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+     </select>
+    </div>
+   </div>
+   <div id="farmSection">
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">🌱 ข้อมูลฟาร์มปลายทาง</div>
+    <div class="fg" style="margin-bottom:8px">
+     <div class="ff"><label>ประเภทฟาร์ม</label>
+      <select id="trFarmType" onchange="onFarmTypeChange()">
+       <option value="">-- เลือกประเภท --</option>
+       <option value="สัตว์ปีก">🐔 สัตว์ปีก</option>
+       <option value="สัตว์บก">🐄 สัตว์บก</option>
+       <option value="สุกร">🐷 สุกร</option>
+       <option value="อื่นๆ">⚙️ อื่นๆ / ไม่ใช่ฟาร์ม</option>
+      </select>
+     </div>
+     <div class="ff"><label>ประเภทสัตว์</label>
+      <select id="trAnimalType">
+       <option value="">-- ไม่ระบุ --</option>
+       <option value="ไก่เนื้อ">ไก่เนื้อ</option><option value="ไก่ไข่">ไก่ไข่</option>
+       <option value="เป็ด">เป็ด</option><option value="วัว">วัว</option>
+       <option value="แพะ/แกะ">แพะ/แกะ</option><option value="สุกร">สุกร</option>
+       <option value="อื่นๆ">อื่นๆ</option>
+      </select>
+     </div>
+    </div>
+    <div class="fg" style="margin-bottom:8px">
+     <div class="ff"><label>ไซต์งาน / ฟาร์ม *</label>
+      <select id="trSiteSelect" onchange="onSiteSelect(this.value)" style="margin-bottom:6px">
+       <option value="">-- เลือกฟาร์ม --</option>
+      </select>
+      <input type="text" id="transferSite" placeholder="หรือพิมพ์ชื่อฟาร์มเอง">
+     </div>
+     <div class="ff"><label>โรงเรือน</label>
+      <select id="trHouseSelect" onchange="onHouseSelect(this.value)" style="margin-bottom:6px">
+       <option value="">-- เลือกไซต์ก่อน --</option>
+      </select>
+      <input type="text" id="trHouseName" placeholder="หรือพิมพ์ชื่อโรงเรือนเอง">
+      <input type="hidden" id="trHouseId">
+     </div>
+    </div>
+    <div class="fg" style="margin-bottom:8px">
+     <div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="transferLocation" placeholder="เช่น คอก A แถว 3"></div>
+     <div class="ff"><label>จำนวนโรงเรือน (ในฟาร์มนี้)</label><input type="number" id="trHouseCount" placeholder="4" min="0"></div>
+    </div>
+   </div>
+   <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;margin-top:4px">👤 ผู้รับผิดชอบ</div>
+   <div class="fg">
+    <div class="ff" style="grid-column:1/-1"><label>ชื่อผู้รับผิดชอบ</label><input type="text" id="transferUser" placeholder="ชื่อผู้ดูแลอุปกรณ์"></div>
+    <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="transferRemark" placeholder="เหตุผล / รายละเอียดเพิ่มเติม..."></div>
+   </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-outline" onclick="closeModal('transferModal')">ยกเลิก</button>
+    <button class="btn btn-primary" onclick="submitTransferAction()">💾 ยืนยันโอนย้าย</button>
+  </div>
+ </div>
+</div>
 
 <script>
 const root = document.getElementById("root");
@@ -517,6 +620,179 @@ function getInitials(name=""){
     ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
     : parts[0].slice(0,2).toUpperCase();
 }
+
+/* ── MODAL CONTROL ── */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+/* ── เปิด Transfer Modal จาก trace.html ── */
+function openTransferFromTrace() {
+  const serial = getSerial(); // ดึง Serial จาก URL
+  if (!serial) {
+    alert('⚠️ ไม่พบ Serial Number');
+    return;
+  }
+
+  // ตั้งค่า Serial ใน Modal
+  document.getElementById('transferSerialTitle').textContent = serial;
+  
+  // โหลดข้อมูลฟาร์มลง dropdown
+  loadFarmSitesForTrace();
+  
+  // เปิด Modal
+  openModal('transferModal');
+}
+
+/* ── โหลดฟาร์มลง dropdown ── */
+async function loadFarmSitesForTrace() {
+  try {
+    const res = await fetch('/api/farm-sites');
+    const sites = await res.json();
+    const sel = document.getElementById('trSiteSelect');
+    sel.innerHTML = '<option value="">-- เลือกฟาร์ม --</option>';
+    sites.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.siteId;
+      opt.textContent = `${s.siteName} (${s.farmType})`;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    console.error('Load farm sites error:', e);
+  }
+}
+
+/* ── ฟังก์ชันอื่น ๆ ที่จำเป็น ── */
+function onActionChange() {
+  const action = document.getElementById('transferAction').value;
+  const fs = document.getElementById('farmSection');
+  if (action.includes('ซ่อม') || action.includes('คืนคลัง')) {
+    if (fs) fs.style.display = 'none';
+    document.getElementById('transferStatus').value = action.includes('ซ่อม') ? 'ส่งซ่อม' : 'สำรอง';
+  } else {
+    if (fs) fs.style.display = 'block';
+  }
+}
+
+function onFarmTypeChange() {
+  const ft = document.getElementById('trFarmType').value;
+  const at = document.getElementById('trAnimalType');
+  at.innerHTML = '<option value="">-- ไม่ระบุ --</option>';
+  if (ft === 'สัตว์ปีก') {
+    ['ไก่เนื้อ','ไก่ไข่','เป็ด','ห่าน','อื่นๆ'].forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v; at.appendChild(o);
+    });
+  } else if (ft === 'สัตว์บก') {
+    ['วัว','ควาย','แพะ','แกะ','ม้า','อื่นๆ'].forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v; at.appendChild(o);
+    });
+  } else if (ft === 'สุกร') {
+    ['สุกรพ่อพันธุ์','สุกรแม่พันธุ์','ลูกสุกร','สุกรขุน'].forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v; at.appendChild(o);
+    });
+  }
+}
+
+async function onSiteSelect(siteId) {
+  if (!siteId) {
+    document.getElementById('transferSite').value = '';
+    document.getElementById('trHouseSelect').innerHTML = '<option value="">-- เลือกไซต์ก่อน --</option>';
+    return;
+  }
+  try {
+    const res = await fetch(`/api/farm-houses/${encodeURIComponent(siteId)}`);
+    const houses = await res.json();
+    const sel = document.getElementById('trHouseSelect');
+    sel.innerHTML = '<option value="">-- เลือกโรงเรือน --</option>';
+    houses.forEach(h => {
+      const o = document.createElement('option');
+      o.value = h.houseId;
+      o.dataset.name = h.houseName;
+      o.textContent = `${h.houseName} (${h.houseType})`;
+      sel.appendChild(o);
+    });
+    // ดึงชื่อฟาร์ม
+    const sites = await (await fetch('/api/farm-sites')).json();
+    const site = sites.find(s => s.siteId === siteId);
+    if (site) {
+      document.getElementById('transferSite').value = site.siteName;
+      document.getElementById('trFarmType').value = site.farmType || '';
+    }
+  } catch(e) {
+    console.error('Load houses error:', e);
+  }
+}
+
+function onHouseSelect(houseId) {
+  const sel = document.getElementById('trHouseSelect');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.name) {
+    document.getElementById('trHouseName').value = opt.dataset.name;
+    document.getElementById('trHouseId').value = houseId;
+  }
+}
+
+/* ── ส่งข้อมูลโอนย้าย ── */
+async function submitTransferAction() {
+  const serial = document.getElementById('transferSerialTitle').textContent;
+  const action = document.getElementById('transferAction').value;
+  const status = document.getElementById('transferStatus').value;
+  const location = document.getElementById('transferLocation').value.trim();
+  const siteName = document.getElementById('transferSite').value.trim();
+  const user = document.getElementById('transferUser').value.trim();
+  const remark = document.getElementById('transferRemark').value.trim();
+  const farmType = document.getElementById('trFarmType')?.value || '-';
+  const animalType = document.getElementById('trAnimalType')?.value || '-';
+  const houseId = document.getElementById('trHouseId')?.value || '-';
+  const houseName = document.getElementById('trHouseName')?.value.trim() || '-';
+
+  if (!siteName) {
+    alert('กรุณาระบุไซต์งานปลายทาง');
+    return;
+  }
+
+  try {
+    const r = await fetch('/api/transfer-asset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        serialNumber: serial,
+        action,
+        status,
+        location,
+        siteName,
+        user,
+        remark,
+        fromLocation: '-',
+        farmType,
+        animalType,
+        houseId,
+        houseName
+      })
+    });
+    const d = await r.json();
+    if (d.success) {
+      alert('✅ โอนย้ายสำเร็จ');
+      closeModal('transferModal');
+      // รีโหลดหน้าประวัติ
+      window.location.reload();
+    } else {
+      alert('❌ เกิดข้อผิดพลาด: ' + (d.error || ''));
+    }
+  } catch(e) {
+    alert('❌ ไม่สามารถเชื่อมต่อได้');
+    console.error(e);
+  }
+}
+
+/* ── คลิกนอก Modal เพื่อปิด ── */
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mo')) {
+    e.target.classList.remove('open');
+  }
+});
 
 async function loadFromURL(){
   const serial = getSerial();
@@ -602,6 +878,7 @@ const assetCardHTML = `
       <div class="actions-bar">
         <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์รายงาน</button>
         <button class="btn btn-green" onclick="window.history.back()">← ย้อนกลับ</button>
+        <button class="btn btn-primary" onclick="openTransferFromTrace()">🚚 โอนย้ายอุปกรณ์</button>
       </div>`;
 
     /* ── timeline ── */
