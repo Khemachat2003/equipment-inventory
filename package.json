@@ -29,8 +29,11 @@
     "jsbarcode": "^3.12.3",
     "morgan": "^1.11.0",
     "node-cache": "^5.1.2",
+    "node-cron": "^4.5.0",
     "open": "^11.0.0",
     "pdfkit": "^0.17.2",
+    "pg": "^8.22.0",
+    "pg-format": "^1.0.4",
     "qrcode": "^1.5.4",
     "svg-to-pdfkit": "^0.1.8"
   }

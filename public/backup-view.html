@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 ข้อมูล Backup - PostgreSQL</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;font-size:14px;padding:20px}
+.header{background:#0f172a;padding:16px 24px;border-radius:12px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.header h1{color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px}
+.header a{color:rgba(255,255,255,.6);text-decoration:none;padding:8px 16px;border:1px solid rgba(255,255,255,.1);border-radius:8px;transition:.2s}
+.header a:hover{background:rgba(255,255,255,.1);color:#fff}
+
+.filter-bar{background:#fff;padding:16px 20px;border-radius:12px;margin-bottom:16px;border:1px solid #e2e8f0;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.filter-bar select{padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;min-width:200px}
+.filter-bar select:focus{border-color:#2563eb}
+.btn{padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;border:none;transition:.15s;font-size:13px}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-primary:hover{background:#1d4ed8}
+.btn-outline{background:#f1f5f9;color:#475569;border:1.5px solid #e2e8f0}
+.btn-outline:hover{background:#e2e8f0}
+.btn-success{background:#16a34a;color:#fff}
+.btn-success:hover{background:#15803d}
+
+.table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden}
+.table-scroll{overflow-x:auto;max-height:600px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:10}
+thead th{background:#f8fafc;padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+td{padding:11px 16px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tbody tr:hover{background:#fafcff}
+.loading{text-align:center;padding:40px;color:#94a3b8}
+.loading .spin{width:28px;height:28px;border:3px solid #bfdbfe;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:60px 20px;color:#94a3b8}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.stats{margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap}
+.stats .badge{background:#f1f5f9;padding:6px 14px;border-radius:20px;font-size:12px;color:#475569}
+.stats .badge strong{color:#0f172a}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 ข้อมูล Backup (PostgreSQL)</h1>
+  <div>
+    <!-- ✅ กลับ Dashboard แบบง่าย -->
+    <a href="/dashboard">← กลับ Dashboard</a>
+    <button class="btn btn-success" onclick="exportCurrentTable()" style="margin-left:8px;">📥 Export CSV</button>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <select id="tableSelect" onchange="loadTableData()">
+    <option value="">-- เลือกตาราง --</option>
+    <option value="backup_stock_master">📦 Stock Master</option>
+    <option value="backup_stock_office">🏢 Stock Office</option>
+    <option value="backup_stock_site">🏭 Stock Site</option>
+    <option value="backup_transfer_log">📋 Transfer Log</option>
+    <option value="backup_asset_list">🗃️ Asset List</option>
+    <option value="backup_asset_history">📜 Asset History</option>
+    <option value="backup_part_catalog">🔧 Part Catalog</option>
+    <option value="backup_farm_sites">🌱 Farm Sites</option>
+    <option value="backup_farm_houses">🏠 Farm Houses</option>
+    <option value="backup_users">👤 Users</option>
+    <option value="backup_audit_log">📋 Audit Log</option>
+  </select>
+  <button class="btn btn-primary" onclick="loadTableData()">🔍 โหลด</button>
+  <button class="btn btn-outline" onclick="refreshAll()">🔄 Refresh All</button>
+</div>
+
+<div id="stats" class="stats"></div>
+
+<div class="table-wrap">
+  <div class="table-scroll" id="tableScroll">
+    <div id="tableContainer">
+      <div class="loading"><div class="spin"></div>เลือกตารางเพื่อดูข้อมูล</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentTable = '';
+let currentData = [];
+
+async function loadTableData() {
+  const table = document.getElementById('tableSelect').value;
+  if (!table) {
+    document.getElementById('tableContainer').innerHTML = '<div class="loading">📋 เลือกตารางเพื่อดูข้อมูล</div>';
+    document.getElementById('stats').innerHTML = '';
+    return;
+  }
+
+  currentTable = table;
+  document.getElementById('tableContainer').innerHTML = '<div class="loading"><div class="spin"></div>กำลังโหลด...</div>';
+
+  try {
+    const res = await fetch(`/api/backup-data?table=${encodeURIComponent(table)}`);
+    const data = await res.json();
+
+    if (!data.success || !data.rows || !data.rows.length) {
+      document.getElementById('tableContainer').innerHTML = `
+        <div class="empty-state">
+          <div class="icon">📭</div>
+          <div>ไม่มีข้อมูลในตารางนี้</div>
+        </div>
+      `;
+      document.getElementById('stats').innerHTML = '';
+      return;
+    }
+
+    currentData = data.rows;
+
+    // สร้างแถวสรุป
+    document.getElementById('stats').innerHTML = `
+      <span class="badge">📊 <strong>${data.rows.length}</strong> แถว</span>
+      <span class="badge">🕐 อัปเดตล่าสุด: <strong>${data.rows[0]?.backup_date || '-'}</strong></span>
+    `;
+
+    // สร้างตาราง
+    const columns = Object.keys(data.rows[0]);
+    let html = '<table><thead><tr>';
+    columns.forEach(col => {
+      html += `<th>${col}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    data.rows.forEach(row => {
+      html += '<tr>';
+      columns.forEach(col => {
+        const val = row[col] || '-';
+        html += `<td>${val}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('tableContainer').innerHTML = html;
+
+  } catch (err) {
+    document.getElementById('tableContainer').innerHTML = `
+      <div class="empty-state">
+        <div class="icon">⚠️</div>
+        <div>เกิดข้อผิดพลาด: ${err.message}</div>
+      </div>
+    `;
+  }
+}
+
+// ✅ โหลดตารางแรกอัตโนมัติ
+document.addEventListener('DOMContentLoaded', function() {
+  const select = document.getElementById('tableSelect');
+  if (select) {
+    select.value = 'backup_stock_master';
+    loadTableData();
+  }
+});
+
+function exportCurrentTable() {
+  if (!currentData || !currentData.length) {
+    alert('⚠️ ไม่มีข้อมูลที่จะ Export');
+    return;
+  }
+
+  const columns = Object.keys(currentData[0]);
+  let csv = columns.join(',') + '\n';
+  currentData.forEach(row => {
+    const values = columns.map(col => {
+      const val = row[col] || '';
+      return `"${String(val).replace(/"/g, '""')}"`;
+    });
+    csv += values.join(',') + '\n';
+  });
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${currentTable}_${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+}
+
+function refreshAll() {
+  loadTableData();
+}
+
+// กด Enter เพื่อโหลด
+document.getElementById('tableSelect').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') loadTableData();
+});
+</script>
+
+</body>
+</html>

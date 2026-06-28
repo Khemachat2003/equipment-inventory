@@ -10,6 +10,7 @@ const morgan = require("morgan");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const fs = require("fs");
+const { fullSystemBackup } = require('./services/backup');
 
 // ========== IMPORT ROUTES ==========
 const routes = require("./routes");
@@ -138,6 +139,59 @@ app.get("/auth/google", (req, res) => {
   res.redirect(url);
 });
 
+// server.js (เพิ่มตรงส่วน Routes)
+const { backupToPostgres } = require('./services/backup');
+
+// POST /api/backup - Backup ข้อมูล (Admin only)
+app.post('/api/backup', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const result = await backupToPostgres();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/full-backup - Full System Backup (Admin only)
+app.post('/api/full-backup', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const result = await fullSystemBackup();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// server.js (เพิ่มตรงส่วน Routes)
+const { Client } = require('pg');
+
+app.get('/api/backup-data', requireLogin, requireAdmin, async (req, res) => {
+  const { table } = req.query;
+  if (!table) {
+    return res.status(400).json({ error: 'table parameter required' });
+  }
+
+  const DATABASE_URL = process.env.DATABASE_URL;
+  if (!DATABASE_URL) {
+    return res.status(500).json({ error: 'DATABASE_URL not set' });
+  }
+
+  const client = new Client({
+    connectionString: DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+
+  try {
+    await client.connect();
+    const result = await client.query(`SELECT * FROM ${table} ORDER BY backup_date DESC LIMIT 1000`);
+    await client.end();
+    res.json({ success: true, rows: result.rows });
+  } catch (err) {
+    await client.end();
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get("/auth/google/callback", async (req, res) => {
   try {
     const code = req.query.code;
@@ -204,3 +258,12 @@ app.listen(PORT, () => {
   // เรียก sync asset history
   assetRouter.syncInitialAssetHistory().catch(console.error);
 });
+
+//const cron = require('node-cron');
+
+// Backup ทุกวันเวลา 02:00 (ตามเวลาท้องถิ่นของเซิร์ฟเวอร์)
+//cron.schedule('0 19 * * *', async () => {
+ // console.log('🔄 Running scheduled backup...');
+  //const result = await backupToPostgres();
+  //console.log('📊 Backup result:', result);
+//});

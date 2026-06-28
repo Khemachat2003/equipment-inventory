@@ -1,0 +1,882 @@
+[
+  {
+    "id": 89,
+    "house_id": "T001",
+    "site_id": "คีมย้ำหางปลา(HS-16)",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "5",
+    "backup_date": "2026-06-28T01:10:03.601Z"
+  },
+  {
+    "id": 90,
+    "house_id": "T002",
+    "site_id": "คีมย้ำหางปลา(SOLO)",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:03.705Z"
+  },
+  {
+    "id": 91,
+    "house_id": "T003",
+    "site_id": "คีมตัดท่อ",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "6",
+    "backup_date": "2026-06-28T01:10:03.801Z"
+  },
+  {
+    "id": 92,
+    "house_id": "T004",
+    "site_id": "คีมย้ำหางปลาเข็ม",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:03.926Z"
+  },
+  {
+    "id": 93,
+    "house_id": "T005",
+    "site_id": "คีมปอกสายไฟอัตโนมัติ",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:04.026Z"
+  },
+  {
+    "id": 94,
+    "house_id": "T006",
+    "site_id": "คีมจับ",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:04.121Z"
+  },
+  {
+    "id": 95,
+    "house_id": "T007",
+    "site_id": "คีมปากแหลม",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:04.221Z"
+  },
+  {
+    "id": 96,
+    "house_id": "T008",
+    "site_id": "คีมย้ำหัว Lan",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:04.346Z"
+  },
+  {
+    "id": 97,
+    "house_id": "T009",
+    "site_id": "คีมย้ำหางปลาเปลือย",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:04.446Z"
+  },
+  {
+    "id": 98,
+    "house_id": "T010",
+    "site_id": "กรรไกรตัดซีลาย",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:04.555Z"
+  },
+  {
+    "id": 99,
+    "house_id": "T011",
+    "site_id": "คีมตัดฟ้า",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:04.666Z"
+  },
+  {
+    "id": 100,
+    "house_id": "T012",
+    "site_id": "คีมปากงอ ถ่างแหวน",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:04.766Z"
+  },
+  {
+    "id": 101,
+    "house_id": "T013",
+    "site_id": "คีมย้ำตะปูรีเวท",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:04.886Z"
+  },
+  {
+    "id": 102,
+    "house_id": "T014",
+    "site_id": "คีมย้ำโครง C-line 11\"",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "ด้าม",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:05.005Z"
+  },
+  {
+    "id": 103,
+    "house_id": "T015",
+    "site_id": "คีมตัดสายไฟ",
+    "house_name": "",
+    "house_type": "คีม",
+    "capacity": "อัน",
+    "note": "5",
+    "backup_date": "2026-06-28T01:10:05.141Z"
+  },
+  {
+    "id": 104,
+    "house_id": "T016",
+    "site_id": "มีดคัดเตอร์",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "7",
+    "backup_date": "2026-06-28T01:10:05.246Z"
+  },
+  {
+    "id": 105,
+    "house_id": "T017",
+    "site_id": "ค้อนตอกสายไฟ",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:05.340Z"
+  },
+  {
+    "id": 106,
+    "house_id": "T018",
+    "site_id": "ระดับน้ำ",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:05.431Z"
+  },
+  {
+    "id": 107,
+    "house_id": "T019",
+    "site_id": "คัตเตอร์เล็ก",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:05.555Z"
+  },
+  {
+    "id": 108,
+    "house_id": "T020",
+    "site_id": "ค้อนตอกตะปู",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:05.691Z"
+  },
+  {
+    "id": 109,
+    "house_id": "T021",
+    "site_id": "ไขควงแฉก",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "8",
+    "backup_date": "2026-06-28T01:10:05.801Z"
+  },
+  {
+    "id": 110,
+    "house_id": "T022",
+    "site_id": "เช็คแลมป์",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "8",
+    "backup_date": "2026-06-28T01:10:05.896Z"
+  },
+  {
+    "id": 111,
+    "house_id": "T023",
+    "site_id": "ใบบรรทัด",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:06.011Z"
+  },
+  {
+    "id": 112,
+    "house_id": "T024",
+    "site_id": "ใบบรรทัดวงเวียน",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:06.116Z"
+  },
+  {
+    "id": 113,
+    "house_id": "T025",
+    "site_id": "bock ตัว ที 8mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:06.225Z"
+  },
+  {
+    "id": 114,
+    "house_id": "T026",
+    "site_id": "bock ตัว ที 10mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:06.351Z"
+  },
+  {
+    "id": 115,
+    "house_id": "T027",
+    "site_id": "ใบบรรทัดฉาก",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:06.491Z"
+  },
+  {
+    "id": 116,
+    "house_id": "T028",
+    "site_id": "ตลับเมตร 5 เมตร",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "5",
+    "backup_date": "2026-06-28T01:10:06.590Z"
+  },
+  {
+    "id": 117,
+    "house_id": "T029",
+    "site_id": "Dewait 128V max",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ชุด",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:06.681Z"
+  },
+  {
+    "id": 118,
+    "house_id": "T030",
+    "site_id": "Dewait 20V max",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ชุด",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:06.781Z"
+  },
+  {
+    "id": 119,
+    "house_id": "T031",
+    "site_id": "ไขควง Tigron ",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ชุด",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:06.901Z"
+  },
+  {
+    "id": 120,
+    "house_id": "T032",
+    "site_id": "โฮลซอ 26mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:07.006Z"
+  },
+  {
+    "id": 121,
+    "house_id": "T033",
+    "site_id": "โฮลซอ 25mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:07.141Z"
+  },
+  {
+    "id": 122,
+    "house_id": "T034",
+    "site_id": "โฮลซอ 30mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:07.246Z"
+  },
+  {
+    "id": 123,
+    "house_id": "T035",
+    "site_id": "โฮลซอ 35mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:07.336Z"
+  },
+  {
+    "id": 124,
+    "house_id": "T036",
+    "site_id": "โฮลซอ 16mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:07.455Z"
+  },
+  {
+    "id": 125,
+    "house_id": "T037",
+    "site_id": "โฮลซอ 20mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:07.561Z"
+  },
+  {
+    "id": 126,
+    "house_id": "T038",
+    "site_id": "โฮลซอ 22mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:07.691Z"
+  },
+  {
+    "id": 127,
+    "house_id": "T039",
+    "site_id": "โฮลซอ 13mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:07.786Z"
+  },
+  {
+    "id": 128,
+    "house_id": "T040",
+    "site_id": "ดอก step 4-32mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:07.911Z"
+  },
+  {
+    "id": 129,
+    "house_id": "T041",
+    "site_id": "ดอก step 4-20mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:08.021Z"
+  },
+  {
+    "id": 130,
+    "house_id": "T042",
+    "site_id": "ดอก step 4-12mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:08.121Z"
+  },
+  {
+    "id": 131,
+    "house_id": "T043",
+    "site_id": "หัวบล็อกขันสกรู 8mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:08.225Z"
+  },
+  {
+    "id": 132,
+    "house_id": "T044",
+    "site_id": "ลูกบล็อก 6 เหลี่ยม 10mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:08.340Z"
+  },
+  {
+    "id": 133,
+    "house_id": "T045",
+    "site_id": "ใบเลื่อย 12\" 24TPI",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:08.446Z"
+  },
+  {
+    "id": 134,
+    "house_id": "T046",
+    "site_id": "แหนบคีบดำ",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:08.561Z"
+  },
+  {
+    "id": 135,
+    "house_id": "T047",
+    "site_id": "รีมเมอร์ลบคมท่อเหล็ก",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:08.686Z"
+  },
+  {
+    "id": 136,
+    "house_id": "T048",
+    "site_id": "คัตเตอร์ตัดท่อเหล็ก4-28mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:08.805Z"
+  },
+  {
+    "id": 137,
+    "house_id": "T049",
+    "site_id": "ดอกสว่านเจาะเหล็ก 8mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:08.900Z"
+  },
+  {
+    "id": 138,
+    "house_id": "T050",
+    "site_id": "ดอกสว่านเจาะเหล็ก 12mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:09.005Z"
+  },
+  {
+    "id": 139,
+    "house_id": "T051",
+    "site_id": "Hydralic Crimper YQ-70",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ชุด",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:09.136Z"
+  },
+  {
+    "id": 140,
+    "house_id": "T052",
+    "site_id": "L-Mark LK-320 Pro",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ชุด",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:09.241Z"
+  },
+  {
+    "id": 141,
+    "house_id": "T053",
+    "site_id": "Dewait 20Vmax โรตารี่",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ชุด",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:09.361Z"
+  },
+  {
+    "id": 142,
+    "house_id": "T054",
+    "site_id": "ปากกาเช็คไฟ UNI-T UT12A",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:09.465Z"
+  },
+  {
+    "id": 143,
+    "house_id": "T055",
+    "site_id": "ประแจ 12mm.",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:09.566Z"
+  },
+  {
+    "id": 144,
+    "house_id": "T056",
+    "site_id": "แอร์บรัช",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "ด้าม",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:09.680Z"
+  },
+  {
+    "id": 145,
+    "house_id": "T057",
+    "site_id": "สปริงดักท่อ 3/8",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:09.791Z"
+  },
+  {
+    "id": 146,
+    "house_id": "T058",
+    "site_id": "สปริงดักท่อ 3/4",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:09.911Z"
+  },
+  {
+    "id": 147,
+    "house_id": "T059",
+    "site_id": "สปริงดักท่อ 1/2",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:10.026Z"
+  },
+  {
+    "id": 148,
+    "house_id": "T060",
+    "site_id": "ประแจปอนท์",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:10.161Z"
+  },
+  {
+    "id": 149,
+    "house_id": "T061",
+    "site_id": "มัลติมิเตอร์ UNI-T UT201+",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:10.260Z"
+  },
+  {
+    "id": 150,
+    "house_id": "T062",
+    "site_id": "เครื่องเจียรไร้สาย 12V",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:10.366Z"
+  },
+  {
+    "id": 151,
+    "house_id": "T063",
+    "site_id": "กรรไกร",
+    "house_name": "",
+    "house_type": "เครื่องมือ",
+    "capacity": "อัน",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:10.491Z"
+  },
+  {
+    "id": 152,
+    "house_id": "T064",
+    "site_id": "หมวก safety ",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "4",
+    "backup_date": "2026-06-28T01:10:10.600Z"
+  },
+  {
+    "id": 153,
+    "house_id": "T065",
+    "site_id": "หมวกเชื่อม",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:10.705Z"
+  },
+  {
+    "id": 154,
+    "house_id": "T066",
+    "site_id": "หน้ากาก Filter P-A-1",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:10.821Z"
+  },
+  {
+    "id": 155,
+    "house_id": "T067",
+    "site_id": "ที่ครอบหู ลดเสียง",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:10.921Z"
+  },
+  {
+    "id": 156,
+    "house_id": "T068",
+    "site_id": "ปั๊มลม PS2550",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.041Z"
+  },
+  {
+    "id": 157,
+    "house_id": "T069",
+    "site_id": "ปั๊มลม J0S-250",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.137Z"
+  },
+  {
+    "id": 158,
+    "house_id": "T070",
+    "site_id": "เครื่องฉีดน้ำ JP-99X",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.251Z"
+  },
+  {
+    "id": 159,
+    "house_id": "T071",
+    "site_id": "ตู้เชื่อม TIG 185",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.366Z"
+  },
+  {
+    "id": 160,
+    "house_id": "T072",
+    "site_id": "ไฟเบอร์ MT24",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.466Z"
+  },
+  {
+    "id": 161,
+    "house_id": "T073",
+    "site_id": "เครื่องเลื่อยสายพาน BS-1001",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.561Z"
+  },
+  {
+    "id": 162,
+    "house_id": "T074",
+    "site_id": "แท่นสว่าน YD-135",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.691Z"
+  },
+  {
+    "id": 163,
+    "house_id": "T075",
+    "site_id": "มอเตอร์หินเจียร skil 3000",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.801Z"
+  },
+  {
+    "id": 164,
+    "house_id": "T076",
+    "site_id": "โต๊ะเลื่อยวงเดือน TS-1600",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:11.931Z"
+  },
+  {
+    "id": 165,
+    "house_id": "T077",
+    "site_id": "บันไดอลูมีเนียมอเนกประสงค์",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:12.056Z"
+  },
+  {
+    "id": 166,
+    "house_id": "T078",
+    "site_id": "เท็ปพันสายไฟ 3 M",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "3",
+    "backup_date": "2026-06-28T01:10:12.161Z"
+  },
+  {
+    "id": 167,
+    "house_id": "T079",
+    "site_id": "คีม Multi Function 5 in 1",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:12.266Z"
+  },
+  {
+    "id": 168,
+    "house_id": "T080",
+    "site_id": "คีมล็อค",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:12.361Z"
+  },
+  {
+    "id": 169,
+    "house_id": "T081",
+    "site_id": "ประแจเลื่อน",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:12.455Z"
+  },
+  {
+    "id": 170,
+    "house_id": "T082",
+    "site_id": "ประแจเบอร์ 8",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:12.575Z"
+  },
+  {
+    "id": 171,
+    "house_id": "T083",
+    "site_id": "ประแจเบอร์ 10",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:12.685Z"
+  },
+  {
+    "id": 172,
+    "house_id": "T084",
+    "site_id": "ประแจเบอร์ 12",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:12.806Z"
+  },
+  {
+    "id": 173,
+    "house_id": "T085",
+    "site_id": "ค้อนปอนด์",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:12.896Z"
+  },
+  {
+    "id": 174,
+    "house_id": "T086",
+    "site_id": "เลื่อยโค้งตัดกิ่งไม้",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:12.995Z"
+  },
+  {
+    "id": 175,
+    "house_id": "T087",
+    "site_id": "ปืนยิงซิลิโคน",
+    "house_name": "",
+    "house_type": "อุปกรณ์",
+    "capacity": "อัน",
+    "note": "2",
+    "backup_date": "2026-06-28T01:10:13.126Z"
+  },
+  {
+    "id": 176,
+    "house_id": "T088",
+    "site_id": "Pletier",
+    "house_name": "",
+    "house_type": "",
+    "capacity": "",
+    "note": "1",
+    "backup_date": "2026-06-28T01:10:13.241Z"
+  }
+]
