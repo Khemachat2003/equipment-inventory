@@ -3,812 +3,2522 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Equipment Management System</title>
+<title>INTRANIN — Equipment Management</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 <style>
-  /* Dashboard Enhanced */
+/* ════════════════════════════════════════════════
+   INTRANIN EMS — Design System
+   Precision Industrial UI
+════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Core palette */
+  --ink:       #0A1628;
+  --ink2:      #111E35;
+  --ink3:      #162040;
+  --panel:     #1A2840;
+  --rim:       rgba(255,255,255,.07);
+  --rim2:      rgba(255,255,255,.12);
+
+  /* Brand */
+  --blue:      #1B6CA8;
+  --blue-d:    #145487;
+  --blue-l:    #EBF4FF;
+  --blue-b:    #BDD9F3;
+  --blue-glow: rgba(27,108,168,.25);
+
+  /* Signal */
+  --emerald:   #00C896;
+  --emerald-d: #00A07A;
+  --emerald-l: #E6FBF5;
+  --emerald-b: #9FEDD8;
+
+  --amber:     #FF9500;
+  --amber-l:   #FFF8EC;
+  --amber-b:   #FFD99E;
+
+  --red:       #E03131;
+  --red-l:     #FFF0F0;
+  --red-b:     #FFC5C5;
+
+  --purple:    #7048E8;
+  --purple-l:  #F1EDFD;
+
+  /* Surface (light content area) */
+  --bg:        #F3F5F8;
+  --surface:   #FFFFFF;
+  --surface2:  #F8F9FB;
+
+  /* Text */
+  --text:      #0D1E31;
+  --tsub:      #4A5568;
+  --tmuted:    #94A3B8;
+
+  /* Borders */
+  --g100:  #F1F5F9;
+  --g200:  #E2E8F0;
+  --g300:  #CBD5E1;
+  --g400:  #94A3B8;
+  --g500:  #64748B;
+  --g600:  #475569;
+  --g700:  #334155;
+
+  /* Shadows */
+  --sh-xs: 0 1px 2px rgba(0,0,0,.05);
+  --sh-sm: 0 1px 4px rgba(0,0,0,.07), 0 2px 8px rgba(0,0,0,.04);
+  --sh-md: 0 4px 16px rgba(0,0,0,.09), 0 1px 4px rgba(0,0,0,.05);
+  --sh-lg: 0 12px 40px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
+  --sh-nav: 4px 0 24px rgba(0,0,0,.35);
+
+  /* Radius */
+  --r:  6px;
+  --r2: 10px;
+  --r3: 14px;
+  --r4: 18px;
+
+  /* Sidebar */
+  --sb-w: 240px;
+  --sb-w-collapsed: 64px;
+  --topbar-h: 56px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ════════════════════════════════════════════════
+   LOGIN PAGE
+════════════════════════════════════════════════ */
+#loginPage {
+  min-height: 100vh;
+  display: flex;
+  background: var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Geometric accent lines */
+#loginPage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, transparent 40%, rgba(27,108,168,.12) 100%),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 60px,
+      rgba(255,255,255,.015) 60px,
+      rgba(255,255,255,.015) 61px
+    );
+  pointer-events: none;
+}
+
+#loginPage::after {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(27,108,168,.18) 0%, transparent 70%);
+  top: -200px; right: -200px;
+  pointer-events: none;
+}
+
+.ls { display: flex; width: 100%; position: relative; z-index: 1; }
+
+/* Left brand panel */
+.ll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px 72px;
+  color: #fff;
+  position: relative;
+}
+
+.lb {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 64px;
+}
+
+.lb-icon {
+  width: 48px; height: 48px;
+  background: var(--blue);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 8px 24px rgba(27,108,168,.4);
+}
+
+.lb-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  color: #fff;
+}
+
+.lb-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,.38);
+  margin-top: 2px;
+  letter-spacing: .3px;
+}
+
+.lh {
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -1px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.lh span {
+  background: linear-gradient(90deg, #4DA8DA, #00C896);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ls-text {
+  font-size: 15px;
+  color: rgba(255,255,255,.45);
+  line-height: 1.8;
+  max-width: 380px;
+  margin-bottom: 48px;
+}
+
+.lf { display: flex; flex-direction: column; gap: 14px; }
+
+.lf-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: rgba(255,255,255,.6);
+}
+
+.lf-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 8px rgba(27,108,168,.7);
+  flex-shrink: 0;
+}
+
+/* Login form panel */
+.lr {
+  width: 440px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: rgba(255,255,255,.04);
+  border-left: 1px solid rgba(255,255,255,.06);
+}
+
+.lc {
+  background: var(--surface);
+  border-radius: var(--r4);
+  padding: 44px 40px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.05);
+}
+
+.lc-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 10px;
+}
+
+.lc-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 6px;
+  letter-spacing: -.4px;
+}
+
+.lc-sub {
+  font-size: 13px;
+  color: var(--tmuted);
+  margin-bottom: 32px;
+}
+
+.lfield { margin-bottom: 18px; }
+
+.lfield label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--g700);
+  margin-bottom: 7px;
+  letter-spacing: .2px;
+}
+
+.lfield input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: all .18s;
+  background: var(--surface2);
+  font-family: inherit;
+}
+
+.lfield input:focus {
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(27,108,168,.12);
+}
+
+.lfield input::placeholder { color: var(--g400); }
+
+.lbtn {
+  width: 100%;
+  padding: 13px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--r);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .18s;
+  margin-top: 6px;
+  font-family: inherit;
+  letter-spacing: .2px;
+}
+
+.lbtn:hover {
+  background: var(--blue-d);
+  box-shadow: 0 8px 24px rgba(27,108,168,.4);
+  transform: translateY(-1px);
+}
+
+.lbtn:active { transform: translateY(0); }
+.lbtn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+#loginError {
+  font-size: 12px;
+  color: var(--red);
+  margin-top: 12px;
+  text-align: center;
+  min-height: 16px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .ll { display: none; }
+  .lr { width: 100%; border-left: none; padding: 24px; }
+  .lc { padding: 32px 24px; }
+}
+
+/* ════════════════════════════════════════════════
+   MAIN APP SHELL
+════════════════════════════════════════════════ */
+#mainApp { display: none; }
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR NAVIGATION ── */
+.sidebar {
+  width: var(--sb-w);
+  min-height: 100vh;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  z-index: 300;
+  box-shadow: var(--sh-nav);
+  transition: width .22s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: var(--sb-w-collapsed);
+}
+
+/* Sidebar header */
+.sb-header {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--rim);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+}
+
+.sb-logo {
+  width: 36px; height: 36px;
+  background: var(--blue);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(27,108,168,.4);
+}
+
+.sb-brand {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sb-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: .3px;
+  line-height: 1.2;
+}
+
+.sb-sub {
+  font-size: 10px;
+  color: rgba(255,255,255,.3);
+  margin-top: 2px;
+  letter-spacing: .2px;
+}
+
+/* Nav items */
+.sb-nav {
+  flex: 1;
+  padding: 12px 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.sb-nav::-webkit-scrollbar { display: none; }
+
+.sb-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.22);
+  padding: 12px 10px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.nav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 10px;
+  background: none;
+  border: none;
+  border-radius: var(--r2);
+  color: rgba(255,255,255,.45);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: all .15s;
+  font-family: inherit;
+  position: relative;
+  margin-bottom: 2px;
+}
+
+.nav-btn:hover {
+  background: var(--rim);
+  color: rgba(255,255,255,.85);
+}
+
+.nav-btn.active {
+  background: var(--blue);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(27,108,168,.35);
+}
+
+.nav-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.nav-label { overflow: hidden; flex: 1; }
+
+.nav-badge {
+  background: var(--emerald);
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  letter-spacing: .3px;
+}
+
+/* Scan button at bottom of nav */
+.sb-footer {
+  padding: 12px 10px 16px;
+  border-top: 1px solid var(--rim);
+  flex-shrink: 0;
+}
+
+.nav-scan {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0,200,150,.12);
+  border: 1px solid rgba(0,200,150,.25);
+  border-radius: var(--r2);
+  color: var(--emerald);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .15s;
+  white-space: nowrap;
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.nav-scan:hover {
+  background: rgba(0,200,150,.2);
+  box-shadow: 0 4px 12px rgba(0,200,150,.2);
+}
+
+/* User area at footer */
+.sb-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 6px;
+  overflow: hidden;
+}
+
+.sb-av {
+  width: 32px; height: 32px;
+  background: var(--blue);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,.15);
+}
+
+.sb-user-info { overflow: hidden; flex: 1; }
+
+.sb-username {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-status {
+  font-size: 10px;
+  color: var(--emerald);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.sb-status::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--emerald);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--emerald);
+}
+
+.sb-logout {
+  background: none;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: var(--r);
+  color: rgba(255,255,255,.35);
+  padding: 5px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .15s;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.sb-logout:hover { background: rgba(224,49,49,.15); border-color: rgba(224,49,49,.3); color: #fca5a5; }
+
+/* ── MAIN CONTENT AREA ── */
+.main-wrap {
+  margin-left: var(--sb-w);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left .22s cubic-bezier(.4,0,.2,1);
+}
+
+.sidebar.collapsed ~ .main-wrap {
+  margin-left: var(--sb-w-collapsed);
+}
+
+/* Topbar */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--g200);
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: var(--sh-xs);
+}
+
+.tb-l { display: flex; align-items: center; gap: 14px; }
+
+.tb-toggle {
+  width: 36px; height: 36px;
+  background: var(--g100);
+  border: 1px solid var(--g200);
+  border-radius: var(--r);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--g500);
+  transition: all .15s;
+  font-size: 16px;
+}
+.tb-toggle:hover { background: var(--g200); color: var(--text); }
+
+.tb-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tb-page-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.2px;
+}
+
+.tb-page-sub {
+  font-size: 12px;
+  color: var(--tmuted);
+  padding-left: 8px;
+  border-left: 1px solid var(--g300);
+}
+
+.tb-r { display: flex; align-items: center; gap: 10px; }
+
+.tb-time {
+  font-size: 12px;
+  color: var(--tmuted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .3px;
+}
+
+.tb-divider {
+  width: 1px; height: 24px;
+  background: var(--g200);
+}
+
+/* ── TABS (page content) ── */
+.tab { display: none; padding: 28px 28px; }
+.tab.active { display: block; }
+
+/* ── SECTION HEADER ── */
+.sh {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.sh-title {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -.4px;
+  line-height: 1.2;
+}
+
+.sh-sub {
+  font-size: 13px;
+  color: var(--tmuted);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+.sh-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ════════════════════════════════════════════════
+   DASHBOARD CARDS
+════════════════════════════════════════════════ */
 .dash-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
+
 .dash-card {
-  background: #fff;
+  background: var(--surface);
   border-radius: var(--r3);
-  padding: 20px 18px;
+  padding: 22px 20px 18px;
   border: 1px solid var(--g200);
   box-shadow: var(--sh-sm);
   position: relative;
   overflow: hidden;
-  transition: all 0.2s;
+  transition: all .2s;
+  cursor: default;
 }
-.dash-card:hover { transform: translateY(-4px); box-shadow: var(--sh-md); }
-.dash-card .icon { font-size: 28px; margin-bottom: 6px; }
-.dash-card .label { font-size: 11px; font-weight: 600; color: var(--tmuted); text-transform: uppercase; letter-spacing: .5px; }
-.dash-card .value { font-size: 28px; font-weight: 800; color: var(--navy); line-height: 1.2; margin-top: 2px; }
-.dash-card .sub { font-size: 12px; color: var(--tmuted); margin-top: 2px; }
-.dash-card .bar { position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
-.bar-blue { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-.bar-teal { background: linear-gradient(90deg, #0d9488, #2dd4bf); }
-.bar-amber { background: linear-gradient(90deg, #d97706, #fbbf24); }
-.bar-green { background: linear-gradient(90deg, #16a34a, #4ade80); }
-.bar-purple { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
-.bar-pink { background: linear-gradient(90deg, #db2777, #f472b6); }
 
+.dash-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sh-md);
+  border-color: var(--g300);
+}
+
+/* Left accent stripe instead of top bar */
+.dash-card .bar {
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: var(--r3) 0 0 var(--r3);
+}
+
+.bar-blue   { background: linear-gradient(180deg, #1B6CA8, #4DA8DA); }
+.bar-teal   { background: linear-gradient(180deg, #00C896, #00A07A); }
+.bar-amber  { background: linear-gradient(180deg, #FF9500, #FFCC00); }
+.bar-green  { background: linear-gradient(180deg, #22C55E, #86EFAC); }
+.bar-purple { background: linear-gradient(180deg, #7048E8, #A78BFA); }
+.bar-pink   { background: linear-gradient(180deg, #E879A0, #F9A8D4); }
+
+.dash-card .icon {
+  font-size: 24px;
+  margin-bottom: 10px;
+  padding-left: 8px;
+  opacity: .85;
+}
+
+.dash-card .label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tmuted);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  padding-left: 8px;
+}
+
+.dash-card .value {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1.1;
+  margin-top: 4px;
+  padding-left: 8px;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-card .sub {
+  font-size: 11px;
+  color: var(--tmuted);
+  margin-top: 3px;
+  padding-left: 8px;
+}
+
+/* ── EXTRA STAT CARDS ── */
 .extra-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
+
 .extra-card {
-  background: #fff;
+  background: var(--surface);
   border-radius: var(--r2);
   padding: 14px 16px;
   border: 1px solid var(--g200);
+  box-shadow: var(--sh-xs);
+}
+
+.extra-card .el {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tmuted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.extra-card .ev {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── STAT CARDS (Asset / Stock) ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.sc {
+  background: var(--surface);
+  border-radius: var(--r3);
+  padding: 18px 20px;
+  border: 1px solid var(--g200);
+  box-shadow: var(--sh-sm);
+  position: relative;
+  overflow: hidden;
+  transition: .2s;
+  cursor: default;
+}
+
+.sc:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+
+.sc-bar {
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 100%;
+}
+
+.ab { background: linear-gradient(180deg, #1B6CA8, #4DA8DA); }
+.at { background: linear-gradient(180deg, #00C896, #00A07A); }
+.aa { background: linear-gradient(180deg, #FF9500, #FFCC00); }
+.ag { background: linear-gradient(180deg, #22C55E, #86EFAC); }
+.ar { background: linear-gradient(180deg, #E03131, #FC8181); }
+.ap { background: linear-gradient(180deg, #7048E8, #A78BFA); }
+
+.sc-lbl {
+  font-size: 10px;
+  color: var(--tmuted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  margin-bottom: 8px;
+  padding-left: 6px;
+}
+
+.sc-val {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -1px;
+  line-height: 1;
+  padding-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-note {
+  font-size: 11px;
+  color: var(--tmuted);
+  margin-top: 6px;
+  padding-left: 6px;
+}
+
+/* ── EC Cards ── */
+.ec { background: var(--surface); border-radius: var(--r2); padding: 14px 18px; border: 1px solid var(--g200); box-shadow: var(--sh-xs); }
+.ec-lbl { font-size: 10px; font-weight: 700; color: var(--tmuted); text-transform: uppercase; letter-spacing: .5px; }
+.ec-val { font-size: 22px; font-weight: 800; color: var(--ink); margin-top: 2px; }
+
+/* ════════════════════════════════════════════════
+   CHART CARD
+════════════════════════════════════════════════ */
+.cc {
+  background: var(--surface);
+  border-radius: var(--r3);
+  padding: 24px;
+  border: 1px solid var(--g200);
+  box-shadow: var(--sh-sm);
+  margin-bottom: 24px;
+}
+
+.cc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cc-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.2px;
+}
+
+.cr-tabs { display: flex; gap: 4px; }
+
+.cr-btn {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--g100);
+  color: var(--tmuted);
+  border: 1px solid var(--g200);
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+}
+
+.cr-btn.active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+  box-shadow: 0 2px 8px rgba(27,108,168,.3);
+}
+
+.cr-btn:hover:not(.active) { background: var(--g200); }
+
+/* ════════════════════════════════════════════════
+   PANEL
+════════════════════════════════════════════════ */
+.panel {
+  background: var(--surface);
+  border-radius: var(--r3);
+  border: 1px solid var(--g200);
+  box-shadow: var(--sh-sm);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.ph {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--g100);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface2);
+}
+
+.ph-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.pb { padding: 20px; }
+
+/* ════════════════════════════════════════════════
+   SEARCH INPUT
+════════════════════════════════════════════════ */
+.si {
+  flex: 1;
+  min-width: 200px;
+  padding: 9px 14px 9px 38px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: all .2s;
+  background: var(--surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.868-3.834zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E")
+    no-repeat 12px center;
+  font-family: inherit;
+}
+
+.si:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(27,108,168,.1);
+  background-color: #fff;
+}
+
+/* ════════════════════════════════════════════════
+   FORM ELEMENTS
+════════════════════════════════════════════════ */
+.fg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 12px;
+}
+
+.ff label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--g600);
+  margin-bottom: 5px;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+}
+
+.ff input,
+.ff select,
+.ff textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: all .18s;
+  background: var(--surface);
+  font-family: inherit;
+}
+
+.ff input:focus,
+.ff select:focus,
+.ff textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(27,108,168,.1);
+}
+
+/* ════════════════════════════════════════════════
+   BUTTONS
+════════════════════════════════════════════════ */
+.btn {
+  padding: 9px 18px;
+  border-radius: var(--r);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .15s;
+  text-decoration: none;
+  white-space: nowrap;
+  font-family: inherit;
+  letter-spacing: .1px;
+}
+
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+.btn-blue {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+.btn-blue:hover {
+  background: var(--blue-d);
+  box-shadow: 0 6px 16px rgba(27,108,168,.35);
+}
+
+.btn-teal {
+  background: var(--emerald);
+  color: var(--ink);
+  border-color: var(--emerald);
+  font-weight: 700;
+}
+.btn-teal:hover {
+  background: var(--emerald-d);
+  box-shadow: 0 6px 16px rgba(0,200,150,.3);
+}
+
+.btn-green {
+  background: var(--emerald-l);
+  color: var(--emerald-d);
+  border-color: var(--emerald-b);
+}
+
+.btn-red {
+  background: var(--red-l);
+  color: var(--red);
+  border-color: var(--red-b);
+}
+
+.btn-out {
+  background: var(--surface);
+  color: var(--tsub);
+  border-color: var(--g200);
+}
+.btn-out:hover {
+  background: var(--g100);
+  border-color: var(--g300);
+}
+
+.btn-ghost {
+  background: none;
+  border-color: transparent;
+  color: var(--tmuted);
+}
+.btn-ghost:hover { background: var(--g100); }
+
+.btn-sm { padding: 6px 13px; font-size: 12px; }
+
+/* ════════════════════════════════════════════════
+   TABLE
+════════════════════════════════════════════════ */
+.tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+table { width: 100%; border-collapse: collapse; }
+
+thead tr {
+  background: var(--surface2);
+  border-bottom: 2px solid var(--g200);
+  position: sticky;
+  top: 0;
+}
+
+th {
+  padding: 10px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tmuted);
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+td {
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px solid var(--g100);
+  vertical-align: middle;
+}
+
+tbody tr:hover { background: #F6F9FF; }
+tbody tr:last-child td { border-bottom: none; }
+
+.row-out td { background: #FFFAFA; }
+.out-text { color: var(--red); font-weight: 700; font-size: 12px; }
+
+/* ════════════════════════════════════════════════
+   BADGES
+════════════════════════════════════════════════ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: .2px;
+}
+
+.bg-green  { background: var(--emerald-l); color: var(--emerald-d); border: 1px solid var(--emerald-b); }
+.bg-red    { background: var(--red-l); color: var(--red); border: 1px solid var(--red-b); }
+.bg-amber  { background: var(--amber-l); color: #B86E00; border: 1px solid var(--amber-b); }
+.bg-blue   { background: var(--blue-l); color: var(--blue); border: 1px solid var(--blue-b); }
+.bg-gray   { background: var(--g100); color: var(--g600); border: 1px solid var(--g200); }
+
+/* ════════════════════════════════════════════════
+   MODAL
+════════════════════════════════════════════════ */
+.mo {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,22,40,.65);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.mo.open { display: flex; }
+
+.mb {
+  background: var(--surface);
+  border-radius: var(--r4);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 40px 100px rgba(0,0,0,.3), 0 0 0 1px var(--g200);
+  animation: popIn .2s ease;
+}
+
+.mb-wide { max-width: 560px; }
+
+@keyframes popIn {
+  from { transform: scale(.95) translateY(8px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.mh {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--g100);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mh-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -.2px;
+}
+
+.mc {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--g100);
+  border: 1px solid var(--g200);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--tmuted);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.mc:hover { background: var(--g200); color: var(--text); }
+
+.mbd {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.mf {
+  padding: 14px 24px;
+  border-top: 1px solid var(--g100);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  background: var(--surface2);
+  border-radius: 0 0 var(--r4) var(--r4);
+}
+
+/* ════════════════════════════════════════════════
+   STOCK CONTROLS
+════════════════════════════════════════════════ */
+.sc-row { display: flex; align-items: center; gap: 6px; }
+
+.qty-in {
+  width: 64px;
+  padding: 6px 8px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.qty-in:focus { border-color: var(--blue); }
+
+.typ-sel {
+  padding: 6px 8px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 12px;
+  outline: none;
+  background: var(--surface);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ════════════════════════════════════════════════
+   TIMELINE (History Modal)
+════════════════════════════════════════════════ */
+.hmt { position: relative; padding-left: 40px; }
+.hmt::before {
+  content: '';
+  position: absolute;
+  left: 14px; top: 20px; bottom: 20px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--blue), var(--blue-b));
+  border-radius: 2px;
+}
+
+.hme { position: relative; margin-bottom: 14px; }
+.hme:last-child { margin-bottom: 0; }
+
+.hmd {
+  position: absolute;
+  left: -40px; top: 14px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  z-index: 1;
+  box-shadow: 0 0 0 3px var(--surface);
+}
+
+.hmd-reg  { background: var(--emerald-l); border: 2px solid var(--emerald); color: var(--emerald-d); }
+.hmd-move { background: var(--blue-l); border: 2px solid var(--blue); color: var(--blue); }
+.hmd-rep  { background: var(--red-l); border: 2px solid var(--red); color: var(--red); }
+.hmd-ret  { background: var(--amber-l); border: 2px solid var(--amber); color: #B86E00; }
+.hmd-cur  { background: var(--blue); border: 2px solid #93C5FD; color: #fff; box-shadow: 0 0 0 3px var(--blue-l); }
+
+.hmc {
+  background: var(--surface);
+  border: 1px solid var(--g200);
+  border-radius: var(--r2);
+  padding: 12px 16px;
+  box-shadow: var(--sh-xs);
+}
+.hmc:hover { box-shadow: var(--sh-sm); border-color: var(--g300); }
+.hmc-a { border-color: var(--blue-b); background: #FAFCFF; }
+
+.hmc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px; flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.hm-action { font-size: 13px; font-weight: 700; color: var(--ink); }
+.hm-tag { display: inline-block; margin-left: 6px; background: var(--blue); color: #fff; font-size: 9px; font-weight: 700; letter-spacing: .4px; padding: 2px 7px; border-radius: 20px; vertical-align: middle; }
+.hm-date { font-size: 11px; color: var(--tmuted); background: var(--g50); padding: 2px 8px; border-radius: 20px; border: 1px solid var(--g200); white-space: nowrap; flex-shrink: 0; }
+.hm-route { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 5px 0; }
+.hm-chip { padding: 2px 9px; border-radius: 5px; font-size: 11px; font-weight: 500; background: var(--g100); border: 1px solid var(--g200); color: var(--tsub); }
+.hm-chip-d { background: var(--blue-l); border-color: var(--blue-b); color: var(--blue); }
+.hm-arr { color: var(--tmuted); font-size: 12px; }
+.hm-ur { display: flex; align-items: center; gap: 7px; margin-top: 6px; }
+.hm-av { width: 20px; height: 20px; border-radius: 50%; background: var(--blue-l); color: var(--blue); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 1px solid var(--blue-b); flex-shrink: 0; }
+.hm-rem { margin-top: 7px; background: var(--g100); border-left: 3px solid var(--blue); padding: 6px 10px; border-radius: 0 5px 5px 0; font-size: 11px; color: var(--tsub); }
+.hm-rem-lbl { display: block; font-size: 9px; font-weight: 700; color: var(--tmuted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+
+/* ════════════════════════════════════════════════
+   MONITOR / ASSET LAYOUT
+════════════════════════════════════════════════ */
+.mon-layout {
+  display: flex;
+  gap: 0;
+  min-height: 600px;
+  background: var(--surface);
+  border-radius: var(--r3);
+  border: 1px solid var(--g200);
+  box-shadow: var(--sh-sm);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.mon-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--g100);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface2);
+}
+
+.mon-sb-head {
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid var(--g100);
+}
+
+.mon-sb-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tmuted);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin-bottom: 10px;
+}
+
+.mon-search { position: relative; }
+.mon-search input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 12px;
+  outline: none;
+  background: var(--surface);
+  transition: .2s;
+  color: var(--text);
+  font-family: inherit;
+}
+.mon-search input:focus { border-color: var(--blue); }
+.mon-search::before { content: "🔍"; position: absolute; left: 9px; top: 50%; transform: translateY(-50%); font-size: 11px; pointer-events: none; }
+
+.mon-farm-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.mon-farm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r2);
+  cursor: pointer;
+  transition: .15s;
+  margin-bottom: 2px;
+  border: 1.5px solid transparent;
+}
+.mon-farm-item:hover { background: #fff; border-color: var(--g200); }
+.mon-farm-item.active { background: var(--blue-l); border-color: var(--blue-b); }
+
+.mon-farm-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  background: var(--g100);
+}
+.mon-farm-item.active .mon-farm-icon { background: var(--blue); color: #fff; }
+
+.mon-farm-name { font-size: 12px; font-weight: 600; color: var(--text); flex: 1; word-break: break-word; line-height: 1.3; }
+.mon-farm-item.active .mon-farm-name { color: var(--blue); }
+
+.mon-farm-cnt {
+  flex-shrink: 0;
+  min-width: 22px; height: 18px;
+  padding: 0 6px;
+  border-radius: 20px;
+  background: var(--g200);
+  color: var(--g600);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.mon-farm-item.active .mon-farm-cnt { background: var(--blue); color: #fff; }
+
+.mon-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--tmuted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 8px 10px 4px;
+  border-top: 1px solid var(--g200);
+  margin-top: 4px;
+}
+
+.mon-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.mon-main-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--g100);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+
+.mon-farm-label {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.mon-stat-chip { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.msc-total { background: var(--blue-l); color: var(--blue); border: 1px solid var(--blue-b); }
+.msc-ok    { background: var(--emerald-l); color: var(--emerald-d); border: 1px solid var(--emerald-b); }
+.msc-rep   { background: var(--red-l); color: var(--red); border: 1px solid var(--red-b); }
+
+.mon-table-wrap { flex: 1; overflow: auto; padding: 0; }
+.mon-table-wrap table { border-radius: 0; }
+.mon-table-wrap thead tr { position: sticky; top: 0; z-index: 10; background: var(--surface2); }
+.mon-tb-search { padding: 12px 18px; border-bottom: 1px solid var(--g100); flex-shrink: 0; }
+
+/* ════════════════════════════════════════════════
+   SETTINGS PAGE
+════════════════════════════════════════════════ */
+.sg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.scard {
+  background: var(--surface);
+  border: 1px solid var(--g200);
+  border-radius: var(--r3);
+  padding: 22px;
+  box-shadow: var(--sh-sm);
+  transition: .2s;
+}
+.scard:hover { box-shadow: var(--sh-md); }
+
+.scard h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--g100);
+}
+
+.scard p { font-size: 13px; color: var(--tsub); margin: 5px 0; }
+.scard b { color: var(--ink); }
+
+.s-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+.s-on  { background: var(--emerald); box-shadow: 0 0 6px var(--emerald); }
+.s-ok  { color: var(--emerald-d); font-weight: 600; }
+
+/* ════════════════════════════════════════════════
+   REPORT PAGE
+════════════════════════════════════════════════ */
+.rc {
+  background: var(--surface);
+  border: 1px solid var(--g200);
+  border-radius: var(--r3);
+  padding: 28px;
+  max-width: 560px;
   box-shadow: var(--sh-sm);
 }
-.extra-card .el { font-size: 10px; font-weight: 600; color: var(--tmuted); text-transform: uppercase; letter-spacing: .5px; }
-.extra-card .ev { font-size: 22px; font-weight: 800; color: var(--navy); margin-top: 2px; }
-:root{
-  --navy:#0f172a;--navy2:#1e293b;--blue:#2563eb;--blue-d:#1d4ed8;
-  --blue-l:#eff6ff;--blue-b:#bfdbfe;--teal:#0d9488;--green:#16a34a;
-  --green-bg:#f0fdf4;--green-b:#bbf7d0;--amber:#d97706;--amber-bg:#fffbeb;
-  --red:#dc2626;--red-bg:#fef2f2;--red-b:#fecaca;--purple:#7c3aed;
-  --g50:#f8fafc;--g100:#f1f5f9;--g200:#e2e8f0;--g300:#cbd5e1;
-  --g400:#94a3b8;--g500:#64748b;--g600:#475569;--g700:#334155;
-  --text:#0f172a;--tsub:#475569;--tmuted:#94a3b8;
-  --sh-sm:0 1px 3px rgba(0,0,0,.06);
-  --sh-md:0 4px 16px rgba(0,0,0,.07);
-  --sh-lg:0 10px 40px rgba(0,0,0,.08);
-  --r:8px;--r2:12px;--r3:16px;--r4:20px;
+
+/* ════════════════════════════════════════════════
+   RETURN / ASSET VIEW BUTTONS
+════════════════════════════════════════════════ */
+.ret-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--g100);
+  cursor: pointer;
+  font-size: 13px;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:"Inter",-apple-system,"Segoe UI",sans-serif;background:var(--g100);color:var(--text);font-size:14px;line-height:1.5;visibility:hidden}
+.ret-item:last-child { border-bottom: none; }
+.ret-item input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--blue); }
+.ret-qty {
+  margin-left: auto;
+  background: var(--g100);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--tmuted);
+  flex-shrink: 0;
+}
 
-/* ── LOGIN ── */
-#loginPage{min-height:100vh;display:flex;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 55%,#0f172a 100%);position:relative;overflow:hidden}
-#loginPage::before,#loginPage::after{content:"";position:absolute;border-radius:50%;filter:blur(90px);opacity:.15;pointer-events:none}
-#loginPage::before{width:520px;height:520px;background:#3b82f6;top:-160px;right:-120px}
-#loginPage::after{width:420px;height:420px;background:#818cf8;bottom:-120px;left:-80px}
-.ls{display:flex;width:100%;position:relative;z-index:1}
-.ll{flex:1;display:flex;flex-direction:column;justify-content:center;padding:64px;color:#fff}
-.lb{display:flex;align-items:center;gap:14px;margin-bottom:52px}
-.lb-icon{width:52px;height:52px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;backdrop-filter:blur(8px)}
-.lb-name{font-size:18px;font-weight:700}.lb-sub{font-size:12px;color:rgba(255,255,255,.45);margin-top:2px}
-.lh{font-size:44px;font-weight:800;line-height:1.12;letter-spacing:-.6px;margin-bottom:16px}
-.lh span{background:linear-gradient(90deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.ls-text{font-size:16px;color:rgba(255,255,255,.5);line-height:1.75;max-width:400px}
-.lf{display:flex;flex-direction:column;gap:12px;margin-top:44px}
-.lf-item{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.65)}
-.lf-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#60a5fa,#818cf8);flex-shrink:0}
-.lr{width:460px;display:flex;align-items:center;justify-content:center;padding:40px;background:rgba(255,255,255,.03);backdrop-filter:blur(20px);border-left:1px solid rgba(255,255,255,.06)}
-.lc{background:#fff;border-radius:var(--r4);padding:44px 40px;width:100%;max-width:380px;box-shadow:0 40px 80px rgba(0,0,0,.25)}
-.lc-title{font-size:24px;font-weight:800;color:var(--navy);margin-bottom:6px;letter-spacing:-.3px}
-.lc-sub{font-size:14px;color:var(--tmuted);margin-bottom:32px}
-.lfield{margin-bottom:16px}
-.lfield label{display:block;font-size:13px;font-weight:600;color:var(--g700);margin-bottom:6px}
-.lfield input{width:100%;padding:12px 14px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:14px;color:var(--text);outline:none;transition:.2s;background:#fff}
-.lfield input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-.lfield input::placeholder{color:var(--tmuted)}
-.lbtn{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:700;cursor:pointer;transition:.15s;margin-top:8px}
-.lbtn:hover{background:var(--blue-d);transform:translateY(-1px);box-shadow:0 8px 20px rgba(37,99,235,.35)}
-.lbtn:disabled{opacity:.6;cursor:not-allowed;transform:none}
-#loginError{font-size:13px;color:var(--red);margin-top:10px;text-align:center;min-height:18px}
-@media(max-width:768px){.ll{display:none}.lr{width:100%;border-left:none;padding:20px}}
+.asset-view-btn.active {
+  background: #fff !important;
+  color: var(--blue) !important;
+  box-shadow: var(--sh-sm);
+}
 
-/* ── APP SHELL ── */
-#mainApp{display:none}
-.topbar{background:var(--navy);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 1px 0 rgba(255,255,255,.05),0 4px 16px rgba(0,0,0,.2)}
-.tb-l{display:flex;align-items:center;gap:12px}
-.tb-logo{width:36px;height:36px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.tb-title{color:#fff;font-size:15px;font-weight:700;letter-spacing:-.2px}
-.tb-sub{color:rgba(255,255,255,.38);font-size:11px;margin-top:1px}
-.tb-r{display:flex;align-items:center;gap:12px}
-.tb-user{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.7);font-size:13px}
-.tb-av{width:32px;height:32px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,.15)}
-.tb-out{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
-.tb-out:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5}
-.navbar{background:var(--navy2);padding:0 20px;display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.05);scrollbar-width:none}
-.navbar::-webkit-scrollbar{display:none}
-.nav-btn{padding:14px 18px;background:none;border:none;color:rgba(255,255,255,.42);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;position:relative;transition:.15s;display:flex;align-items:center;gap:7px;border-bottom:2px solid transparent;flex-shrink:0}
-.nav-btn:hover{color:rgba(255,255,255,.8)}
-.nav-btn.active{color:#fff;font-weight:700;border-bottom-color:var(--blue)}
-.nav-scan{margin-left:auto;padding:7px 16px;background:var(--teal);color:#fff;border:none;border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s;align-self:center;flex-shrink:0;text-decoration:none}
-.nav-scan:hover{background:#0f766e;transform:translateY(-1px)}
+/* Spinner */
+.spin {
+  width: 26px; height: 26px;
+  border: 3px solid var(--blue-b);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: rot .7s linear infinite;
+  margin: 0 auto;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
 
-/* ── TABS ── */
-.tab{display:none;padding:28px 24px;max-width:1440px;margin:0 auto}
-.tab.active{display:block}
-@media(max-width:640px){.tab{padding:16px}}
+/* ════════════════════════════════════════════════
+   KEYBOARD SHORTCUT TOOLTIP
+════════════════════════════════════════════════ */
+.kbd {
+  display: inline-block;
+  background: var(--g100);
+  border: 1px solid var(--g300);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--g600);
+  font-family: monospace;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 
-/* ── SECTION HEAD ── */
-.sh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px}
-.sh-title{font-size:20px;font-weight:800;color:var(--navy);letter-spacing:-.3px}
-.sh-sub{font-size:13px;color:var(--tmuted);margin-top:3px}
+.sidebar.collapsed .kbd,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .sb-section-label,
+.sidebar.collapsed .sb-brand,
+.sidebar.collapsed .nav-badge,
+.sidebar.collapsed .sb-user-info,
+.sidebar.collapsed .sb-logout { display: none; }
 
-/* ── STAT CARDS ── */
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:16px;margin-bottom:28px}
-.sc{background:#fff;border-radius:var(--r3);padding:20px;border:1px solid var(--g200);box-shadow:var(--sh-sm);position:relative;overflow:hidden;transition:.2s;cursor:default}
-.sc:hover{transform:translateY(-3px);box-shadow:var(--sh-md)}
-.sc-bar{position:absolute;top:0;left:0;width:100%;height:3px;border-radius:var(--r3) var(--r3) 0 0}
-.ab{background:linear-gradient(90deg,#2563eb,#60a5fa)}.at{background:linear-gradient(90deg,#0d9488,#2dd4bf)}
-.aa{background:linear-gradient(90deg,#d97706,#fbbf24)}.ag{background:linear-gradient(90deg,#16a34a,#4ade80)}
-.ar{background:linear-gradient(90deg,#dc2626,#f87171)}.ap{background:linear-gradient(90deg,#7c3aed,#a78bfa)}
-.sc-lbl{font-size:11px;color:var(--tmuted);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
-.sc-val{font-size:30px;font-weight:800;color:var(--navy);letter-spacing:-.5px;line-height:1}
-.sc-note{font-size:11px;color:var(--tmuted);margin-top:6px}
+.sidebar.collapsed .nav-btn {
+  justify-content: center;
+  padding: 10px;
+}
 
-/* ── EXTRA STAT CARDS (Dashboard extended) ── */
-.extra-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
-.ec{background:#fff;border-radius:var(--r2);padding:14px 18px;border:1px solid var(--g200);box-shadow:var(--sh-sm)}
-.ec-lbl{font-size:10px;font-weight:600;color:var(--tmuted);text-transform:uppercase;letter-spacing:.5px}
-.ec-val{font-size:22px;font-weight:800;color:var(--navy);margin-top:2px}
+.sidebar.collapsed .nav-icon { width: auto; }
 
-/* ── CHART ── */
-.cc{background:#fff;border-radius:var(--r3);padding:24px;border:1px solid var(--g200);box-shadow:var(--sh-sm);margin-bottom:28px}
-.cc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
-.cc-title{font-size:15px;font-weight:700;color:var(--navy)}
-.cr-tabs{display:flex;gap:4px}
-.cr-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;background:var(--g100);color:var(--tmuted);border:1px solid var(--g200);cursor:pointer;transition:.15s}
-.cr-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
-.cr-btn:hover:not(.active){background:var(--g200)}
+.sidebar.collapsed .nav-scan {
+  justify-content: center;
+  padding: 10px;
+}
 
-/* ── PANEL ── */
-.panel{background:#fff;border-radius:var(--r3);border:1px solid var(--g200);box-shadow:var(--sh-sm);overflow:hidden;margin-bottom:24px}
-.ph{padding:14px 20px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.ph-title{font-size:14px;font-weight:700;color:var(--navy)}
-.pb{padding:20px}
+.sidebar.collapsed .sb-user {
+  justify-content: center;
+  padding: 10px;
+}
 
-/* ── SEARCH ── */
-.si{flex:1;min-width:200px;padding:10px 14px 10px 38px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;color:var(--text);outline:none;transition:.2s;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.868-3.834zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E") no-repeat 12px center}
-.si:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.sidebar.collapsed .sb-header {
+  justify-content: center;
+  padding: 14px 8px;
+}
 
-/* ── FORM ── */
-.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px}
-.ff label{display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:5px}
-.ff input,.ff select,.ff textarea{width:100%;padding:9px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;color:var(--text);outline:none;transition:.2s;background:#fff}
-.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+/* ════════════════════════════════════════════════
+   MOBILE RESPONSIVE
+════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  :root { --sb-w: 0px; }
 
-/* ── BUTTONS ── */
-.btn{padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:6px;transition:.15s;text-decoration:none;white-space:nowrap}
-.btn:hover{transform:translateY(-1px)}
-.btn-blue{background:var(--blue);color:#fff;border-color:var(--blue)}
-.btn-blue:hover{background:var(--blue-d);box-shadow:0 6px 16px rgba(37,99,235,.28)}
-.btn-teal{background:var(--teal);color:#fff;border-color:var(--teal)}
-.btn-teal:hover{background:#0f766e}
-.btn-green{background:var(--green-bg);color:var(--green);border-color:var(--green-b)}
-.btn-red{background:var(--red-bg);color:var(--red);border-color:var(--red-b)}
-.btn-out{background:#fff;color:var(--tsub);border-color:var(--g200)}
-.btn-out:hover{background:var(--g50);border-color:var(--g300)}
-.btn-ghost{background:none;border-color:transparent;color:var(--tmuted)}
-.btn-ghost:hover{background:var(--g100)}
-.btn-sm{padding:6px 12px;font-size:12px}
+  .sidebar {
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+  }
 
-/* ── TABLE ── */
-.tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse}
-thead tr{background:var(--g50);border-bottom:2px solid var(--g200)}
-th{padding:11px 14px;font-size:11px;font-weight:700;color:var(--tmuted);text-transform:uppercase;letter-spacing:.5px;text-align:left;white-space:nowrap}
-td{padding:11px 14px;font-size:13px;color:var(--text);border-bottom:1px solid var(--g100);vertical-align:middle}
-tbody tr:hover{background:#fafcff}
-tbody tr:last-child td{border-bottom:none}
-.row-out td{background:#fffafa}
-.out-text{color:var(--red);font-weight:700;font-size:12px}
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    width: 240px;
+  }
 
-/* ── BADGES ── */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
-.bg-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
-.bg-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b)}
-.bg-amber{background:var(--amber-bg);color:var(--amber);border:1px solid #fde68a}
-.bg-blue{background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b)}
-.bg-gray{background:var(--g100);color:var(--g600);border:1px solid var(--g200)}
+  .mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 299;
+    backdrop-filter: blur(2px);
+  }
 
-/* ── MODAL ── */
-.mo{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:20px}
-.mo.open{display:flex}
-.mb{background:#fff;border-radius:var(--r4);width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 40px 80px rgba(0,0,0,.2);animation:popIn .2s ease}
-.mb-wide{max-width:560px}
-@keyframes popIn{from{transform:scale(.93);opacity:0}to{transform:scale(1);opacity:1}}
-.mh{padding:20px 24px 16px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.mh-title{font-size:16px;font-weight:800;color:var(--navy)}
-.mc{width:30px;height:30px;border-radius:50%;background:var(--g100);border:none;cursor:pointer;font-size:16px;color:var(--tmuted);display:flex;align-items:center;justify-content:center;transition:.15s}
-.mc:hover{background:var(--g200);color:var(--text)}
-.mbd{padding:20px 24px;overflow-y:auto;flex:1}
-.mf{padding:16px 24px;border-top:1px solid var(--g100);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+  .mobile-overlay.visible { display: block; }
 
-/* ── STOCK controls ── */
-.sc-row{display:flex;align-items:center;gap:6px}
-.qty-in{width:64px;padding:6px 8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;text-align:center;outline:none}
-.qty-in:focus{border-color:var(--blue)}
-.typ-sel{padding:6px 8px;border:1.5px solid var(--g200);border-radius:6px;font-size:12px;outline:none;background:#fff;cursor:pointer}
+  .main-wrap,
+  .sidebar.collapsed ~ .main-wrap {
+    margin-left: 0;
+  }
 
-/* ── TIMELINE ── */
-.hmt{position:relative;padding-left:40px}
-.hmt::before{content:"";position:absolute;left:14px;top:20px;bottom:20px;width:2px;background:linear-gradient(to bottom,var(--blue),var(--blue-b));border-radius:2px}
-.hme{position:relative;margin-bottom:14px}
-.hme:last-child{margin-bottom:0}
-.hmd{position:absolute;left:-40px;top:14px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1;box-shadow:0 0 0 3px #fff}
-.hmd-reg{background:var(--green-bg);border:2px solid #4ade80;color:var(--green)}
-.hmd-move{background:var(--blue-l);border:2px solid var(--blue);color:var(--blue)}
-.hmd-rep{background:var(--red-bg);border:2px solid #f87171;color:var(--red)}
-.hmd-ret{background:var(--amber-bg);border:2px solid #fbbf24;color:var(--amber)}
-.hmd-cur{background:var(--blue);border:2px solid #93c5fd;color:#fff;box-shadow:0 0 0 3px #dbeafe}
-.hmc{background:#fff;border:1px solid var(--g200);border-radius:var(--r2);padding:12px 16px;box-shadow:var(--sh-sm)}
-.hmc:hover{box-shadow:var(--sh-md);border-color:var(--g300)}
-.hmc-a{border-color:var(--blue-b);background:#fafcff}
-.hmc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-.hm-action{font-size:13px;font-weight:700;color:var(--navy)}
-.hm-tag{display:inline-block;margin-left:6px;background:var(--blue);color:#fff;font-size:9px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:20px;vertical-align:middle}
-.hm-date{font-size:11px;color:var(--tmuted);background:var(--g50);padding:2px 8px;border-radius:20px;border:1px solid var(--g200);white-space:nowrap;flex-shrink:0}
-.hm-route{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:5px 0}
-.hm-chip{padding:2px 9px;border-radius:5px;font-size:11px;font-weight:500;background:var(--g50);border:1px solid var(--g200);color:var(--tsub)}
-.hm-chip-d{background:var(--blue-l);border-color:var(--blue-b);color:var(--blue)}
-.hm-arr{color:var(--tmuted);font-size:12px}
-.hm-ur{display:flex;align-items:center;gap:7px;margin-top:6px}
-.hm-av{width:20px;height:20px;border-radius:50%;background:var(--blue-l);color:var(--blue);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1px solid var(--blue-b);flex-shrink:0}
-.hm-rem{margin-top:7px;background:var(--g50);border-left:3px solid var(--blue);padding:6px 10px;border-radius:0 5px 5px 0;font-size:11px;color:var(--tsub)}
-.hm-rem-lbl{display:block;font-size:9px;font-weight:700;color:var(--tmuted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.spin{width:28px;height:28px;border:3px solid var(--blue-b);border-top-color:var(--blue);border-radius:50%;animation:rot .7s linear infinite;margin:0 auto}
-@keyframes rot{to{transform:rotate(360deg)}}
+  .tab { padding: 16px; }
+  .sh { margin-bottom: 16px; }
+  .sh-title { font-size: 18px; }
+  .dash-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dash-card .value { font-size: 24px; }
+  .extra-grid { grid-template-columns: 1fr 1fr; }
+  .btn, .btn-sm { min-height: 40px; }
+  .mon-layout { flex-direction: column; }
+  .mon-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--g100); }
+  .mon-farm-list { display: flex; flex-direction: row; flex-wrap: wrap; overflow-y: visible; padding: 8px; }
+  .mon-farm-item { flex: none; width: auto; }
+  .sg { grid-template-columns: 1fr; }
+  .tw { overflow-x: auto; }
+  table { font-size: 12px; min-width: 600px; }
+  th, td { padding: 8px 10px; white-space: nowrap; }
+  .mb { max-width: 100%; margin: 10px; }
+  .mf { flex-wrap: wrap; }
+  .sc-row { flex-wrap: wrap; }
+  .ph { flex-direction: column; align-items: stretch; }
+  .si { width: 100%; min-width: unset; }
+  .fg { grid-template-columns: 1fr; }
+}
 
-/* ═══════════════════════════════════════
-   MONITOR FARM — PRO UI (Grouped)
-═══════════════════════════════════════ */
-.mon-layout{display:flex;gap:0;min-height:600px;background:#fff;border-radius:var(--r3);border:1px solid var(--g200);box-shadow:var(--sh-sm);overflow:hidden;margin-bottom:24px}
-
-/* sidebar */
-.mon-sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--g100);display:flex;flex-direction:column;background:var(--g50)}
-.mon-sb-head{padding:16px 18px 10px;border-bottom:1px solid var(--g100)}
-.mon-sb-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px}
-.mon-search{position:relative}
-.mon-search input{width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:12px;outline:none;background:#fff;transition:.2s;color:var(--text)}
-.mon-search input:focus{border-color:var(--blue)}
-.mon-search::before{content:"🔍";position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none}
-.mon-farm-list{flex:1;overflow-y:auto;padding:8px}
-.mon-farm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:.15s;margin-bottom:2px;border:1.5px solid transparent}
-.mon-farm-item:hover{background:#fff;border-color:var(--g200)}
-.mon-farm-item.active{background:var(--blue-l);border-color:var(--blue-b)}
-.mon-farm-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:var(--g100)}
-.mon-farm-item.active .mon-farm-icon{background:var(--blue);color:#fff}
-.mon-farm-name{font-size:13px;font-weight:600;color:var(--text);flex:1;word-break:break-word;line-height:1.3}
-.mon-farm-item.active .mon-farm-name{color:var(--blue)}
-.mon-farm-cnt{flex-shrink:0;min-width:24px;height:20px;padding:0 7px;border-radius:20px;background:var(--g200);color:var(--g600);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.mon-farm-item.active .mon-farm-cnt{background:var(--blue);color:#fff}
-.mon-group-label{font-size:10px;font-weight:700;color:var(--tmuted);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px 4px;border-top:1px solid var(--g200);margin-top:4px}
-
-/* main content */
-.mon-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.mon-main-head{padding:16px 20px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0}
-.mon-farm-label{font-size:16px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px}
-.mon-stats-row{display:flex;gap:10px;flex-wrap:wrap}
-.mon-stat-chip{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
-.msc-total{background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b)}
-.msc-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
-.msc-rep{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b)}
-.mon-table-wrap{flex:1;overflow:auto;padding:0}
-.mon-table-wrap table{border-radius:0}
-.mon-table-wrap thead tr{position:sticky;top:0;z-index:10;background:var(--g50)}
-.mon-tb-search{padding:12px 20px;border-bottom:1px solid var(--g100);flex-shrink:0}
-
-/* responsive sidebar */
-@media(max-width:768px){.mon-layout{flex-direction:column}.mon-sidebar{width:100%;border-right:none;border-bottom:1px solid var(--g100)}.mon-farm-list{display:flex;flex-direction:row;flex-wrap:wrap;overflow-y:visible;padding:8px}.mon-farm-item{flex:none;width:auto}}
-
-/* ── SETTINGS ── */
-.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.scard{background:#fff;border:1px solid var(--g200);border-radius:var(--r3);padding:22px;box-shadow:var(--sh-sm)}
-.scard h3{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.scard p{font-size:13px;color:var(--tsub);margin:5px 0}
-.scard b{color:var(--navy)}
-.s-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
-.s-on{background:#4ade80}
-.s-ok{color:var(--green);font-weight:600}
-
-/* ── REPORT ── */
-.rc{background:#fff;border:1px solid var(--g200);border-radius:var(--r3);padding:28px;max-width:560px;box-shadow:var(--sh-sm)}
-
-/* ── RETURN LIST ── */
-.ret-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--g100);cursor:pointer;font-size:13px}
-.ret-item:last-child{border-bottom:none}
-.ret-item input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
-.ret-qty{margin-left:auto;background:var(--g100);padding:2px 10px;border-radius:20px;font-size:11px;color:var(--tmuted);flex-shrink:0}
-.asset-view-btn.active{background:#fff!important;color:var(--blue)!important;box-shadow:var(--sh-sm)}
+@media (max-width: 480px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .extra-grid { grid-template-columns: 1fr 1fr; }
+  .topbar { padding: 0 14px; }
+  .tb-page-sub { display: none; }
+  .tb-time { display: none; }
+  .tb-divider { display: none; }
+}
 </style>
 </head>
 <body>
 
-<!-- LOGIN --> 
+<!-- ═══════ LOGIN PAGE ═══════ -->
 <div id="loginPage">
- <div class="ls">
-  <div class="ll">
-   <div class="lb">
-    <div class="lb-icon">📦</div>
-    <div><div class="lb-name">INTRANIN</div><div class="lb-sub">Equipment Management System</div></div>
-   </div>
-   <div class="lh"><br><span>ระบบจัดการอุปกรณ์</div>
-   <div class="ls-text">ระบบติดตาม ตรวจสอบ และบริหารอุปกรณ์ แบบ Real-time</div>
-   <div class="lf">
-    <div class="lf-item"><div class="lf-dot"></div>Asset Trackin</div>
-    <div class="lf-item"><div class="lf-dot"></div>Monitor แยกฟาร์มแบบ Real-time</div>
-    <div class="lf-item"><div class="lf-dot"></div>สแกน → ค้นหาอัตโนมัติ</div>
-    <div class="lf-item"><div class="lf-dot"></div>Export รายงาน PDF</div>
-   </div>
+  <div class="ls">
+    <div class="ll">
+      <div class="lb">
+        <div class="lb-icon">📦</div>
+        <div>
+          <div class="lb-name">INTRANIN</div>
+          <div class="lb-sub">Equipment Management System</div>
+        </div>
+      </div>
+      <div class="lh">ระบบบริหาร<br><span>จัดการอุปกรณ์</span></div>
+      <div class="ls-text">ติดตาม ตรวจสอบ และบริหารอุปกรณ์ครบวงจร<br>แบบ Real-time ทุกฟาร์มทุกไซต์งาน</div>
+      <div class="lf">
+        <div class="lf-item"><div class="lf-dot"></div>Asset Tracking แบบ Real-time</div>
+        <div class="lf-item"><div class="lf-dot"></div>Monitor แยกฟาร์มแต่ละไซต์</div>
+        <div class="lf-item"><div class="lf-dot"></div>สแกน QR → ค้นหาอัตโนมัติ</div>
+        <div class="lf-item"><div class="lf-dot"></div>Export รายงาน PDF</div>
+      </div>
+    </div>
+    <div class="lr">
+      <div class="lc">
+        <div class="lc-eyebrow">INTRANIN EMS</div>
+        <div class="lc-title">ยินดีต้อนรับ</div>
+        <div class="lc-sub">กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</div>
+        <div class="lfield">
+          <label>Username</label>
+          <input type="text" id="username" placeholder="กรอก Username" autocomplete="username">
+        </div>
+        <div class="lfield">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="กรอก Password" autocomplete="current-password">
+        </div>
+        <button class="lbtn" id="loginBtn" onclick="login()">เข้าสู่ระบบ</button>
+        <div id="loginError"></div>
+      </div>
+    </div>
   </div>
-  <div class="lr">
-   <div class="lc">
-    <div class="lc-title">ยินดีต้อนรับ </div>
-    <div class="lc-sub">กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</div>
-    <div class="lfield"><label>Username</label><input type="text" id="username" placeholder="กรอก Username" autocomplete="username"></div>
-    <div class="lfield"><label>Password</label><input type="password" id="password" placeholder="กรอก Password" autocomplete="current-password"></div>
-    <button class="lbtn" id="loginBtn" onclick="login()">เข้าสู่ระบบ</button>
-    <div id="loginError"></div>
-   </div>
-  </div>
- </div>
 </div>
 
-<!-- MAIN APP -->
+<!-- ═══════ MAIN APP ═══════ -->
 <div id="mainApp">
- <div class="topbar">
-  <div class="tb-l">
-   <div class="tb-logo">📦</div>
-   <div><div class="tb-title">Equipment Management</div><div class="tb-sub">Asset Tracking System</div></div>
-  </div>
-  <div class="tb-r">
-   <div class="tb-user"><div class="tb-av" id="userAvatar">?</div><span id="currentUser">Loading...</span></div>
-   <button class="tb-out" onclick="logout()">ออกจากระบบ</button>
-  </div>
- </div>
- <div class="navbar">
-  <button class="nav-btn active" id="nav-dashboard" onclick="openTab('dashboard')">📊 Dashboard</button>
-  <button class="nav-btn" id="nav-stock" onclick="openTab('stock')">📦 Stock</button>
-  <button class="nav-btn" id="nav-history" onclick="openTab('history')">📜 ประวัติ</button>
-  <button class="nav-btn" id="nav-asset" onclick="openTab('asset')">🗃️ Asset</button>
-  <button class="nav-btn" id="nav-farmMonitorTab" onclick="openTab('farmMonitorTab')">🌱 Monitor ฟาร์ม</button>
-  <button class="nav-btn" id="nav-report" onclick="openTab('report')">📄 รายงาน</button>
-  <button class="nav-btn" id="nav-settings" onclick="openTab('settings')">⚙️ Settings</button>
-  <a class="nav-scan" href="/scan.html" target="_blank">📷 สแกน QR</a></div>
- <!-- DASHBOARD -->
- <div id="dashboard" class="tab active">
-  <div class="sh">
-    <div><div class="sh-title">📊 Dashboard</div><div class="sh-sub">ภาพรวมระบบ ณ วันนี้</div></div>
-    <button class="btn btn-out btn-sm" onclick="refreshDashboard()">🔄 รีเฟรช</button>
-  </div>
+  <!-- Mobile overlay -->
+  <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileSidebar()"></div>
 
-  <!-- Stat Cards -->
-  <div class="dash-grid">
-    <div class="dash-card"><div class="bar bar-blue"></div><div class="icon">📦</div><div class="label">รายการทั้งหมด</div><div class="value" id="totalItems">—</div><div class="sub">ประเภทอุปกรณ์</div></div>
-    <div class="dash-card"><div class="bar bar-teal"></div><div class="icon">🏢</div><div class="label">คงอยู่ Office</div><div class="value" id="totalOffice">—</div><div class="sub">ชิ้น</div></div>
-    <div class="dash-card"><div class="bar bar-amber"></div><div class="icon">🏭</div><div class="label">อยู่ที่ Site</div><div class="value" id="totalSite">—</div><div class="sub">ชิ้น</div></div>
-    <div class="dash-card"><div class="bar bar-green"></div><div class="icon">📤</div><div class="label">เบิกวันนี้</div><div class="value" id="todayBorrow">—</div><div class="sub">รายการ</div></div>
-    <div class="dash-card"><div class="bar bar-purple"></div><div class="icon">📥</div><div class="label">คืนวันนี้</div><div class="value" id="todayReturn">—</div><div class="sub">รายการ</div></div>
-  </div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo">📦</div>
+      <div class="sb-brand">
+        <div class="sb-name">INTRANIN</div>
+        <div class="sb-sub">Equipment Mgmt</div>
+      </div>
+    </div>
 
-  <!-- Extra Stats (ฟาร์ม) -->
-  <div class="extra-grid">
-   <div class="extra-card"><div class="el">🌱 ฟาร์มทั้งหมด</div><div class="ev" id="totalFarms">—</div></div>
-   <div class="extra-card"><div class="el">🗃️ อุปกรณ์ในฟาร์ม</div><div class="ev" id="totalFarmAssets">—</div></div>
-   <div class="extra-card"><div class="el">📦 อุปกรณ์ในสต็อก</div><div class="ev" id="totalStockAssets">—</div></div>
-   <div class="extra-card"><div class="el">🏆 ฟาร์มติดตั้งมากสุด</div><div class="ev" id="topFarmName" style="font-size:18px;">—</div></div>
-  </div>
+    <nav class="sb-nav">
+      <div class="sb-section-label">หลัก</div>
+      <button class="nav-btn active" id="nav-dashboard" onclick="openTab('dashboard')">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+        <span class="kbd">1</span>
+      </button>
+      <button class="nav-btn" id="nav-stock" onclick="openTab('stock')">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Stock</span>
+        <span class="kbd">2</span>
+      </button>
+      <button class="nav-btn" id="nav-asset" onclick="openTab('asset')">
+        <span class="nav-icon">🗃️</span>
+        <span class="nav-label">Asset Tracking</span>
+        <span class="kbd">3</span>
+      </button>
 
-  <!-- Chart -->
-  <div class="cc">
-   <div class="cc-head">
-    <div class="cc-title">📈 สถิติการเบิก–คืน</div>
-    <div class="cr-tabs">
-     <button class="cr-btn" onclick="setChartRange(7,this)">7 วัน</button>
-     <button class="cr-btn active" onclick="setChartRange(14,this)">14 วัน</button>
-     <button class="cr-btn" onclick="setChartRange(30,this)">30 วัน</button>
-    </div>
-   </div>
-   <canvas id="historyChart" height="90"></canvas>
-  </div>
-</div>
+      <div class="sb-section-label" style="margin-top:6px">ฟาร์ม</div>
+      <button class="nav-btn" id="nav-farmMonitorTab" onclick="openTab('farmMonitorTab')">
+        <span class="nav-icon">🌱</span>
+        <span class="nav-label">Farm Monitor</span>
+        <span class="kbd">4</span>
+      </button>
 
- <!-- STOCK -->
- <div id="stock" class="tab">
-  <div class="sh"><div><div class="sh-title">Stock</div><div class="sh-sub">รายการอุปกรณ์ทั้งหมด</div></div>
-   <button class="btn btn-blue btn-sm" onclick="openModal('addStockModal')">➕ เพิ่มอุปกรณ์</button></div>
-  <div class="panel">
-   <div class="ph">
-    <input class="si" id="search" type="text" placeholder="ค้นหารหัสหรือชื่ออุปกรณ์..." onkeyup="filterTable()" style="max-width:340px">
-    <button class="btn btn-out btn-sm" onclick="_openReturnModal()">🔁 คืนจาก Site</button>
-   </div>
-   <div class="tw">
-    <table><thead><tr><th>รหัส</th><th>รูป</th><th>ชื่ออุปกรณ์</th><th>ทั้งหมด</th><th>Office</th><th>Site</th><th>จัดการ</th></tr></thead>
-    <tbody id="stockBody"></tbody></table>
-   </div>
-  </div>
- </div>
+      <div class="sb-section-label" style="margin-top:6px">รายงาน</div>
+      <button class="nav-btn" id="nav-history" onclick="openTab('history')">
+        <span class="nav-icon">📜</span>
+        <span class="nav-label">ประวัติ</span>
+        <span class="kbd">5</span>
+      </button>
+      <button class="nav-btn" id="nav-report" onclick="openTab('report')">
+        <span class="nav-icon">📄</span>
+        <span class="nav-label">รายงาน</span>
+        <span class="kbd">6</span>
+      </button>
 
- <!-- HISTORY -->
- <div id="history" class="tab">
-  <div class="sh"><div><div class="sh-title">ประวัติการทำรายการ</div><div class="sh-sub">รายการเบิก–คืนทั้งหมด</div></div></div>
-  <div class="panel">
-   <div class="ph">
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:1">
-     <input type="date" id="historyStart" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none">
-     <span style="color:var(--tmuted);font-size:13px">ถึง</span>
-     <input type="date" id="historyEnd" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none">
-     <button class="btn btn-blue btn-sm" onclick="loadHistory()">🔍 ค้นหา</button>
-     <button class="btn btn-out btn-sm" onclick="clearHistoryFilter()">ล้าง</button>
-    </div>
-   </div>
-   <div class="tw">
-    <table><thead><tr><th>วันที่</th><th>รหัส</th><th>ชื่อ</th><th>ประเภท</th><th>จำนวน</th><th>จาก</th><th>ไป</th><th>ผู้ทำรายการ</th></tr></thead>
-    <tbody id="historyBody"></tbody></table>
-   </div>
-  </div>
- </div>
+      <div class="sb-section-label" style="margin-top:6px">ระบบ</div>
+      <button class="nav-btn" id="nav-settings" onclick="openTab('settings')">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+        <span class="kbd">7</span>
+      </button>
+    </nav>
 
- <!-- ASSET Tracking (เหมือน Monitor ฟาร์ม) -->
- <div id="asset" class="tab">
-  <div class="sh">
-   <div><div class="sh-title">🗃️ Asset Tracking</div><div class="sh-sub">ติดตามอุปกรณ์แยกตาม Part Number</div></div>
-   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-  <button class="btn btn-teal btn-sm" onclick="openBulkAddModal()">📦 เพิ่มหลายชิ้น</button>
-    <button class="btn btn-blue btn-sm" onclick="loadPartCatalogForSelect(); openModal('addAssetModal')">➕ เพิ่ม Asset</button>
-    <button class="btn btn-out btn-sm" onclick="loadAssets().then(renderAssetSidebar)">🔄 รีเฟรช</button>
-   </div>
-  </div>
-  <div class="mon-layout">
-   <!-- SIDEBAR: แสดง Part Number -->
-   <div class="mon-sidebar">
-    <div class="mon-sb-head">
-     <div class="mon-sb-title">📦 Part Number</div>
-     <div class="mon-search"><input type="text" id="partSearch" placeholder="ค้นหา Part..." oninput="filterPartList(this.value)"></div>
+    <div class="sb-footer">
+      <a class="nav-scan" href="/scan.html" target="_blank">
+        <span class="nav-icon">📷</span>
+        <span class="nav-label">สแกน QR Code</span>
+      </a>
+      <div class="sb-user" style="margin-top:10px">
+        <div class="sb-av" id="userAvatar">?</div>
+        <div class="sb-user-info">
+          <div class="sb-username" id="currentUser">Loading...</div>
+          <div class="sb-status">Online</div>
+        </div>
+        <button class="sb-logout" onclick="logout()" title="ออกจากระบบ">↪</button>
+      </div>
     </div>
-    <div class="mon-farm-list" id="partList"></div>
-   </div>
-   <!-- MAIN: แสดงอุปกรณ์ของ Part ที่เลือก -->
-   <div class="mon-main">
-    <div class="mon-main-head">
-     <div class="mon-farm-label" id="partLabel">📦 เลือก Part</div>
-     <div class="mon-stats-row" id="partStatsRow"></div>
-    </div>
-    <div class="mon-tb-search">
-     <input class="si" id="partAssetSearch" type="text" placeholder="ค้นหาใน Part ที่เลือก..." onkeyup="filterPartAssets()" style="max-width:360px">
-    </div>
-    <div class="mon-table-wrap">
-     <table><thead><tr><th>Asset ID</th><th>Code</th><th>Name</th><th>Serial</th><th>Status</th><th>Location</th><th>Site</th><th>User</th><th>Trace</th><th>QR</th><th>จัดการ</th></tr></thead>
-     <tbody id="partAssetBody"></tbody></table>
-    </div>
-   </div>
-  </div>
- </div>
+  </aside>
 
- <!-- FARM MONITOR — PRO SIDEBAR LAYOUT (Grouped) -->
- <div id="farmMonitorTab" class="tab">
-  <div class="sh">
-   <div><div class="sh-title">Monitor แยกฟาร์ม</div><div class="sh-sub">ดูอุปกรณ์แยกตามไซต์งาน แบบ Real-time</div></div>
-   <button class="btn btn-out btn-sm" onclick="loadAssets().then(renderMonitorView)">🔄 รีเฟรช</button>
-  </div>
-  <div class="mon-layout">
-   <!-- SIDEBAR -->
-   <div class="mon-sidebar">
-    <div class="mon-sb-head">
-     <div class="mon-sb-title">🏭 ไซต์งาน</div>
-     <div class="mon-search"><input type="text" id="farmSearch" placeholder="ค้นหาฟาร์ม..." oninput="filterFarmList(this.value)"></div>
-    </div>
-    <div class="mon-farm-list" id="monFarmList"></div>
-   </div>
-   <!-- MAIN -->
-   <div class="mon-main">
-    <div class="mon-main-head">
-     <div class="mon-farm-label" id="monFarmLabel">🌐 ทุกฟาร์ม</div>
-     <div class="mon-stats-row" id="monStatsRow"></div>
-    </div>
-    <div class="mon-tb-search">
-     <input class="si" id="monitorAssetSearch" type="text" placeholder="ค้นหาในฟาร์มที่เลือก..." onkeyup="filterMonitorAsset()" style="max-width:360px">
-    </div>
-    <div class="mon-table-wrap">
-     <table><thead><tr><th>Asset ID</th><th>Code</th><th>Name</th><th>Serial</th><th>Status</th><th>Location</th><th>Site</th><th>User</th><th>Trace</th><th>QR</th><th>จัดการ</th></tr></thead>
-     <tbody id="monitorAssetBody"></tbody></table>
-    </div>
-   </div>
-  </div>
- </div>
+  <!-- MAIN CONTENT -->
+  <div class="main-wrap">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="tb-l">
+        <button class="tb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+        <div class="tb-breadcrumb">
+          <span class="tb-page-name" id="tb-page-name">Dashboard</span>
+          <span class="tb-page-sub" id="tb-page-sub">ภาพรวมระบบ</span>
+        </div>
+      </div>
+      <div class="tb-r">
+        <span class="tb-time" id="topbarTime"></span>
+        <div class="tb-divider"></div>
+        <span style="font-size:13px;color:var(--tsub);font-weight:500" id="topbarUser"></span>
+      </div>
+    </header>
 
- <!-- REPORT -->
- <div id="report" class="tab">
-  <div class="sh"><div><div class="sh-title">รายงาน</div><div class="sh-sub">Export ข้อมูลเป็น PDF</div></div></div>
-  <div class="rc">
-   <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--g100)">
-    <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px">📄 Export รายงาน PDF</div>
-    <div style="font-size:13px;color:var(--tmuted)">กรอกข้อมูลให้ครบแล้วกด Export</div>
-   </div>
-   <div class="fg" style="margin-bottom:14px">
-    <div class="ff" style="grid-column:1/-1"><label>หัวข้อรายงาน</label><input id="title" placeholder="รายงานประจำเดือน..."></div>
-    <div class="ff"><label>วันที่เริ่ม</label><input type="date" id="startDate"></div>
-    <div class="ff"><label>วันที่สิ้นสุด</label><input type="date" id="endDate"></div>
-    <div class="ff"><label>ประเภทรายการ</label>
-     <select id="reportType"><option value="all">เบิกและคืน</option><option value="borrow">เฉพาะเบิก</option><option value="return">เฉพาะคืน</option></select>
+    <!-- ═══ DASHBOARD ═══ -->
+    <div id="dashboard" class="tab active">
+      <div class="sh">
+        <div>
+          <div class="sh-title">Dashboard</div>
+          <div class="sh-sub">ภาพรวมระบบ ณ วันนี้</div>
+        </div>
+        <div class="sh-actions">
+          <button class="btn btn-out btn-sm" onclick="refreshDashboard()">🔄 รีเฟรช</button>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="bar bar-blue"></div>
+          <div class="icon">📦</div>
+          <div class="label">รายการทั้งหมด</div>
+          <div class="value" id="totalItems">—</div>
+          <div class="sub">ประเภทอุปกรณ์</div>
+        </div>
+        <div class="dash-card">
+          <div class="bar bar-teal"></div>
+          <div class="icon">🏢</div>
+          <div class="label">คงอยู่ Office</div>
+          <div class="value" id="totalOffice">—</div>
+          <div class="sub">ชิ้น</div>
+        </div>
+        <div class="dash-card">
+          <div class="bar bar-amber"></div>
+          <div class="icon">🏭</div>
+          <div class="label">อยู่ที่ Site</div>
+          <div class="value" id="totalSite">—</div>
+          <div class="sub">ชิ้น</div>
+        </div>
+        <div class="dash-card">
+          <div class="bar bar-green"></div>
+          <div class="icon">📤</div>
+          <div class="label">เบิกวันนี้</div>
+          <div class="value" id="todayBorrow">—</div>
+          <div class="sub">รายการ</div>
+        </div>
+        <div class="dash-card">
+          <div class="bar bar-purple"></div>
+          <div class="icon">📥</div>
+          <div class="label">คืนวันนี้</div>
+          <div class="value" id="todayReturn">—</div>
+          <div class="sub">รายการ</div>
+        </div>
+      </div>
+
+      <div class="extra-grid">
+        <div class="extra-card"><div class="el">🌱 ฟาร์มทั้งหมด</div><div class="ev" id="totalFarms">—</div></div>
+        <div class="extra-card"><div class="el">🗃️ อุปกรณ์ในฟาร์ม</div><div class="ev" id="totalFarmAssets">—</div></div>
+        <div class="extra-card"><div class="el">📦 อุปกรณ์ในสต็อก</div><div class="ev" id="totalStockAssets">—</div></div>
+        <div class="extra-card"><div class="el">🏆 ฟาร์มติดตั้งมากสุด</div><div class="ev" id="topFarmName" style="font-size:18px">—</div></div>
+      </div>
+
+      <div class="cc">
+        <div class="cc-head">
+          <div class="cc-title">📈 สถิติการเบิก–คืน</div>
+          <div class="cr-tabs">
+            <button class="cr-btn" onclick="setChartRange(7,this)">7 วัน</button>
+            <button class="cr-btn active" onclick="setChartRange(14,this)">14 วัน</button>
+            <button class="cr-btn" onclick="setChartRange(30,this)">30 วัน</button>
+          </div>
+        </div>
+        <canvas id="historyChart" height="90"></canvas>
+      </div>
     </div>
-    <div class="ff"><label>ยานพาหนะ</label><input id="vehicle" placeholder="เช่น รถบรรทุก"></div>
-    <div class="ff"><label>จำนวนสถานที่</label><input type="number" id="locationCount" placeholder="3"></div>
-    <div class="ff" style="grid-column:1/-1"><label>รายชื่อสถานที่ (แต่ละบรรทัด)</label><textarea id="locations" rows="3" placeholder="โรงงาน A&#10;โกดัง B" style="resize:vertical"></textarea></div>
-    <div class="ff"><label>จำนวนพนักงาน</label><input type="number" id="employeeCount" placeholder="5"></div>
-    <div class="ff" style="grid-column:1/-1"><label>รายชื่อพนักงาน (แต่ละบรรทัด)</label><textarea id="employees" rows="3" placeholder="สมชาย&#10;สมหญิง" style="resize:vertical"></textarea></div>
-   </div>
-   <button class="btn btn-blue" onclick="exportPDF()" style="width:100%;justify-content:center;padding:13px;font-size:14px">📄 Export PDF</button>
-  </div>
- </div>
 
- <!-- SETTINGS -->
- <div id="settings" class="tab">
-  <div class="sh"><div><div class="sh-title">Settings</div><div class="sh-sub">ข้อมูลระบบและผู้ใช้งาน</div></div></div>
-  <div class="sg">
-   <div class="scard"><h3>👤 User Info</h3><p><b>Username</b></p><p id="settingsUser">—</p><p style="margin-top:8px"><b>สถานะ</b></p><p class="s-ok"><span class="s-dot s-on"></span>Online</p></div>
-   <div class="scard"><h3>⚙️ System Info</h3><p><b>Version</b></p><p>2.0</p><p style="margin-top:6px"><b>Server</b></p><p>Node.js</p><p style="margin-top:6px"><b>Database</b></p><p>Google Sheets</p></div>
-   <div class="scard"><h3>📊 Database</h3><p>เปิดดู Google Sheets ของระบบ</p><button class="btn btn-blue btn-sm" style="margin-top:14px" onclick="openDatabase()">📊 Open Database</button></div>
-   <div class="scard"><h3>📈 System Status</h3><p><b>Server</b></p><p class="s-ok"><span class="s-dot s-on"></span>Running</p><p style="margin-top:6px"><b>Database</b></p><p class="s-ok"><span class="s-dot s-on"></span>Connected</p></div>
-   <div class="scard"><h3>📷 Quick Scan</h3><p>เปิดหน้าสแกน QR Code</p><a class="btn btn-teal btn-sm" href="/scan.html" target="_blank" style="margin-top:14px">📷 เปิด Scanner</a></div>
-   <!-- ====== เพิ่มตรงนี้ ====== -->
-<div class="scard">
-  <h3>📋 Audit Log</h3>
-  <p>ดูประวัติการกระทำทั้งหมดในระบบ (เฉพาะ Admin)</p>
-  <a class="btn btn-blue btn-sm" href="/audit.html" target="_blank" style="margin-top:14px;">📋 เปิด Audit Log</a>
-</div>
-<!-- ========================= -->
-<div class="scard"><h3>💾 Full System Backup</h3><p>สำรองข้อมูลทั้งระบบ (ทุก Sheet) ไปยัง PostgreSQL</p><div style="display:flex;align-items:center;gap:12px;margin-top:14px;"><button class="btn btn-blue btn-sm" onclick="fullSystemBackup()">💾 Backup ทั้งระบบ</button><span id="fullBackupStatus" style="font-size:13px;"></span></div><div style="margin-top:8px;font-size:11px;color:#94a3b8;">📋 Backup ทุก Sheet: Stock, Asset, Transfer, Part, Farm, Users, Audit</div></div>
-<div class="scard"><h3>📊 ดูข้อมูล Backup</h3><p>ดูและ Export ข้อมูลที่ Backup ไว้ใน PostgreSQL</p><div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;"><a class="btn btn-out btn-sm" href="/backup-view.html" target="_blank">📊 เปิดหน้าดู Backup</a></div><div style="margin-top:8px;font-size:11px;color:#94a3b8;">💡 สามารถ Export เป็น CSV ได้จากหน้านั้น</div></div>
-<!-- จัดการฟาร์ม -->
-   <div class="scard"><h3> 🌱จัดการฟาร์ม</h3><p>เพิ่มฟาร์มและโรงเรือนได้ที่นี่</p><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-blue btn-sm" onclick="openModal('addFarmModal')">➕ เพิ่มฟาร์ม</button><button class="btn btn-teal btn-sm" onclick="openModal('addHouseModal')">🏠 เพิ่มโรงเรือน</button><button class="btn btn-out btn-sm" onclick="loadFarmSites();alert('โหลดข้อมูลฟาร์มเรียบร้อย')">🔄 รีเฟรช</button></div></div></div></div>
+    <!-- ═══ STOCK ═══ -->
+    <div id="stock" class="tab">
+      <div class="sh">
+        <div>
+          <div class="sh-title">Stock</div>
+          <div class="sh-sub">รายการอุปกรณ์ทั้งหมด</div>
+        </div>
+        <div class="sh-actions">
+          <button class="btn btn-blue btn-sm" onclick="openModal('addStockModal')">➕ เพิ่มอุปกรณ์</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph">
+          <input class="si" id="search" type="text" placeholder="ค้นหารหัสหรือชื่ออุปกรณ์..." onkeyup="filterTable()" style="max-width:320px">
+          <button class="btn btn-out btn-sm" onclick="_openReturnModal()">🔁 คืนจาก Site</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>รหัส</th><th>รูป</th><th>ชื่ออุปกรณ์</th>
+                <th>ทั้งหมด</th><th>Office</th><th>Site</th><th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="stockBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
+    <!-- ═══ HISTORY ═══ -->
+    <div id="history" class="tab">
+      <div class="sh">
+        <div>
+          <div class="sh-title">ประวัติการทำรายการ</div>
+          <div class="sh-sub">รายการเบิก–คืนทั้งหมด</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:1">
+            <input type="date" id="historyStart" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit">
+            <span style="color:var(--tmuted);font-size:13px">ถึง</span>
+            <input type="date" id="historyEnd" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit">
+            <button class="btn btn-blue btn-sm" onclick="loadHistory()">🔍 ค้นหา</button>
+            <button class="btn btn-out btn-sm" onclick="clearHistoryFilter()">ล้าง</button>
+          </div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>วันที่</th><th>รหัส</th><th>ชื่อ</th><th>ประเภท</th>
+                <th>จำนวน</th><th>จาก</th><th>ไป</th><th>ผู้ทำรายการ</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ASSET TRACKING ═══ -->
+    <div id="asset" class="tab">
+      <div class="sh">
+        <div>
+          <div class="sh-title">Asset Tracking</div>
+          <div class="sh-sub">ติดตามอุปกรณ์แยกตาม Part Number</div>
+        </div>
+        <div class="sh-actions">
+          <button class="btn btn-teal btn-sm" onclick="openBulkAddModal()">📦 เพิ่มหลายชิ้น</button>
+          <button class="btn btn-blue btn-sm" onclick="loadPartCatalogForSelect(); openModal('addAssetModal')">➕ เพิ่ม Asset</button>
+          <button class="btn btn-out btn-sm" onclick="loadAssets().then(renderAssetSidebar)">🔄 รีเฟรช</button>
+        </div>
+      </div>
+      <div class="mon-layout">
+        <div class="mon-sidebar">
+          <div class="mon-sb-head">
+            <div class="mon-sb-title">📦 Part Number</div>
+            <div class="mon-search">
+              <input type="text" id="partSearch" placeholder="ค้นหา Part..." oninput="filterPartList(this.value)">
+            </div>
+          </div>
+          <div class="mon-farm-list" id="partList"></div>
+        </div>
+        <div class="mon-main">
+          <div class="mon-main-head">
+            <div class="mon-farm-label" id="partLabel">📦 เลือก Part</div>
+            <div class="mon-stats-row" id="partStatsRow"></div>
+          </div>
+          <div class="mon-tb-search">
+            <input class="si" id="partAssetSearch" type="text" placeholder="ค้นหาใน Part ที่เลือก..." onkeyup="filterPartAssets()" style="max-width:340px">
+          </div>
+          <div class="mon-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th><th>Code</th><th>Name</th><th>Serial</th>
+                  <th>Status</th><th>Location</th><th>Site</th><th>User</th>
+                  <th>Trace</th><th>QR</th><th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="partAssetBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FARM MONITOR ═══ -->
+    <div id="farmMonitorTab" class="tab">
+      <div class="sh">
+        <div>
+          <div class="sh-title">Farm Monitor</div>
+          <div class="sh-sub">ดูอุปกรณ์แยกตามไซต์งาน แบบ Real-time</div>
+        </div>
+        <div class="sh-actions">
+          <button class="btn btn-out btn-sm" onclick="loadAssets().then(renderMonitorView)">🔄 รีเฟรช</button>
+        </div>
+      </div>
+      <div class="mon-layout">
+        <div class="mon-sidebar">
+          <div class="mon-sb-head">
+            <div class="mon-sb-title">🏭 ไซต์งาน</div>
+            <div class="mon-search">
+              <input type="text" id="farmSearch" placeholder="ค้นหาฟาร์ม..." oninput="filterFarmList(this.value)">
+            </div>
+          </div>
+          <div class="mon-farm-list" id="monFarmList"></div>
+        </div>
+        <div class="mon-main">
+          <div class="mon-main-head">
+            <div class="mon-farm-label" id="monFarmLabel">🌐 ทุกฟาร์ม</div>
+            <div class="mon-stats-row" id="monStatsRow"></div>
+          </div>
+          <div class="mon-tb-search">
+            <input class="si" id="monitorAssetSearch" type="text" placeholder="ค้นหาในฟาร์มที่เลือก..." onkeyup="filterMonitorAsset()" style="max-width:340px">
+          </div>
+          <div class="mon-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asset ID</th><th>Code</th><th>Name</th><th>Serial</th>
+                  <th>Status</th><th>Location</th><th>Site</th><th>User</th>
+                  <th>Trace</th><th>QR</th><th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="monitorAssetBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ REPORT ═══ -->
+    <div id="report" class="tab">
+      <div class="sh">
+        <div>
+          <div class="sh-title">รายงาน</div>
+          <div class="sh-sub">Export ข้อมูลเป็น PDF</div>
+        </div>
+      </div>
+      <div class="rc">
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--g100)">
+          <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px">📄 Export รายงาน PDF</div>
+          <div style="font-size:13px;color:var(--tmuted)">กรอกข้อมูลให้ครบแล้วกด Export</div>
+        </div>
+        <div class="fg" style="margin-bottom:14px">
+          <div class="ff" style="grid-column:1/-1"><label>หัวข้อรายงาน</label><input id="title" placeholder="รายงานประจำเดือน..."></div>
+          <div class="ff"><label>วันที่เริ่ม</label><input type="date" id="startDate"></div>
+          <div class="ff"><label>วันที่สิ้นสุด</label><input type="date" id="endDate"></div>
+          <div class="ff"><label>ประเภทรายการ</label>
+            <select id="reportType">
+              <option value="all">เบิกและคืน</option>
+              <option value="borrow">เฉพาะเบิก</option>
+              <option value="return">เฉพาะคืน</option>
+            </select>
+          </div>
+          <div class="ff"><label>ยานพาหนะ</label><input id="vehicle" placeholder="เช่น รถบรรทุก"></div>
+          <div class="ff"><label>จำนวนสถานที่</label><input type="number" id="locationCount" placeholder="3"></div>
+          <div class="ff" style="grid-column:1/-1"><label>รายชื่อสถานที่ (แต่ละบรรทัด)</label><textarea id="locations" rows="3" placeholder="โรงงาน A&#10;โกดัง B" style="resize:vertical"></textarea></div>
+          <div class="ff"><label>จำนวนพนักงาน</label><input type="number" id="employeeCount" placeholder="5"></div>
+          <div class="ff" style="grid-column:1/-1"><label>รายชื่อพนักงาน (แต่ละบรรทัด)</label><textarea id="employees" rows="3" placeholder="สมชาย&#10;สมหญิง" style="resize:vertical"></textarea></div>
+        </div>
+        <button class="btn btn-blue" onclick="exportPDF()" style="width:100%;justify-content:center;padding:13px;font-size:14px">📄 Export PDF</button>
+      </div>
+    </div>
+
+    <!-- ═══ SETTINGS ═══ -->
+    <div id="settings" class="tab">
+      <div class="sh">
+        <div>
+          <div class="sh-title">Settings</div>
+          <div class="sh-sub">ข้อมูลระบบและผู้ใช้งาน</div>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="scard">
+          <h3>👤 User Info</h3>
+          <p><b>Username</b></p><p id="settingsUser">—</p>
+          <p style="margin-top:8px"><b>สถานะ</b></p>
+          <p class="s-ok"><span class="s-dot s-on"></span>Online</p>
+        </div>
+        <div class="scard">
+          <h3>⚙️ System Info</h3>
+          <p><b>Version</b></p><p>2.0</p>
+          <p style="margin-top:6px"><b>Server</b></p><p>Node.js</p>
+          <p style="margin-top:6px"><b>Database</b></p><p>Google Sheets</p>
+        </div>
+        <div class="scard">
+          <h3>📊 Database</h3>
+          <p>เปิดดู Google Sheets ของระบบ</p>
+          <button class="btn btn-blue btn-sm" style="margin-top:14px" onclick="openDatabase()">📊 Open Database</button>
+        </div>
+        <div class="scard">
+          <h3>📈 System Status</h3>
+          <p><b>Server</b></p><p class="s-ok"><span class="s-dot s-on"></span>Running</p>
+          <p style="margin-top:6px"><b>Database</b></p><p class="s-ok"><span class="s-dot s-on"></span>Connected</p>
+        </div>
+        <div class="scard">
+          <h3>📷 Quick Scan</h3>
+          <p>เปิดหน้าสแกน QR Code</p>
+          <a class="btn btn-teal btn-sm" href="/scan.html" target="_blank" style="margin-top:14px">📷 เปิด Scanner</a>
+        </div>
+        <div class="scard">
+          <h3>📋 Audit Log</h3>
+          <p>ดูประวัติการกระทำทั้งหมดในระบบ (เฉพาะ Admin)</p>
+          <a class="btn btn-blue btn-sm" href="/audit.html" target="_self" style="margin-top:14px">📋 เปิด Audit Log</a>
+        </div>
+        <div class="scard">
+          <h3>💾 Full System Backup</h3>
+          <p>สำรองข้อมูลทั้งระบบ (ทุก Sheet) ไปยัง PostgreSQL</p>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+            <button class="btn btn-blue btn-sm" onclick="fullSystemBackup()">💾 Backup ทั้งระบบ</button>
+            <span id="fullBackupStatus" style="font-size:13px"></span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#94a3b8">📋 Backup ทุก Sheet: Stock, Asset, Transfer, Part, Farm, Users, Audit</div>
+        </div>
+        <div class="scard">
+          <h3>📊 ดูข้อมูล Backup</h3>
+          <p>ดูและ Export ข้อมูลที่ Backup ไว้ใน PostgreSQL</p>
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+            <a class="btn btn-out btn-sm" href="/backup-view.html" target="_self">📊 เปิดหน้าดู Backup</a>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#94a3b8">💡 สามารถ Export เป็น CSV ได้จากหน้านั้น</div>
+        </div>
+        <div class="scard">
+          <h3>🌱 จัดการฟาร์ม</h3>
+          <p>เพิ่มฟาร์มและโรงเรือนได้ที่นี่</p>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn btn-blue btn-sm" onclick="openModal('addFarmModal')">➕ เพิ่มฟาร์ม</button>
+            <button class="btn btn-teal btn-sm" onclick="openModal('addHouseModal')">🏠 เพิ่มโรงเรือน</button>
+            <button class="btn btn-out btn-sm" onclick="loadFarmSites();alert('โหลดข้อมูลฟาร์มเรียบร้อย')">🔄 รีเฟรช</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-wrap -->
 </div><!-- /mainApp -->
 
-<!-- ── MODALS ── -->
+<!-- ════════════════════════ MODALS ════════════════════════ -->
+
 <!-- ADD FARM SITE MODAL -->
 <div class="mo" id="addFarmModal">
- <div class="mb mb-wide">
-  <div class="mh"><div class="mh-title"> 🌱เพิ่มฟาร์มใหม่</div><button class="mc" onclick="closeModal('addFarmModal')">✕</button></div>
-  <div class="mbd">
-   <div class="fg">
-    <div class="ff"><label>รหัสฟาร์ม *</label><input type="text" id="farmSiteId" placeholder="FS001"></div>
-    <div class="ff"><label>ชื่อฟาร์ม *</label><input type="text" id="farmSiteName" placeholder="ฟาร์มไก่ A"></div>
-    <div class="ff"><label>ประเภทฟาร์ม</label>
-     <select id="farmSiteType">
-      <option value="">-- เลือก --</option><option value="สัตว์ปีก">🐔 สัตว์ปีก</option>
-      <option value="สัตว์บก">🐄 สัตว์บก</option><option value="สุกร">🐷 สุกร</option>
-      <option value="อื่นๆ">⚙️ อื่นๆ</option>
-     </select>
+  <div class="mb mb-wide">
+    <div class="mh"><div class="mh-title">🌱 เพิ่มฟาร์มใหม่</div><button class="mc" onclick="closeModal('addFarmModal')">✕</button></div>
+    <div class="mbd">
+      <div class="fg">
+        <div class="ff"><label>รหัสฟาร์ม *</label><input type="text" id="farmSiteId" placeholder="FS001"></div>
+        <div class="ff"><label>ชื่อฟาร์ม *</label><input type="text" id="farmSiteName" placeholder="ฟาร์มไก่ A"></div>
+        <div class="ff"><label>ประเภทฟาร์ม</label>
+          <select id="farmSiteType">
+            <option value="">-- เลือก --</option>
+            <option value="สัตว์ปีก">🐔 สัตว์ปีก</option>
+            <option value="สัตว์บก">🐄 สัตว์บก</option>
+            <option value="สุกร">🐷 สุกร</option>
+            <option value="อื่นๆ">⚙️ อื่นๆ</option>
+          </select>
+        </div>
+        <div class="ff"><label>จังหวัด</label><input type="text" id="farmSiteProvince" placeholder="เชียงใหม่"></div>
+        <div class="ff"><label>ผู้จัดการ</label><input type="text" id="farmSiteManager" placeholder="สมชาย"></div>
+        <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="farmSiteNote" placeholder="..."></div>
+      </div>
     </div>
-    <div class="ff"><label>จังหวัด</label><input type="text" id="farmSiteProvince" placeholder="เชียงใหม่"></div>
-    <div class="ff"><label>ผู้จัดการ</label><input type="text" id="farmSiteManager" placeholder="สมชาย"></div>
-    <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="farmSiteNote" placeholder="..."></div>
-   </div>
+    <div class="mf">
+      <button class="btn btn-out" onclick="closeModal('addFarmModal')">ยกเลิก</button>
+      <button class="btn btn-blue" onclick="addFarmSite()">💾 บันทึก</button>
+    </div>
   </div>
-  <div class="mf"><button class="btn btn-out" onclick="closeModal('addFarmModal')">ยกเลิก</button><button class="btn btn-blue" onclick="addFarmSite()">💾 บันทึก</button></div>
- </div>
 </div>
 
 <!-- ADD FARM HOUSE MODAL -->
 <div class="mo" id="addHouseModal">
- <div class="mb mb-wide">
-  <div class="mh"><div class="mh-title">🏠 เพิ่มโรงเรือน</div><button class="mc" onclick="closeModal('addHouseModal')">✕</button></div>
-  <div class="mbd">
-   <div class="fg">
-    <div class="ff"><label>รหัสโรงเรือน *</label><input type="text" id="houseId" placeholder="H001"></div>
-    <div class="ff"><label>รหัสฟาร์ม *</label><input type="text" id="houseSiteId" placeholder="FS001"></div>
-    <div class="ff"><label>ชื่อโรงเรือน *</label><input type="text" id="houseName" placeholder="โรงเรือน 1"></div>
-    <div class="ff"><label>ประเภท</label>
-     <select id="houseType"><option value="">-- เลือก --</option><option value="ปิด">ปิด</option><option value="เปิด">เปิด</option></select>
+  <div class="mb mb-wide">
+    <div class="mh"><div class="mh-title">🏠 เพิ่มโรงเรือน</div><button class="mc" onclick="closeModal('addHouseModal')">✕</button></div>
+    <div class="mbd">
+      <div class="fg">
+        <div class="ff"><label>รหัสโรงเรือน *</label><input type="text" id="houseId" placeholder="H001"></div>
+        <div class="ff"><label>รหัสฟาร์ม *</label><input type="text" id="houseSiteId" placeholder="FS001"></div>
+        <div class="ff"><label>ชื่อโรงเรือน *</label><input type="text" id="houseName" placeholder="โรงเรือน 1"></div>
+        <div class="ff"><label>ประเภท</label>
+          <select id="houseType"><option value="">-- เลือก --</option><option value="ปิด">ปิด</option><option value="เปิด">เปิด</option></select>
+        </div>
+        <div class="ff"><label>ความจุ</label><input type="text" id="houseCapacity" placeholder="20000"></div>
+        <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="houseNote" placeholder="..."></div>
+      </div>
     </div>
-    <div class="ff"><label>ความจุ</label><input type="text" id="houseCapacity" placeholder="20000"></div>
-    <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="houseNote" placeholder="..."></div>
-   </div>
+    <div class="mf">
+      <button class="btn btn-out" onclick="closeModal('addHouseModal')">ยกเลิก</button>
+      <button class="btn btn-blue" onclick="addFarmHouse()">💾 บันทึก</button>
+    </div>
   </div>
-  <div class="mf"><button class="btn btn-out" onclick="closeModal('addHouseModal')">ยกเลิก</button><button class="btn btn-blue" onclick="addFarmHouse()">💾 บันทึก</button></div>
- </div>
 </div>
 
-<!-- ADD STOCK -->
+<!-- ADD STOCK MODAL -->
 <div class="mo" id="addStockModal">
- <div class="mb">
-  <div class="mh"><div class="mh-title">➕ เพิ่มอุปกรณ์ใหม่</div><button class="mc" onclick="closeModal('addStockModal')">✕</button></div>
-  <div class="mbd">
-   <div class="fg">
-    <div class="ff"><label>รหัสอุปกรณ์</label><input type="text" id="newCode" placeholder="EQ001"></div>
-    <div class="ff"><label>ชื่ออุปกรณ์</label><input type="text" id="newName" placeholder="ชื่ออุปกรณ์"></div>
-    <div class="ff"><label>จำนวน</label><input type="number" id="newQty" placeholder="0"></div>
-    <div class="ff"><label>รูปภาพ</label><input type="file" id="newImage" accept="image/*"></div>
-   </div>
+  <div class="mb">
+    <div class="mh"><div class="mh-title">➕ เพิ่มอุปกรณ์ใหม่</div><button class="mc" onclick="closeModal('addStockModal')">✕</button></div>
+    <div class="mbd">
+      <div class="fg">
+        <div class="ff"><label>รหัสอุปกรณ์</label><input type="text" id="newCode" placeholder="EQ001"></div>
+        <div class="ff"><label>ชื่ออุปกรณ์</label><input type="text" id="newName" placeholder="ชื่ออุปกรณ์"></div>
+        <div class="ff"><label>จำนวน</label><input type="number" id="newQty" placeholder="0"></div>
+        <div class="ff"><label>รูปภาพ</label><input type="file" id="newImage" accept="image/*"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-out" onclick="closeModal('addStockModal')">ยกเลิก</button>
+      <button class="btn btn-blue" onclick="addItem()">💾 บันทึก</button>
+    </div>
   </div>
-  <div class="mf"><button class="btn btn-out" onclick="closeModal('addStockModal')">ยกเลิก</button><button class="btn btn-blue" onclick="addItem()">💾 บันทึก</button></div>
- </div>
 </div>
 
-<!-- ADD ASSET -->
-<!-- ADD ASSET + PART (เพิ่ม Part ใหม่ + Asset 1 ชิ้น) -->
+<!-- ADD ASSET MODAL -->
 <div class="mo" id="addAssetModal">
- <div class="mb mb-wide">
-  <div class="mh"><div class="mh-title">➕ เพิ่ม Part + Asset ใหม่</div><button class="mc" onclick="closeModal('addAssetModal')">✕</button></div>
-  <div class="mbd">
-   <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue)">
-    💡 สร้าง Part ใหม่ในคลัง และเพิ่ม Asset 1 ชิ้น โดย Asset ID จะรันอัตโนมัติ
-   </div>
-   <div class="fg">
-    <!-- Part Number -->
-   <div class="ff"><label>Part Number *</label><input type="text" id="newPartNumber" placeholder="FAN30" oninput="generateSerial()"></div>
-    <div class="ff"><label>ชื่ออุปกรณ์ (Part Name) *</label><input type="text" id="newPartName" placeholder="พัดลมระบายอากาศ"></div>
-    <div class="ff"><label>หมวดหมู่</label><input type="text" id="newPartCategory" placeholder="อุปกรณ์"></div>
-    <div class="ff"><label>หน่วย</label>
-     <select id="newPartUnit"><option value="ชิ้น">ชิ้น</option><option value="ตัว">ตัว</option><option value="ชุด">ชุด</option><option value="เมตร">เมตร</option></select>
+  <div class="mb mb-wide">
+    <div class="mh"><div class="mh-title">➕ เพิ่ม Part + Asset ใหม่</div><button class="mc" onclick="closeModal('addAssetModal')">✕</button></div>
+    <div class="mbd">
+      <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue)">
+        💡 สร้าง Part ใหม่ในคลัง และเพิ่ม Asset 1 ชิ้น โดย Asset ID จะรันอัตโนมัติ
+      </div>
+      <div class="fg">
+        <div class="ff"><label>Part Number *</label><input type="text" id="newPartNumber" placeholder="FAN30" oninput="generateSerial()"></div>
+        <div class="ff"><label>ชื่ออุปกรณ์ (Part Name) *</label><input type="text" id="newPartName" placeholder="พัดลมระบายอากาศ"></div>
+        <div class="ff"><label>หมวดหมู่</label><input type="text" id="newPartCategory" placeholder="อุปกรณ์"></div>
+        <div class="ff"><label>หน่วย</label>
+          <select id="newPartUnit">
+            <option value="ชิ้น">ชิ้น</option><option value="ตัว">ตัว</option>
+            <option value="ชุด">ชุด</option><option value="เมตร">เมตร</option>
+          </select>
+        </div>
+        <div class="ff" style="grid-column:1/-1"><label>คำอธิบาย</label><input type="text" id="newPartDescription" placeholder="รายละเอียดเพิ่มเติม..."></div>
+      </div>
+      <hr style="margin:16px 0;border-color:var(--g200)">
+      <div style="font-size:12px;font-weight:700;color:var(--g600);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">🗃️ ข้อมูล Asset (สร้าง 1 ชิ้น)</div>
+      <div class="fg">
+        <div class="ff"><label>Asset ID</label><input type="text" id="newAssetIdAuto" readonly style="background:var(--surface2);color:var(--g500)"></div>
+        <div class="ff"><label>Serial Number</label><input type="text" id="newAssetSerialAuto" readonly style="background:var(--surface2);color:var(--g500)"></div>
+        <div class="ff"><label>สถานะ</label>
+          <select id="newAssetStatus">
+            <option value="ใช้งานได้">🟢 ใช้งานได้</option>
+            <option value="สำรอง">🟡 สำรอง</option>
+            <option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
+            <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+          </select>
+        </div>
+        <div class="ff"><label>Location</label><input type="text" id="newAssetLocation" placeholder="สถานที่"></div>
+        <div class="ff"><label>Site</label>
+          <select id="newAssetSite" onchange="onSiteSelect(this.value)">
+            <option value="Intranin">🏢 บริษัท Intranin (คลังกลาง)</option>
+          </select>
+        </div>
+        <div class="ff"><label>ผู้ใช้งาน</label><input type="text" id="newAssetUser" placeholder="ชื่อผู้ดูแล"></div>
+      </div>
     </div>
-    <div class="ff" style="grid-column:1/-1"><label>คำอธิบาย</label><input type="text" id="newPartDescription" placeholder="รายละเอียดเพิ่มเติม..."></div>
-   </div>
-   <hr style="margin:16px 0;border-color:var(--g200)">
-   <div style="font-size:13px;font-weight:700;color:var(--g600);margin-bottom:8px">🗃️ ข้อมูล Asset (สร้าง 1 ชิ้น)</div>
-   <div class="fg">
-    <div class="ff"><label>Asset ID</label><input type="text" id="newAssetIdAuto" readonly style="background:var(--g50);color:var(--g500)"></div>
-    <div class="ff"><label>Serial Number</label><input type="text" id="newAssetSerialAuto" readonly style="background:var(--g50);color:var(--g500)"></div>
-    <div class="ff"><label>สถานะ</label>
-     <select id="newAssetStatus">
-      <option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option>
-      <option value="ส่งซ่อม">🔴 ส่งซ่อม</option><option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
-     </select>
+    <div class="mf">
+      <button class="btn btn-out" onclick="closeModal('addAssetModal')">ยกเลิก</button>
+      <button class="btn btn-blue" onclick="addAssetNewPart()">💾 เพิ่ม Part + Asset</button>
     </div>
-    <div class="ff"><label>Location</label><input type="text" id="newAssetLocation" placeholder="สถานที่"></div>
-    <div class="ff"><label>Site</label>
-      <select id="newAssetSite" onchange="onSiteSelect(this.value)">
-        <option value="Intranin">🏢 บริษัท Intranin (คลังกลาง)</option>
-      </select>
-    </div>
-    <div class="ff"><label>ผู้ใช้งาน</label><input type="text" id="newAssetUser" placeholder="ชื่อผู้ดูแล"></div>
-   </div>
   </div>
-  <div class="mf"><button class="btn btn-out" onclick="closeModal('addAssetModal')">ยกเลิก</button><button class="btn btn-blue" onclick="addAssetNewPart()">💾 เพิ่ม Part + Asset</button></div>
- </div>
 </div>
 
-<!-- RETURN -->
+<!-- RETURN MODAL -->
 <div class="mo" id="returnModal">
- <div class="mb">
-  <div class="mh"><div class="mh-title">📦 คืนอุปกรณ์จาก Site</div><button class="mc" onclick="closeModal('returnModal')">✕</button></div>
-  <div class="mbd">
-   <div style="display:flex;gap:8px;margin-bottom:14px">
-    <button class="btn btn-out btn-sm" onclick="selectAllReturn()">เลือกทั้งหมด</button>
-    <button class="btn btn-ghost btn-sm" onclick="unselectAllReturn()">ยกเลิกเลือก</button>
-   </div>
-   <div id="returnList"></div>
+  <div class="mb">
+    <div class="mh"><div class="mh-title">📦 คืนอุปกรณ์จาก Site</div><button class="mc" onclick="closeModal('returnModal')">✕</button></div>
+    <div class="mbd">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-out btn-sm" onclick="selectAllReturn()">เลือกทั้งหมด</button>
+        <button class="btn btn-ghost btn-sm" onclick="unselectAllReturn()">ยกเลิกเลือก</button>
+      </div>
+      <div id="returnList"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-out" onclick="closeModal('returnModal')">ยกเลิก</button>
+      <button class="btn btn-blue" onclick="confirmSelectedReturn()">ยืนยันการคืน</button>
+    </div>
   </div>
-  <div class="mf"><button class="btn btn-out" onclick="closeModal('returnModal')">ยกเลิก</button><button class="btn btn-blue" onclick="confirmSelectedReturn()">ยืนยันการคืน</button></div>
- </div>
 </div>
 
-<!-- TRANSFER MODAL — PRO VERSION -->
+<!-- TRANSFER MODAL -->
 <div class="mo" id="transferModal">
- <div class="mb" style="max-width:600px">
-  <div class="mh"><div class="mh-title">🚚 โอนย้ายอุปกรณ์</div><button class="mc" onclick="closeModal('transferModal')">✕</button></div>
-  <div class="mbd" style="padding:16px 20px">
-   <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
-    <span style="font-size:12px;color:var(--g600);font-weight:600">Serial Number</span>
-    <span id="transferSerialTitle" style="font-family:monospace;color:var(--blue);font-weight:700;font-size:13px">-</span>
-   </div>
-   <input type="hidden" id="oldSiteName"><input type="hidden" id="oldLocation">
-   <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📋 ประเภทการโอนย้าย</div>
-   <div class="fg" style="margin-bottom:14px">
-    <div class="ff"><label>ประเภท</label>
-     <select id="transferAction" onchange="onActionChange()">
-      <option value="ย้ายตำแหน่งอุปกรณ์">🚚 ย้ายตำแหน่ง</option>
-      <option value="ส่งซ่อมภายนอก">🔧 ส่งซ่อมภายนอก</option>
-      <option value="โอนย้ายผู้รับผิดชอบ">👤 โอนย้ายผู้รับผิดชอบ</option>
-      <option value="คืนคลังสินค้า">📦 คืนคลังสินค้า</option>
-     </select>
+  <div class="mb" style="max-width:600px">
+    <div class="mh"><div class="mh-title">🚚 โอนย้ายอุปกรณ์</div><button class="mc" onclick="closeModal('transferModal')">✕</button></div>
+    <div class="mbd" style="padding:16px 20px">
+      <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--g600);font-weight:600">Serial Number</span>
+        <span id="transferSerialTitle" style="font-family:monospace;color:var(--blue);font-weight:700;font-size:13px">-</span>
+      </div>
+      <input type="hidden" id="oldSiteName"><input type="hidden" id="oldLocation">
+      <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📋 ประเภทการโอนย้าย</div>
+      <div class="fg" style="margin-bottom:14px">
+        <div class="ff"><label>ประเภท</label>
+          <select id="transferAction" onchange="onActionChange()">
+            <option value="ย้ายตำแหน่งอุปกรณ์">🚚 ย้ายตำแหน่ง</option>
+            <option value="ส่งซ่อมภายนอก">🔧 ส่งซ่อมภายนอก</option>
+            <option value="โอนย้ายผู้รับผิดชอบ">👤 โอนย้ายผู้รับผิดชอบ</option>
+            <option value="คืนคลังสินค้า">📦 คืนคลังสินค้า</option>
+          </select>
+        </div>
+        <div class="ff"><label>สถานะใหม่</label>
+          <select id="transferStatus">
+            <option value="ใช้งานได้">🟢 ใช้งานได้</option>
+            <option value="สำรอง">🟡 สำรอง</option>
+            <option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
+            <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+          </select>
+        </div>
+      </div>
+      <div id="farmSection">
+        <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">🌱 ข้อมูลฟาร์มปลายทาง</div>
+        <div class="fg" style="margin-bottom:8px">
+          <div class="ff"><label>ประเภทฟาร์ม</label>
+            <select id="trFarmType" onchange="onFarmTypeChange()">
+              <option value="">-- เลือกประเภท --</option>
+              <option value="สัตว์ปีก">🐔 สัตว์ปีก</option>
+              <option value="สัตว์บก">🐄 สัตว์บก</option>
+              <option value="สุกร">🐷 สุกร</option>
+              <option value="อื่นๆ">⚙️ อื่นๆ / ไม่ใช่ฟาร์ม</option>
+            </select>
+          </div>
+          <div class="ff"><label>ประเภทสัตว์</label>
+            <select id="trAnimalType">
+              <option value="">-- ไม่ระบุ --</option>
+              <option value="ไก่เนื้อ">ไก่เนื้อ</option><option value="ไก่ไข่">ไก่ไข่</option>
+              <option value="เป็ด">เป็ด</option><option value="วัว">วัว</option>
+              <option value="แพะ/แกะ">แพะ/แกะ</option><option value="สุกร">สุกร</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:8px">
+          <div class="ff"><label>ไซต์งาน / ฟาร์ม *</label>
+            <select id="trSiteSelect" onchange="onSiteSelect(this.value)" style="margin-bottom:6px">
+              <option value="">-- เลือกฟาร์ม --</option>
+            </select>
+            <input type="text" id="transferSite" placeholder="หรือพิมพ์ชื่อฟาร์มเอง">
+          </div>
+          <div class="ff"><label>โรงเรือน</label>
+            <select id="trHouseSelect" onchange="onHouseSelect(this.value)" style="margin-bottom:6px">
+              <option value="">-- เลือกไซต์ก่อน --</option>
+            </select>
+            <input type="text" id="trHouseName" placeholder="หรือพิมพ์ชื่อโรงเรือนเอง">
+            <input type="hidden" id="trHouseId">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:8px">
+          <div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="transferLocation" placeholder="เช่น คอก A แถว 3"></div>
+          <div class="ff"><label>จำนวนโรงเรือน (ในฟาร์มนี้)</label><input type="number" id="trHouseCount" placeholder="4" min="0"></div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;margin-top:4px">👤 ผู้รับผิดชอบ</div>
+      <div class="fg">
+        <div class="ff" style="grid-column:1/-1"><label>ชื่อผู้รับผิดชอบ</label><input type="text" id="transferUser" placeholder="ชื่อผู้ดูแลอุปกรณ์"></div>
+        <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="transferRemark" placeholder="เหตุผล / รายละเอียดเพิ่มเติม..."></div>
+      </div>
     </div>
-    <div class="ff"><label>สถานะใหม่</label>
-     <select id="transferStatus">
-      <option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option>
-      <option value="ส่งซ่อม">🔴 ส่งซ่อม</option><option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
-     </select>
+    <div class="mf">
+      <button class="btn btn-out" onclick="closeModal('transferModal')">ยกเลิก</button>
+      <button class="btn btn-blue" onclick="submitTransferAction()">💾 ยืนยันโอนย้าย</button>
     </div>
-   </div>
-   <div id="farmSection">
-    <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">🌱 ข้อมูลฟาร์มปลายทาง</div>
-    <div class="fg" style="margin-bottom:8px">
-     <div class="ff"><label>ประเภทฟาร์ม</label>
-      <select id="trFarmType" onchange="onFarmTypeChange()">
-       <option value="">-- เลือกประเภท --</option>
-       <option value="สัตว์ปีก">🐔 สัตว์ปีก</option>
-       <option value="สัตว์บก">🐄 สัตว์บก</option>
-       <option value="สุกร">🐷 สุกร</option>
-       <option value="อื่นๆ">⚙️ อื่นๆ / ไม่ใช่ฟาร์ม</option>
-      </select>
-     </div>
-     <div class="ff"><label>ประเภทสัตว์</label>
-      <select id="trAnimalType">
-       <option value="">-- ไม่ระบุ --</option>
-       <option value="ไก่เนื้อ">ไก่เนื้อ</option><option value="ไก่ไข่">ไก่ไข่</option>
-       <option value="เป็ด">เป็ด</option><option value="วัว">วัว</option>
-       <option value="แพะ/แกะ">แพะ/แกะ</option><option value="สุกร">สุกร</option>
-       <option value="อื่นๆ">อื่นๆ</option>
-      </select>
-     </div>
-    </div>
-    <div class="fg" style="margin-bottom:8px">
-     <div class="ff"><label>ไซต์งาน / ฟาร์ม *</label>
-      <select id="trSiteSelect" onchange="onSiteSelect(this.value)" style="margin-bottom:6px">
-       <option value="">-- เลือกฟาร์ม --</option>
-      </select>
-      <input type="text" id="transferSite" placeholder="หรือพิมพ์ชื่อฟาร์มเอง">
-     </div>
-     <div class="ff"><label>โรงเรือน</label>
-      <select id="trHouseSelect" onchange="onHouseSelect(this.value)" style="margin-bottom:6px">
-       <option value="">-- เลือกไซต์ก่อน --</option>
-      </select>
-      <input type="text" id="trHouseName" placeholder="หรือพิมพ์ชื่อโรงเรือนเอง">
-      <input type="hidden" id="trHouseId">
-     </div>
-    </div>
-    <div class="fg" style="margin-bottom:8px">
-     <div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="transferLocation" placeholder="เช่น คอก A แถว 3"></div>
-     <div class="ff"><label>จำนวนโรงเรือน (ในฟาร์มนี้)</label><input type="number" id="trHouseCount" placeholder="4" min="0"></div>
-    </div>
-   </div>
-   <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;margin-top:4px">👤 ผู้รับผิดชอบ</div>
-   <div class="fg">
-    <div class="ff" style="grid-column:1/-1"><label>ชื่อผู้รับผิดชอบ</label><input type="text" id="transferUser" placeholder="ชื่อผู้ดูแลอุปกรณ์"></div>
-    <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="transferRemark" placeholder="เหตุผล / รายละเอียดเพิ่มเติม..."></div>
-   </div>
   </div>
-  <div class="mf"><button class="btn btn-out" onclick="closeModal('transferModal')">ยกเลิก</button><button class="btn btn-blue" onclick="submitTransferAction()">💾 ยืนยันโอนย้าย</button></div>
- </div>
 </div>
 
 <!-- BULK ADD ASSET MODAL -->
 <div class="mo" id="bulkAddModal">
- <div class="mb mb-wide">
-  <div class="mh"><div class="mh-title">📦 เพิ่ม Asset หลายชิ้น</div><button class="mc" onclick="closeModal('bulkAddModal')">✕</button></div>
-  <div class="mbd">
-   <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue)">
-    💡 Serial จะถูกสร้างอัตโนมัติ: <strong>SN-{PartNumber}-{DDMMYYYY}-0001</strong>
-   </div>
-   <div class="fg">
-    <div class="ff"><label>Part Number *</label>
-     <select id="bulkPartSelect" onchange="onBulkPartChange(this.value)"><option value="">-- เลือก Part --</option></select>
+  <div class="mb mb-wide">
+    <div class="mh"><div class="mh-title">📦 เพิ่ม Asset หลายชิ้น</div><button class="mc" onclick="closeModal('bulkAddModal')">✕</button></div>
+    <div class="mbd">
+      <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue)">
+        💡 Serial จะถูกสร้างอัตโนมัติ: <strong>SN-{PartNumber}-{DDMMYYYY}-0001</strong>
+      </div>
+      <div class="fg">
+        <div class="ff"><label>Part Number *</label>
+          <select id="bulkPartSelect" onchange="onBulkPartChange(this.value)"><option value="">-- เลือก Part --</option></select>
+        </div>
+        <div class="ff"><label>หรือพิมพ์ Part Number ใหม่</label>
+          <input type="text" id="bulkPartNumber" placeholder="FAN30" oninput="document.getElementById('bulkPartSelect').value=''">
+        </div>
+        <div class="ff" style="grid-column:1/-1"><label>ชื่ออุปกรณ์ *</label><input type="text" id="bulkPartName" placeholder="ชื่ออุปกรณ์"></div>
+        <div class="ff"><label>จำนวนที่เพิ่ม *</label><input type="number" id="bulkQty" placeholder="10" min="1" max="200"></div>
+        <div class="ff"><label>สถานะ</label>
+          <select id="bulkStatus"><option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option></select>
+        </div>
+        <div class="ff"><label>ไซต์งาน (Site)</label>
+          <select id="bulkSite"><option value="Intranin">🏢 บริษัท Intranin (คลังกลาง)</option></select>
+        </div>
+        <div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="bulkLocation" placeholder="เช่น ห้องเก็บอุปกรณ์ A"></div>
+        <div class="ff"><label>ผู้รับผิดชอบ</label><input type="text" id="bulkUser" placeholder="ชื่อผู้ดูแล"></div>
+        <div id="bulkPreview" style="grid-column:1/-1;background:var(--surface2);border:1px solid var(--g200);border-radius:var(--r);padding:12px;font-size:13px;color:var(--g600);display:none"></div>
+      </div>
     </div>
-    <div class="ff"><label>หรือพิมพ์ Part Number ใหม่</label>
-     <input type="text" id="bulkPartNumber" placeholder="FAN30" oninput="document.getElementById('bulkPartSelect').value=''">
+    <div class="mf">
+      <button class="btn btn-out" onclick="closeModal('bulkAddModal')">ยกเลิก</button>
+      <button class="btn btn-out btn-sm" onclick="previewBulkSerial()">👁 Preview</button>
+      <button class="btn btn-blue" onclick="confirmBulkAdd()">💾 เพิ่ม Asset</button>
     </div>
-    <div class="ff" style="grid-column:1/-1"><label>ชื่ออุปกรณ์ *</label><input type="text" id="bulkPartName" placeholder="ชื่ออุปกรณ์"></div>
-    <div class="ff"><label>จำนวนที่เพิ่ม *</label><input type="number" id="bulkQty" placeholder="10" min="1" max="200"></div>
-    <div class="ff"><label>สถานะ</label>
-     <select id="bulkStatus"><option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option></select>
-    </div>
-    <div class="ff"><label>ไซต์งาน (Site)</label>
-      <select id="bulkSite"><option value="Intranin">🏢 บริษัท Intranin (คลังกลาง)</option></select>
-    </div>
-    <div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="bulkLocation" placeholder="เช่น ห้องเก็บอุปกรณ์ A"></div>
-    <div class="ff"><label>ผู้รับผิดชอบ</label><input type="text" id="bulkUser" placeholder="ชื่อผู้ดูแล"></div>
-    <div id="bulkPreview" style="grid-column:1/-1;background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:12px;font-size:13px;color:var(--g600);display:none"></div>
-   </div>
   </div>
-  <div class="mf">
-   <button class="btn btn-out" onclick="closeModal('bulkAddModal')">ยกเลิก</button>
-   <button class="btn btn-out btn-sm" onclick="previewBulkSerial()">👁 Preview</button>
-   <button class="btn btn-blue" onclick="confirmBulkAdd()">💾 เพิ่ม Asset</button>
-  </div>
- </div>
 </div>
 
 <!-- HISTORY MODAL -->
 <div class="mo" id="historyModal">
- <div class="mb mb-wide">
-  <div class="mh">
-   <div class="mh-title">📋 ประวัติ <span style="font-family:monospace;font-size:12px;font-weight:600;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b);padding:2px 10px;border-radius:20px;margin-left:6px" id="modalSerialTitle">-</span></div>
-   <button class="mc" onclick="closeModal('historyModal')">✕</button>
+  <div class="mb mb-wide">
+    <div class="mh">
+      <div class="mh-title">
+        📋 ประวัติ
+        <span style="font-family:monospace;font-size:12px;font-weight:600;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b);padding:2px 10px;border-radius:20px;margin-left:6px" id="modalSerialTitle">-</span>
+      </div>
+      <button class="mc" onclick="closeModal('historyModal')">✕</button>
+    </div>
+    <div style="padding:8px 24px 10px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;background:var(--surface2)">
+      <span style="font-size:13px;color:var(--tmuted)" id="hmCounter"></span>
+      <a id="hmExtLink" href="#" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px;padding:4px 12px;border-radius:6px;border:1px solid var(--blue-b);background:var(--blue-l)">📋 ดูหน้าเต็ม →</a>
+    </div>
+    <div class="mbd">
+      <div id="historyModalBody"><div style="text-align:center;padding:40px 0"><div class="spin"></div></div></div>
+    </div>
   </div>
-  <div style="padding:8px 24px 10px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;background:var(--g50)">
-   <span style="font-size:13px;color:var(--tmuted)" id="hmCounter"></span>
-   <a id="hmExtLink" href="#" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px;padding:4px 12px;border-radius:6px;border:1px solid var(--blue-b);background:var(--blue-l)">📋 ดูหน้าเต็ม →</a>
-  </div>
-  <div class="mbd"><div id="historyModalBody"><div style="text-align:center;padding:40px 0"><div class="spin"></div></div></div></div>
- </div>
 </div>
 
-<!-- ========== SCRIPTS ========== -->
+<!-- ════════════════════════ SCRIPTS ════════════════════════ -->
+<script>
+// ── UI helpers ──
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    sb.classList.toggle('mobile-open');
+    document.getElementById('mobileOverlay').classList.toggle('visible');
+  } else {
+    sb.classList.toggle('collapsed');
+  }
+}
+
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('mobileOverlay').classList.remove('visible');
+}
+
+// Topbar clock
+function updateClock() {
+  const el = document.getElementById('topbarTime');
+  if (!el) return;
+  const now = new Date();
+  el.textContent = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Page metadata for topbar
+const PAGE_META = {
+  dashboard:     { name: 'Dashboard',         sub: 'ภาพรวมระบบ' },
+  stock:         { name: 'Stock',              sub: 'รายการอุปกรณ์' },
+  history:       { name: 'ประวัติ',            sub: 'รายการเบิก–คืน' },
+  asset:         { name: 'Asset Tracking',     sub: 'ติดตามตาม Part Number' },
+  farmMonitorTab:{ name: 'Farm Monitor',       sub: 'Real-time ทุกไซต์' },
+  report:        { name: 'รายงาน',             sub: 'Export PDF' },
+  settings:      { name: 'Settings',           sub: 'ข้อมูลระบบ' },
+};
+
+// openTab wrapper — updates topbar breadcrumb
+const _origOpenTab = window.openTab;
+function openTabUI(tabId) {
+  // Update nav buttons
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nav-' + tabId);
+  if (nb) nb.classList.add('active');
+
+  // Update topbar
+  const meta = PAGE_META[tabId] || {};
+  const pn = document.getElementById('tb-page-name');
+  const ps = document.getElementById('tb-page-sub');
+  if (pn) pn.textContent = meta.name || tabId;
+  if (ps) ps.textContent = meta.sub || '';
+
+  // Close mobile sidebar
+  closeMobileSidebar();
+
+  // Call original if exists
+  if (typeof _origOpenTab === 'function') _origOpenTab(tabId);
+}
+
+// Patch openTab if not yet defined (will be overridden by app.js)
+if (typeof openTab === 'undefined') {
+  window.openTab = openTabUI;
+}
+
+// Keyboard shortcuts Ctrl+1..7
+document.addEventListener('keydown', function(e) {
+  if (!e.ctrlKey && !e.metaKey) return;
+  const tabs = ['dashboard','stock','asset','farmMonitorTab','history','report','settings'];
+  const idx = parseInt(e.key) - 1;
+  if (idx >= 0 && idx < tabs.length) {
+    e.preventDefault();
+    if (typeof openTab === 'function') openTab(tabs[idx]);
+    openTabUI(tabs[idx]);
+  }
+});
+
+// openModal / closeModal helpers (in case app.js needs them early)
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+// Sync currentUser to topbar
+const _userObs = new MutationObserver(function() {
+  const u = document.getElementById('currentUser');
+  const tu = document.getElementById('topbarUser');
+  if (u && tu) tu.textContent = u.textContent;
+});
+document.addEventListener('DOMContentLoaded', function() {
+  const u = document.getElementById('currentUser');
+  if (u) _userObs.observe(u, { childList: true, characterData: true, subtree: true });
+});
+</script>
+
 <script src="/js/config.js"></script>
 <script src="/js/common.js"></script>
 <script src="/js/auth.js"></script>
@@ -818,34 +2528,19 @@ tbody tr:last-child td{border-bottom:none}
 <script src="/js/farm.js"></script>
 <script src="/js/history.js"></script>
 <script src="/js/app.js"></script>
-<!-- ================================ -->
+<script src="/js/fullSystemBackup.js"></script>
 
 <script>
-async function fullSystemBackup() {
-  const status = document.getElementById('fullBackupStatus');
-  if (!status) return;
-  status.textContent = '⏳ กำลัง Backup ทั้งระบบ...';
-  status.style.color = '#f59e0b';
-  try {
-    const res = await fetch('/api/full-backup', { method: 'POST' });
-    const data = await res.json();
-    if (data.success) {
-      status.textContent = `✅ Backup ทั้งระบบสำเร็จ (${data.totalRows} แถว)`;
-      status.style.color = '#16a34a';
-    } else {
-      status.textContent = '❌ Backup ล้มเหลว: ' + (data.error || '');
-      status.style.color = '#dc2626';
-    }
-  } catch (e) {
-    status.textContent = '❌ Error: ' + e.message;
-    status.style.color = '#dc2626';
+// Post-load: patch openTab to also update breadcrumb
+document.addEventListener('DOMContentLoaded', function() {
+  const realOpenTab = window.openTab;
+  if (realOpenTab && realOpenTab !== openTabUI) {
+    window.openTab = function(tabId) {
+      realOpenTab(tabId);
+      openTabUI(tabId);
+    };
   }
-}
-
-function openDatabase() {
-  window.open("https://docs.google.com/spreadsheets/d/1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE", "_blank");
-}
+});
 </script>
-
 </body>
 </html>
