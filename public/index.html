@@ -1669,9 +1669,365 @@ tbody tr:last-child td { border-bottom: none; }
   .tb-time { display: none; }
   .tb-divider { display: none; }
 }
+
+/* ════════════════════════════════════════════════
+   ENHANCEMENTS v2.1 — Pagination, Toast, Filters,
+   Empty State, Scroll-to-Top, Accessibility
+════════════════════════════════════════════════ */
+
+/* ── PAGINATION ── */
+.pg-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--g100);
+  background: var(--surface2);
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.pg-info {
+  color: var(--tmuted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pg-info strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.pg-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pg-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--r);
+  border: 1.5px solid var(--g200);
+  background: var(--surface);
+  color: var(--tsub);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.pg-btn:hover:not(:disabled):not(.active) {
+  background: var(--g100);
+  border-color: var(--g300);
+}
+
+.pg-btn.active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+  box-shadow: 0 2px 8px rgba(27,108,168,.25);
+}
+
+.pg-btn:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
+
+.pg-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tmuted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pg-size select {
+  padding: 4px 8px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 12px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.pg-size select:focus { border-color: var(--blue); }
+
+/* ── TOAST NOTIFICATIONS ── */
+#toastContainer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--r2);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.08);
+  min-width: 260px;
+  max-width: 380px;
+  pointer-events: all;
+  animation: toastIn .28s cubic-bezier(.4,0,.2,1) forwards;
+  transition: opacity .25s, transform .25s;
+}
+
+.toast.hiding {
+  animation: toastOut .25s ease forwards;
+}
+
+@keyframes toastIn {
+  from { transform: translateX(32px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toastOut {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(32px); opacity: 0; }
+}
+
+.toast-icon { font-size: 16px; flex-shrink: 0; }
+.toast-msg  { flex: 1; line-height: 1.4; }
+
+.toast-success { background: #0A3B2A; border: 1px solid rgba(0,200,150,.3); }
+.toast-error   { background: #3B0A0A; border: 1px solid rgba(224,49,49,.3); }
+.toast-info    { background: #0A1E3B; border: 1px solid rgba(27,108,168,.3); }
+.toast-warn    { background: #3B2800; border: 1px solid rgba(255,149,0,.3); }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--g200);
+  background: var(--surface);
+  color: var(--tsub);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.filter-chip:hover { border-color: var(--g300); background: var(--g100); }
+
+.filter-chip.active {
+  background: var(--blue-l);
+  color: var(--blue);
+  border-color: var(--blue-b);
+}
+
+/* Filter select in panel header */
+.ph-filter {
+  padding: 7px 12px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 12px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+
+.ph-filter:focus { border-color: var(--blue); }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--tmuted);
+}
+
+.empty-state-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: .5;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--g600);
+  margin-bottom: 6px;
+}
+
+.empty-state-sub {
+  font-size: 13px;
+  color: var(--tmuted);
+  line-height: 1.6;
+}
+
+/* ── SCROLL TO TOP ── */
+#scrollTopBtn {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  opacity: 0;
+  z-index: 500;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+  font-family: inherit;
+  pointer-events: none;
+}
+
+#scrollTopBtn.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+#scrollTopBtn:hover { background: var(--blue); }
+
+/* ── TOOLTIP ── */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: var(--r);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+}
+
+[data-tip]:hover::after { opacity: 1; }
+
+/* ── MOBILE CARD VIEW (tables on mobile) ── */
+@media (max-width: 600px) {
+  /* Pagination compact */
+  .pg-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .pg-btns { justify-content: center; }
+  .pg-size { justify-content: center; }
+
+  /* Toast full-width on mobile */
+  #toastContainer {
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .toast {
+    min-width: unset;
+    max-width: 100%;
+  }
+
+  /* Scroll to top closer to bottom on mobile */
+  #scrollTopBtn { bottom: 80px; }
+
+  /* Buttons larger on mobile for easier tapping */
+  .btn { min-height: 44px; padding: 10px 18px; }
+  .btn-sm { min-height: 40px; }
+}
+
+/* ── LOADING SKELETON ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--g100) 25%, var(--g200) 37%, var(--g100) 63%);
+  background-size: 400px 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: var(--r);
+  display: block;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+/* ── EXPORT BUTTON HIGHLIGHT ── */
+.btn-export {
+  background: var(--emerald-l);
+  color: var(--emerald-d);
+  border-color: var(--emerald-b);
+}
+
+.btn-export:hover {
+  background: var(--emerald-d);
+  color: #fff;
+  border-color: var(--emerald-d);
+  box-shadow: 0 4px 12px rgba(0,200,150,.3);
+}
+
+/* ── FOCUS VISIBLE (Accessibility) ── */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
 </style>
 </head>
 <body>
+<!-- ── Toast Notification Container ── -->
+<div id="toastContainer" role="status" aria-live="polite" aria-atomic="false"></div>
+
+<!-- ── Scroll To Top Button ── -->
+<button id="scrollTopBtn" onclick="scrollToTop()" aria-label="เลื่อนขึ้นด้านบน">
+  ↑ ขึ้นบน
+</button>
 
 <!-- ═══════ LOGIN PAGE ═══════ -->
 <div id="loginPage">
@@ -1794,7 +2150,7 @@ tbody tr:last-child td { border-bottom: none; }
     <!-- TOPBAR -->
     <header class="topbar">
       <div class="tb-l">
-        <button class="tb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+        <button class="tb-toggle" onclick="toggleSidebar()" title="Toggle sidebar" aria-label="เปิด/ปิดเมนู">☰</button>
         <div class="tb-breadcrumb">
           <span class="tb-page-name" id="tb-page-name">Dashboard</span>
           <span class="tb-page-sub" id="tb-page-sub">ภาพรวมระบบ</span>
@@ -1890,7 +2246,13 @@ tbody tr:last-child td { border-bottom: none; }
       </div>
       <div class="panel">
         <div class="ph">
-          <input class="si" id="search" type="text" placeholder="ค้นหารหัสหรือชื่ออุปกรณ์..." onkeyup="filterTable()" style="max-width:320px">
+          <input class="si" id="search" type="text" placeholder="ค้นหารหัสหรือชื่ออุปกรณ์..." onkeyup="filterTable()" style="max-width:280px" aria-label="ค้นหาสต็อก">
+          <select class="ph-filter" id="stockSiteFilter" onchange="applyStockFilters()" aria-label="กรองตาม Site">
+            <option value="">ทุก Site</option>
+            <option value="office">Office (คลังกลาง)</option>
+            <option value="site">อยู่ที่ Site</option>
+          </select>
+          <button class="btn btn-export btn-sm" onclick="exportStockCSV()" aria-label="Export Stock เป็น CSV">📥 Export CSV</button>
           <button class="btn btn-out btn-sm" onclick="_openReturnModal()">🔁 คืนจาก Site</button>
         </div>
         <div class="tw">
@@ -1903,6 +2265,20 @@ tbody tr:last-child td { border-bottom: none; }
             </thead>
             <tbody id="stockBody"></tbody>
           </table>
+        </div>
+        <!-- Stock Pagination -->
+        <div class="pg-wrap" id="stockPagination" style="display:none">
+          <div class="pg-info" id="stockPgInfo"></div>
+          <div class="pg-btns" id="stockPgBtns"></div>
+          <div class="pg-size">
+            แสดง
+            <select id="stockPgSize" onchange="changePageSize('stock', this.value)" aria-label="จำนวนแถวต่อหน้า">
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            รายการ/หน้า
+          </div>
         </div>
       </div>
     </div>
@@ -1918,12 +2294,19 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="panel">
         <div class="ph">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:1">
-            <input type="date" id="historyStart" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit">
+            <input type="date" id="historyStart" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit" aria-label="วันที่เริ่มต้น">
             <span style="color:var(--tmuted);font-size:13px">ถึง</span>
-            <input type="date" id="historyEnd" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit">
+            <input type="date" id="historyEnd" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit" aria-label="วันที่สิ้นสุด">
+            <select class="ph-filter" id="historyTypeFilter" onchange="applyHistoryFilters()" aria-label="กรองประเภทรายการ">
+              <option value="">ทุกประเภท</option>
+              <option value="เบิก">เบิก</option>
+              <option value="คืน">คืน</option>
+              <option value="โอนย้าย">โอนย้าย</option>
+            </select>
             <button class="btn btn-blue btn-sm" onclick="loadHistory()">🔍 ค้นหา</button>
             <button class="btn btn-out btn-sm" onclick="clearHistoryFilter()">ล้าง</button>
           </div>
+          <button class="btn btn-export btn-sm" onclick="exportHistoryCSV()" aria-label="Export ประวัติเป็น CSV">📥 Export CSV</button>
         </div>
         <div class="tw">
           <table>
@@ -1935,6 +2318,20 @@ tbody tr:last-child td { border-bottom: none; }
             </thead>
             <tbody id="historyBody"></tbody>
           </table>
+        </div>
+        <!-- History Pagination -->
+        <div class="pg-wrap" id="historyPagination" style="display:none">
+          <div class="pg-info" id="historyPgInfo"></div>
+          <div class="pg-btns" id="historyPgBtns"></div>
+          <div class="pg-size">
+            แสดง
+            <select id="historyPgSize" onchange="changePageSize('history', this.value)" aria-label="จำนวนแถวต่อหน้า">
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            รายการ/หน้า
+          </div>
         </div>
       </div>
     </div>
@@ -1968,7 +2365,8 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="mon-stats-row" id="partStatsRow"></div>
           </div>
           <div class="mon-tb-search">
-            <input class="si" id="partAssetSearch" type="text" placeholder="ค้นหาใน Part ที่เลือก..." onkeyup="filterPartAssets()" style="max-width:340px">
+            <input class="si" id="partAssetSearch" type="text" placeholder="ค้นหาใน Part ที่เลือก..." onkeyup="filterPartAssets()" style="max-width:340px" aria-label="ค้นหา Asset">
+            <button class="btn btn-export btn-sm" onclick="exportAssetCSV('part')" style="margin-left:8px" aria-label="Export Asset CSV">📥 CSV</button>
           </div>
           <div class="mon-table-wrap">
             <table>
@@ -1981,6 +2379,20 @@ tbody tr:last-child td { border-bottom: none; }
               </thead>
               <tbody id="partAssetBody"></tbody>
             </table>
+          </div>
+          <!-- Asset Pagination -->
+          <div class="pg-wrap" id="assetPagination" style="display:none">
+            <div class="pg-info" id="assetPgInfo"></div>
+            <div class="pg-btns" id="assetPgBtns"></div>
+            <div class="pg-size">
+              แสดง
+              <select id="assetPgSize" onchange="changePageSize('asset', this.value)" aria-label="จำนวนแถวต่อหน้า">
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              รายการ/หน้า
+            </div>
           </div>
         </div>
       </div>
@@ -2013,7 +2425,14 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="mon-stats-row" id="monStatsRow"></div>
           </div>
           <div class="mon-tb-search">
-            <input class="si" id="monitorAssetSearch" type="text" placeholder="ค้นหาในฟาร์มที่เลือก..." onkeyup="filterMonitorAsset()" style="max-width:340px">
+            <input class="si" id="monitorAssetSearch" type="text" placeholder="ค้นหาในฟาร์มที่เลือก..." onkeyup="filterMonitorAsset()" style="max-width:300px" aria-label="ค้นหา Asset ในฟาร์ม">
+            <select class="ph-filter" id="monitorStatusFilter" onchange="filterMonitorAsset()" style="margin-left:8px" aria-label="กรองตาม Status">
+              <option value="">ทุกสถานะ</option>
+              <option value="ใช้งานได้">ใช้งานได้</option>
+              <option value="ซ่อมแซม">ซ่อมแซม</option>
+              <option value="สำรอง">สำรอง</option>
+            </select>
+            <button class="btn btn-export btn-sm" onclick="exportAssetCSV('monitor')" style="margin-left:8px" aria-label="Export Farm Monitor CSV">📥 CSV</button>
           </div>
           <div class="mon-table-wrap">
             <table>
@@ -2026,6 +2445,20 @@ tbody tr:last-child td { border-bottom: none; }
               </thead>
               <tbody id="monitorAssetBody"></tbody>
             </table>
+          </div>
+          <!-- Farm Monitor Pagination -->
+          <div class="pg-wrap" id="monitorPagination" style="display:none">
+            <div class="pg-info" id="monitorPgInfo"></div>
+            <div class="pg-btns" id="monitorPgBtns"></div>
+            <div class="pg-size">
+              แสดง
+              <select id="monitorPgSize" onchange="changePageSize('monitor', this.value)" aria-label="จำนวนแถวต่อหน้า">
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              รายการ/หน้า
+            </div>
           </div>
         </div>
       </div>
@@ -2517,6 +2950,390 @@ document.addEventListener('DOMContentLoaded', function() {
   const u = document.getElementById('currentUser');
   if (u) _userObs.observe(u, { childList: true, characterData: true, subtree: true });
 });
+
+/* ════════════════════════════════════════════════
+   ENHANCEMENTS v2.1
+   Pagination · Toast · CSV Export · Filters
+   Scroll-to-Top · Accessibility helpers
+════════════════════════════════════════════════ */
+
+// ── TOAST NOTIFICATIONS ──
+function showToast(message, type = 'info', duration = 3500) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warn: '⚠️' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span class="toast-msg"></span>`;
+  toast.querySelector('.toast-msg').textContent = message; // safe text injection
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('hiding');
+    setTimeout(() => toast.remove(), 260);
+  }, duration);
+}
+window.showToast = showToast;
+
+// ── SCROLL TO TOP ──
+function scrollToTop() {
+  const activeTab = document.querySelector('.tab.active');
+  if (activeTab) activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+window.scrollToTop = scrollToTop;
+
+function _handleScrollVisibility() {
+  const btn = document.getElementById('scrollTopBtn');
+  if (!btn) return;
+  const scrolled = window.scrollY || document.documentElement.scrollTop;
+  if (scrolled > 300) btn.classList.add('visible');
+  else btn.classList.remove('visible');
+}
+window.addEventListener('scroll', _handleScrollVisibility, { passive: true });
+
+// ── GENERIC PAGINATION ENGINE ──
+// Each table/section gets its own state. We re-render a "page slice" of
+// an already-filtered array, and draw page-number controls.
+const _pgState = {
+  stock:   { page: 1, size: 20 },
+  history: { page: 1, size: 20 },
+  asset:   { page: 1, size: 20 },
+  monitor: { page: 1, size: 20 }
+};
+
+function changePageSize(key, size) {
+  _pgState[key].size = parseInt(size, 10) || 20;
+  _pgState[key].page = 1;
+  _rerenderPaginated(key);
+}
+window.changePageSize = changePageSize;
+
+function goToPage(key, page) {
+  _pgState[key].page = page;
+  _rerenderPaginated(key);
+  // Scroll the relevant panel into view smoothly for long tables
+  const wraps = { stock: 'stockPagination', history: 'historyPagination', asset: 'assetPagination', monitor: 'monitorPagination' };
+  const el = document.getElementById(wraps[key]);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+window.goToPage = goToPage;
+
+// Renders pagination controls (info text + numbered buttons) into a container
+function renderPaginationControls(key, totalItems) {
+  const wrapIds = { stock: 'stockPagination', history: 'historyPagination', asset: 'assetPagination', monitor: 'monitorPagination' };
+  const infoIds = { stock: 'stockPgInfo', history: 'historyPgInfo', asset: 'assetPgInfo', monitor: 'monitorPgInfo' };
+  const btnIds  = { stock: 'stockPgBtns', history: 'historyPgBtns', asset: 'assetPgBtns', monitor: 'monitorPgBtns' };
+
+  const wrap = document.getElementById(wrapIds[key]);
+  const infoEl = document.getElementById(infoIds[key]);
+  const btnsEl = document.getElementById(btnIds[key]);
+  if (!wrap || !infoEl || !btnsEl) return;
+
+  const state = _pgState[key];
+  const totalPages = Math.max(1, Math.ceil(totalItems / state.size));
+  if (state.page > totalPages) state.page = totalPages;
+  if (state.page < 1) state.page = 1;
+
+  if (totalItems === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+
+  const startItem = (state.page - 1) * state.size + 1;
+  const endItem = Math.min(state.page * state.size, totalItems);
+  infoEl.innerHTML = `แสดง <strong>${startItem}-${endItem}</strong> จาก <strong>${totalItems}</strong> รายการ`;
+
+  // Build page buttons: prev, numbers (windowed), next
+  let html = `<button class="pg-btn" ${state.page === 1 ? 'disabled' : ''} onclick="goToPage('${key}',${state.page - 1})" aria-label="หน้าก่อนหน้า">‹</button>`;
+
+  const windowSize = 5;
+  let startPage = Math.max(1, state.page - Math.floor(windowSize / 2));
+  let endPage = Math.min(totalPages, startPage + windowSize - 1);
+  startPage = Math.max(1, endPage - windowSize + 1);
+
+  if (startPage > 1) {
+    html += `<button class="pg-btn" onclick="goToPage('${key}',1)">1</button>`;
+    if (startPage > 2) html += `<span style="padding:0 4px;color:var(--tmuted)">…</span>`;
+  }
+  for (let p = startPage; p <= endPage; p++) {
+    html += `<button class="pg-btn ${p === state.page ? 'active' : ''}" onclick="goToPage('${key}',${p})" aria-current="${p === state.page ? 'page' : 'false'}">${p}</button>`;
+  }
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) html += `<span style="padding:0 4px;color:var(--tmuted)">…</span>`;
+    html += `<button class="pg-btn" onclick="goToPage('${key}',${totalPages})">${totalPages}</button>`;
+  }
+  html += `<button class="pg-btn" ${state.page === totalPages ? 'disabled' : ''} onclick="goToPage('${key}',${state.page + 1})" aria-label="หน้าถัดไป">›</button>`;
+  btnsEl.innerHTML = html;
+}
+window.renderPaginationControls = renderPaginationControls;
+
+// Slices an array according to current page/size for a given key
+function paginateArray(key, arr) {
+  const state = _pgState[key];
+  const start = (state.page - 1) * state.size;
+  return arr.slice(start, start + state.size);
+}
+window.paginateArray = paginateArray;
+
+// Cache of last-known full (filtered) datasets per table, so page nav can re-slice
+const _pgDataCache = { stock: [], history: [], asset: [], monitor: [] };
+
+function _rerenderPaginated(key) {
+  const renderers = {
+    stock:   () => _renderStockPage(_pgDataCache.stock),
+    history: () => _renderHistoryPage(_pgDataCache.history),
+    asset:   () => _renderAssetPage(_pgDataCache.asset),
+    monitor: () => _renderMonitorPage(_pgDataCache.monitor)
+  };
+  if (renderers[key]) renderers[key]();
+}
+
+// ── EMPTY STATE HELPER ──
+function emptyStateHTML(colspan, icon, title, sub) {
+  return `<tr><td colspan="${colspan}"><div class="empty-state">
+    <div class="empty-state-icon">${icon}</div>
+    <div class="empty-state-title">${title}</div>
+    <div class="empty-state-sub">${sub}</div>
+  </div></td></tr>`;
+}
+window.emptyStateHTML = emptyStateHTML;
+
+// ── CSV EXPORT HELPERS ──
+function downloadCSV(filename, rows) {
+  // rows: array of arrays. Escapes quotes/commas, adds BOM for Thai/Excel compatibility.
+  const csvContent = rows.map(row =>
+    row.map(cell => {
+      const val = (cell === null || cell === undefined) ? '' : String(cell);
+      if (/[",\n]/.test(val)) return '"' + val.replace(/"/g, '""') + '"';
+      return val;
+    }).join(',')
+  ).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+window.downloadCSV = downloadCSV;
+
+function exportStockCSV() {
+  try {
+    const rows = [['รหัส', 'ชื่ออุปกรณ์', 'ทั้งหมด', 'Office', 'Site']];
+    const tbody = document.getElementById('stockBody');
+    if (!tbody) { showToast('ไม่พบข้อมูล Stock', 'error'); return; }
+    const trs = tbody.querySelectorAll('tr');
+    if (!trs.length) { showToast('ไม่มีข้อมูลให้ Export', 'warn'); return; }
+    trs.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      if (tds.length < 6) return; // skip empty-state rows
+      rows.push([
+        tds[0]?.textContent.trim() || '',
+        tds[2]?.textContent.trim() || '',
+        tds[3]?.textContent.trim() || '',
+        tds[4]?.textContent.trim() || '',
+        tds[5]?.textContent.trim() || ''
+      ]);
+    });
+    if (rows.length === 1) { showToast('ไม่มีข้อมูลให้ Export', 'warn'); return; }
+    downloadCSV(`stock_export_${_todayStamp()}.csv`, rows);
+    showToast('Export Stock CSV สำเร็จ', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('เกิดข้อผิดพลาดในการ Export', 'error');
+  }
+}
+window.exportStockCSV = exportStockCSV;
+
+function exportHistoryCSV() {
+  try {
+    const rows = [['วันที่', 'รหัส', 'ชื่อ', 'ประเภท', 'จำนวน', 'จาก', 'ไป', 'ผู้ทำรายการ']];
+    const tbody = document.getElementById('historyBody');
+    if (!tbody) { showToast('ไม่พบข้อมูลประวัติ', 'error'); return; }
+    const trs = tbody.querySelectorAll('tr');
+    if (!trs.length) { showToast('ไม่มีข้อมูลให้ Export', 'warn'); return; }
+    trs.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      if (tds.length < 8) return;
+      rows.push(Array.from(tds).slice(0, 8).map(td => td.textContent.trim()));
+    });
+    if (rows.length === 1) { showToast('ไม่มีข้อมูลให้ Export', 'warn'); return; }
+    downloadCSV(`history_export_${_todayStamp()}.csv`, rows);
+    showToast('Export ประวัติ CSV สำเร็จ', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('เกิดข้อผิดพลาดในการ Export', 'error');
+  }
+}
+window.exportHistoryCSV = exportHistoryCSV;
+
+function exportAssetCSV(which) {
+  try {
+    const bodyId = which === 'monitor' ? 'monitorAssetBody' : 'partAssetBody';
+    const tbody = document.getElementById(bodyId);
+    if (!tbody) { showToast('ไม่พบข้อมูล Asset', 'error'); return; }
+    const rows = [['Asset ID', 'Code', 'Name', 'Serial', 'Status', 'Location', 'Site', 'User']];
+    const trs = tbody.querySelectorAll('tr');
+    if (!trs.length) { showToast('ไม่มีข้อมูลให้ Export', 'warn'); return; }
+    trs.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      if (tds.length < 8) return;
+      rows.push(Array.from(tds).slice(0, 8).map(td => td.textContent.trim()));
+    });
+    if (rows.length === 1) { showToast('ไม่มีข้อมูลให้ Export', 'warn'); return; }
+    downloadCSV(`${which === 'monitor' ? 'farm_monitor' : 'asset_tracking'}_export_${_todayStamp()}.csv`, rows);
+    showToast('Export Asset CSV สำเร็จ', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('เกิดข้อผิดพลาดในการ Export', 'error');
+  }
+}
+window.exportAssetCSV = exportAssetCSV;
+
+function _todayStamp() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+}
+
+// ── STOCK FILTER (Office=0 / Site>0) ──
+function applyStockFilters() {
+  const filterVal = document.getElementById('stockSiteFilter')?.value || '';
+  const tbody = document.getElementById('stockBody');
+  if (!tbody) return;
+  const trs = tbody.querySelectorAll('tr');
+  trs.forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    if (tds.length < 6) return;
+    const officeVal = parseFloat(tds[4]?.textContent.trim()) || 0;
+    const siteVal = parseFloat(tds[5]?.textContent.trim()) || 0;
+    let show = true;
+    if (filterVal === 'office') show = officeVal === 0;
+    else if (filterVal === 'site') show = siteVal > 0;
+    tr.style.display = show ? '' : 'none';
+  });
+}
+window.applyStockFilters = applyStockFilters;
+
+// ── HISTORY TYPE FILTER ──
+function applyHistoryFilters() {
+  const filterVal = document.getElementById('historyTypeFilter')?.value || '';
+  const tbody = document.getElementById('historyBody');
+  if (!tbody) return;
+  const trs = tbody.querySelectorAll('tr');
+  trs.forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    if (tds.length < 4) return;
+    const typeVal = tds[3]?.textContent.trim() || '';
+    const show = !filterVal || typeVal.includes(filterVal);
+    tr.style.display = show ? '' : 'none';
+  });
+}
+window.applyHistoryFilters = applyHistoryFilters;
+
+// ── MutationObserver-based pagination hookup ──
+// Since stock.js / asset.js / farm.js / history.js render rows directly into
+// the tbody elements (outside our control), we observe each tbody for
+// changes and apply client-side pagination automatically over whatever was
+// rendered — without needing to touch the original JS files.
+function _setupAutoPagination(tbodyId, key, colCount) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
+  let isPaginating = false; // guard against our own re-render triggering the observer
+
+  const applyPagination = () => {
+    if (isPaginating) return;
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+    // Skip if this looks like an empty-state / loading row (single cell)
+    const realRows = allRows.filter(tr => tr.querySelectorAll('td').length >= 2);
+    if (realRows.length === 0) {
+      renderPaginationControls(key, 0);
+      return;
+    }
+
+    isPaginating = true;
+    // Store full set, hide all, then show only current page slice
+    _pgDataCache[key] = realRows;
+    const state = _pgState[key];
+    const totalPages = Math.max(1, Math.ceil(realRows.length / state.size));
+    if (state.page > totalPages) state.page = totalPages;
+
+    const start = (state.page - 1) * state.size;
+    const end = start + state.size;
+
+    realRows.forEach((tr, idx) => {
+      tr.style.display = (idx >= start && idx < end) ? '' : 'none';
+    });
+
+    renderPaginationControls(key, realRows.length);
+    isPaginating = false;
+  };
+
+  // Re-render function used by goToPage / changePageSize
+  window['_render' + key.charAt(0).toUpperCase() + key.slice(1) + 'Page'] = applyPagination;
+
+  const observer = new MutationObserver(() => {
+    // Debounce slightly to let all rows finish inserting
+    clearTimeout(tbody._pgDebounce);
+    tbody._pgDebounce = setTimeout(applyPagination, 60);
+  });
+  observer.observe(tbody, { childList: true });
+
+  // Initial pass in case rows are already there
+  setTimeout(applyPagination, 300);
+}
+
+// Map render function names expected by _rerenderPaginated
+function _renderStockPage(rows) { _reapplyPageSlice('stock', 'stockBody'); }
+function _renderHistoryPage(rows) { _reapplyPageSlice('history', 'historyBody'); }
+function _renderAssetPage(rows) { _reapplyPageSlice('asset', 'partAssetBody'); }
+function _renderMonitorPage(rows) { _reapplyPageSlice('monitor', 'monitorAssetBody'); }
+
+function _reapplyPageSlice(key, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const realRows = _pgDataCache[key].length
+    ? _pgDataCache[key]
+    : Array.from(tbody.querySelectorAll('tr')).filter(tr => tr.querySelectorAll('td').length >= 2);
+  const state = _pgState[key];
+  const start = (state.page - 1) * state.size;
+  const end = start + state.size;
+  realRows.forEach((tr, idx) => {
+    tr.style.display = (idx >= start && idx < end) ? '' : 'none';
+  });
+  renderPaginationControls(key, realRows.length);
+}
+
+// Initialize auto-pagination once the DOM (and likely app.js data) is ready
+document.addEventListener('DOMContentLoaded', function() {
+  _setupAutoPagination('stockBody', 'stock', 7);
+  _setupAutoPagination('historyBody', 'history', 8);
+  _setupAutoPagination('partAssetBody', 'asset', 11);
+  _setupAutoPagination('monitorAssetBody', 'monitor', 11);
+});
+
+// ── Toast hooks for common success/error patterns ──
+// Wrap window.alert so existing app.js alert() calls also show as toasts
+// (keeps native alert for critical/blocking confirmations, but gives nicer
+// feedback for simple success messages without modifying app.js).
+const _origAlert = window.alert;
+window.alert = function(msg) {
+  const text = String(msg || '');
+  // Heuristic: messages with ✅/สำเร็จ are success; ❌/ผิดพลาด/error are errors
+  if (/✅|สำเร็จ|เรียบร้อย/.test(text)) {
+    showToast(text.replace(/✅\s*/, ''), 'success');
+  } else if (/❌|ผิดพลาด|error|ล้มเหลว/i.test(text)) {
+    showToast(text.replace(/❌\s*/, ''), 'error');
+  } else {
+    _origAlert(msg);
+  }
+};
+
 </script>
 
 <script src="/js/config.js"></script>
