@@ -1889,9 +1889,360 @@ a:focus:not(:focus-visible) { outline: none; }
 
 /* ── SIDEBAR: hide group arrows when collapsed ─ */
 .sidebar.collapsed .sb-group-arrow { display: none; }
+
+/* ════════════════════════════════════════════════
+   INTRANIN EMS — v4 FINAL PRODUCTION
+   Command Palette · Toast · Mobile Bottom Nav
+   Scroll-to-Top · Card View · Micro-interactions
+   Empty States · Skeleton Loaders · Haptics
+════════════════════════════════════════════════ */
+
+/* ── MOBILE BOTTOM NAVIGATION ─────────────────── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 58px;
+  background: var(--surface);
+  border-top: 1px solid var(--g200);
+  z-index: 400;
+  box-shadow: 0 -4px 24px rgba(0,0,0,.07);
+  align-items: center;
+  padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  gap: 2px;
+}
+@media (max-width: 768px) {
+  .mobile-bottom-nav { display: flex; }
+  .main-wrap { padding-bottom: 62px; }
+}
+.mbn-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; background: none; border: none;
+  cursor: pointer; padding: 6px 4px 4px;
+  border-radius: 12px; color: var(--g400);
+  font-family: inherit; transition: all .15s;
+  position: relative; min-width: 0;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.mbn-btn.active { color: var(--blue); }
+.mbn-btn.active::before {
+  content: ''; position: absolute;
+  inset: 4px 8px; background: var(--blue-l);
+  border-radius: 10px; z-index: -1;
+}
+.mbn-btn svg { transition: transform .15s; display: block; }
+.mbn-btn.active svg { transform: scale(1.1); }
+.mbn-label {
+  font-size: 9px; font-weight: 700;
+  white-space: nowrap; letter-spacing: .2px;
+  overflow: hidden; text-overflow: ellipsis;
+  width: 100%; text-align: center;
+}
+
+/* ── TOAST NOTIFICATIONS ─────────────────────── */
+#ems-toasts {
+  position: fixed; bottom: 72px; right: 16px;
+  z-index: 9999; display: flex;
+  flex-direction: column; gap: 8px;
+  pointer-events: none; width: 320px;
+}
+@media (max-width: 480px) {
+  #ems-toasts { left: 12px; right: 12px; width: auto; }
+}
+.ems-t {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 15px; border-radius: 12px;
+  font-size: 13px; font-weight: 500; line-height: 1.4;
+  box-shadow: 0 8px 32px rgba(0,0,0,.15), 0 0 0 1px rgba(0,0,0,.06);
+  pointer-events: all;
+  animation: ems-tin .25s cubic-bezier(.34,1.56,.64,1) both;
+}
+.ems-t.out { animation: ems-tout .2s ease both; }
+@keyframes ems-tin  { from { opacity:0; transform:translateX(16px) scale(.96); } }
+@keyframes ems-tout { to   { opacity:0; transform:translateX(16px) scale(.95); } }
+.ems-t-icon { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+.ems-t-body { flex: 1; }
+.ems-t-title { font-weight: 700; font-size: 13px; }
+.ems-t-msg   { font-size: 11px; opacity: .75; margin-top: 1px; }
+.ems-t-x {
+  background: none; border: none; cursor: pointer;
+  padding: 0 0 0 8px; opacity: .4; font-size: 14px;
+  flex-shrink: 0; transition: opacity .15s; font-family: inherit;
+}
+.ems-t-x:hover { opacity: 1; }
+.ems-t.ok   { background: #f0fdf8; border: 1px solid #a7f3d4; color: #065f46; }
+.ems-t.err  { background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; }
+.ems-t.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a5f; }
+.ems-t.warn { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
+
+/* ── SCROLL TO TOP ───────────────────────────── */
+#ems-up {
+  position: fixed; bottom: 76px; right: 18px;
+  width: 42px; height: 42px;
+  background: var(--ink); color: #fff;
+  border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  cursor: pointer; z-index: 450;
+  opacity: 0; transform: scale(.8) translateY(8px);
+  transition: all .25s cubic-bezier(.34,1.2,.64,1);
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#ems-up.show { opacity: 1; transform: scale(1) translateY(0); pointer-events: all; }
+#ems-up:hover { background: var(--blue); transform: scale(1.05) translateY(0) !important; }
+@media (max-width: 768px) { #ems-up { bottom: 68px; right: 12px; width: 38px; height: 38px; } }
+
+/* ── COMMAND PALETTE (Ctrl/⌘+K) ─────────────── */
+#ems-pal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,22,40,.65);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  z-index: 3000; align-items: flex-start;
+  justify-content: center; padding-top: min(12vh, 120px);
+}
+#ems-pal.open { display: flex; animation: ems-palbg .18s ease; }
+@keyframes ems-palbg { from { opacity:0; } }
+.ems-pal-box {
+  background: var(--surface); border-radius: 16px;
+  width: 560px; max-width: calc(100vw - 24px);
+  box-shadow: 0 32px 80px rgba(0,0,0,.28), 0 0 0 1px var(--g200);
+  overflow: hidden;
+  animation: ems-palin .2s cubic-bezier(.34,1.2,.64,1);
+}
+@keyframes ems-palin { from { opacity:0; transform: scale(.96) translateY(-12px); } }
+.ems-pal-top {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px; border-bottom: 1px solid var(--g100);
+}
+.ems-pal-inp {
+  flex: 1; border: none; outline: none;
+  font-size: 16px; font-family: inherit; font-weight: 500;
+  color: var(--text); background: transparent;
+}
+.ems-pal-inp::placeholder { color: var(--g400); }
+.ems-pal-esc {
+  font-size: 10px; color: var(--tmuted);
+  background: var(--g100); border: 1px solid var(--g200);
+  border-radius: 5px; padding: 2px 7px; font-family: monospace;
+  white-space: nowrap;
+}
+.ems-pal-list { max-height: 360px; overflow-y: auto; padding: 6px; }
+.ems-pal-sec {
+  font-size: 9px; font-weight: 800; color: var(--tmuted);
+  letter-spacing: 1.2px; text-transform: uppercase;
+  padding: 10px 12px 4px;
+}
+.ems-pal-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--text); border: none; background: none;
+  width: 100%; text-align: left; font-family: inherit;
+  transition: background .08s;
+}
+.ems-pal-item:hover, .ems-pal-item.hi {
+  background: var(--blue-l); color: var(--blue);
+}
+.ems-pal-item:hover svg, .ems-pal-item.hi svg { color: var(--blue) !important; }
+.ems-pal-item svg { color: var(--g400); flex-shrink: 0; }
+.ems-pal-chip {
+  margin-left: auto; font-size: 10px; color: var(--tmuted);
+  background: var(--g100); border: 1px solid var(--g200);
+  border-radius: 4px; padding: 1px 6px; font-family: monospace;
+}
+.ems-pal-empty { text-align: center; padding: 32px; color: var(--tmuted); font-size: 13px; }
+.ems-pal-foot {
+  display: flex; gap: 16px; padding: 9px 14px;
+  border-top: 1px solid var(--g100); background: var(--surface2);
+}
+.ems-pal-hint {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--tmuted);
+}
+.ems-pal-hint kbd {
+  background: var(--g100); border: 1px solid var(--g300);
+  border-radius: 4px; padding: 1px 5px;
+  font-size: 10px; color: var(--g700);
+}
+
+/* ── EMPTY STATES ────────────────────────────── */
+.ems-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 24px; gap: 10px; text-align: center;
+}
+.ems-empty-ico {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: var(--g100); display: flex;
+  align-items: center; justify-content: center;
+  margin-bottom: 6px;
+}
+.ems-empty-ico svg { color: var(--g400); }
+.ems-empty h3 { font-size: 14px; font-weight: 700; color: var(--g600); margin: 0; }
+.ems-empty p  { font-size: 12px; color: var(--tmuted); margin: 0; line-height: 1.6; max-width: 240px; }
+
+/* ── SKELETON LOADERS ────────────────────────── */
+.ems-sk {
+  background: linear-gradient(90deg,var(--g100) 25%,#e8ecf0 50%,var(--g100) 75%);
+  background-size: 400% 100%;
+  animation: ems-shimmer 1.5s ease infinite;
+  border-radius: 6px;
+}
+@keyframes ems-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ── TABLE CARD VIEW (mobile ≤600px) ─────────── */
+@media (max-width: 600px) {
+  .tw table { min-width: unset !important; }
+  .tw thead { display: none; }
+  .tw tbody { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+  .tw tr {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px 14px; background: var(--surface);
+    border: 1px solid var(--g200); border-radius: 12px;
+    padding: 14px; box-shadow: var(--sh-xs);
+  }
+  .tw td {
+    display: flex; flex-direction: column;
+    padding: 0 !important; border: none !important;
+    font-size: 13px;
+  }
+  .tw td::before {
+    content: attr(data-label);
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--tmuted); margin-bottom: 3px;
+  }
+  .tw td:first-child, .tw td:last-child { grid-column: 1 / -1; }
+  .tw td img { max-width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+}
+
+/* ── DASHBOARD ICON PILLS ────────────────────── */
+.dash-card .icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px; padding: 0;
+}
+.ic-blue   { background: rgba(27,108,168,.1); }
+.ic-teal   { background: rgba(0,200,150,.1); }
+.ic-amber  { background: rgba(255,149,0,.1); }
+.ic-green  { background: rgba(34,197,94,.1); }
+.ic-purple { background: rgba(112,72,232,.1); }
+
+/* ── CHART RESPONSIVE ────────────────────────── */
+.chart-responsive-wrap { position: relative; width: 100%; overflow: hidden; }
+.chart-responsive-wrap canvas { max-width: 100%; height: auto !important; }
+@media (max-width: 640px) {
+  .chart-responsive-wrap canvas { max-height: 200px !important; }
+  .cc { padding: 14px; }
+  .cc-head { flex-direction: column; gap: 8px; }
+}
+
+/* ── MODAL BOTTOM SHEET (mobile) ─────────────── */
+@media (max-width: 500px) {
+  .mo { align-items: flex-end; padding: 0; }
+  .mb {
+    max-width: 100%; border-radius: 18px 18px 0 0;
+    max-height: 90vh;
+    animation: ems-slideup .22s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes ems-slideup {
+    from { transform: translateY(24px); opacity: 0; }
+  }
+}
+
+/* ── BETTER FOCUS RING ───────────────────────── */
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
+
+/* ── TOUCH-FRIENDLY BUTTONS (≥44px) ─────────── */
+@media (max-width: 768px) {
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 40px; }
+  .nav-btn { min-height: 48px; }
+}
+
+/* ── STATUS DOTS ─────────────────────────────── */
+.sdot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0;
+}
+.sdot-g { background: var(--emerald); box-shadow: 0 0 0 2px rgba(0,200,150,.2); }
+.sdot-a { background: var(--amber);   box-shadow: 0 0 0 2px rgba(255,149,0,.2); }
+.sdot-r { background: var(--red);     box-shadow: 0 0 0 2px rgba(224,49,49,.2); }
+.sdot-n { background: var(--g400); }
+
+/* ── TABLET LAYOUT ADJUSTMENTS ───────────────── */
+@media (min-width: 601px) and (max-width: 900px) {
+  .dash-grid { grid-template-columns: repeat(3, 1fr); }
+  .tab { padding: 18px; }
+}
+@media (max-width: 480px) {
+  .tab { padding: 10px 10px 0; }
+  .dash-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .dash-card { padding: 14px 12px 12px; }
+  .dash-card .value { font-size: 26px; }
+  .dash-card .label { font-size: 11px; }
+  .extra-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sh-title { font-size: 18px; }
+}
 </style>
 </head>
 <body>
+
+<!-- ── TOAST CONTAINER ── -->
+<div id="ems-toasts" role="status" aria-live="polite"></div>
+
+<!-- ── SCROLL TO TOP ── -->
+<button id="ems-up" onclick="emsScrollTop()" aria-label="ขึ้นด้านบน">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<!-- ── COMMAND PALETTE ── -->
+<div id="ems-pal" onclick="if(event.target===this)emsPalClose()">
+  <div class="ems-pal-box" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="ems-pal-top">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--g400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="ems-pal-inp" id="ems-pal-inp" placeholder="ค้นหาหน้า, ฟีเจอร์..." autocomplete="off" spellcheck="false">
+      <span class="ems-pal-esc">Esc</span>
+    </div>
+    <div class="ems-pal-list" id="ems-pal-list"></div>
+    <div class="ems-pal-foot">
+      <div class="ems-pal-hint"><kbd>↑↓</kbd> เลือก</div>
+      <div class="ems-pal-hint"><kbd>↵</kbd> เปิด</div>
+      <div class="ems-pal-hint"><kbd>Esc</kbd> ปิด</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MOBILE BOTTOM NAVIGATION ── -->
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+  <button class="mbn-btn active" id="mbn-dashboard" onclick="emsTab('dashboard')" aria-label="Dashboard">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <span class="mbn-label">Dashboard</span>
+  </button>
+  <button class="mbn-btn" id="mbn-stock" onclick="emsTab('stock')" aria-label="Stock">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    <span class="mbn-label">Stock</span>
+  </button>
+  <button class="mbn-btn" id="mbn-asset" onclick="emsTab('asset')" aria-label="Asset">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+    <span class="mbn-label">Asset</span>
+  </button>
+  <button class="mbn-btn" id="mbn-farmMonitorTab" onclick="emsTab('farmMonitorTab')" aria-label="Farm">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span class="mbn-label">Farm</span>
+  </button>
+  <button class="mbn-btn" id="mbn-more" onclick="toggleSidebar()" aria-label="More">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+    <span class="mbn-label">เพิ่มเติม</span>
+  </button>
+</nav>
 
 <!-- ═══════ LOGIN PAGE ═══════ -->
 <div id="loginPage">
@@ -2842,5 +3193,268 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+<!-- ════════════ v4 PRODUCTION JS ════════════ -->
+<script>
+(function() {
+'use strict';
+
+/* ──────────────────────────────────────────────
+   TOAST SYSTEM
+   Usage: EMS.toast('message', 'ok'|'err'|'info'|'warn', title?)
+────────────────────────────────────────────── */
+const EMS = window.EMS = window.EMS || {};
+
+EMS.toast = function(msg, type, title) {
+  type = type || 'info';
+  const icons = { ok:'✓', err:'✕', info:'i', warn:'!' };
+  const container = document.getElementById('ems-toasts');
+  if (!container) return;
+  const el = document.createElement('div');
+  el.className = 'ems-t ' + type;
+  el.innerHTML =
+    '<span class="ems-t-icon">' + icons[type] + '</span>' +
+    '<div class="ems-t-body">' +
+      (title ? '<div class="ems-t-title"></div>' : '') +
+      '<div class="ems-t-msg"></div>' +
+    '</div>' +
+    '<button class="ems-t-x" aria-label="ปิด">✕</button>';
+  if (title) el.querySelector('.ems-t-title').textContent = title;
+  el.querySelector('.ems-t-msg').textContent = msg;
+  el.querySelector('.ems-t-x').onclick = () => _dismissToast(el);
+  container.appendChild(el);
+  setTimeout(() => _dismissToast(el), 4000);
+};
+
+function _dismissToast(el) {
+  if (!el.parentNode) return;
+  el.classList.add('out');
+  setTimeout(() => el.remove(), 220);
+}
+
+// Intercept window.alert for success/error messages
+const _origAlert = window.alert;
+window.alert = function(msg) {
+  const s = String(msg || '');
+  if (/✅|สำเร็จ|เรียบร้อย|บันทึก/.test(s)) {
+    EMS.toast(s.replace(/✅\s*/, ''), 'ok', 'สำเร็จ');
+  } else if (/❌|ผิดพลาด|ล้มเหลว|Error/i.test(s)) {
+    EMS.toast(s.replace(/❌\s*/, ''), 'err', 'เกิดข้อผิดพลาด');
+  } else if (/⚠|คำเตือน|Warning/i.test(s)) {
+    EMS.toast(s, 'warn', 'คำเตือน');
+  } else {
+    _origAlert(msg); // keep blocking for confirms
+  }
+};
+
+/* ──────────────────────────────────────────────
+   SCROLL TO TOP
+────────────────────────────────────────────── */
+const _upBtn = document.getElementById('ems-up');
+window.addEventListener('scroll', function() {
+  if (!_upBtn) return;
+  _upBtn.classList.toggle('show', window.scrollY > 280);
+}, { passive: true });
+
+window.emsScrollTop = function() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  emsHaptic();
+};
+
+/* ──────────────────────────────────────────────
+   HAPTIC FEEDBACK (mobile)
+   10ms pulse on significant actions
+────────────────────────────────────────────── */
+window.emsHaptic = function(ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch(e) {}
+};
+
+/* ──────────────────────────────────────────────
+   MOBILE BOTTOM NAV SYNC
+────────────────────────────────────────────── */
+window.emsTab = function(tabId) {
+  // Update bottom nav active state
+  document.querySelectorAll('.mbn-btn').forEach(b => b.classList.remove('active'));
+  var mbn = document.getElementById('mbn-' + tabId);
+  if (mbn) mbn.classList.add('active');
+  // Close mobile sidebar if open
+  if (typeof closeMobileSidebar === 'function') closeMobileSidebar();
+  // Haptic
+  emsHaptic();
+  // Delegate to app's openTab
+  if (typeof openTab === 'function') openTab(tabId);
+};
+
+/* ──────────────────────────────────────────────
+   COMMAND PALETTE
+   Ctrl/⌘+K to open
+────────────────────────────────────────────── */
+var _palOpen = false;
+var _palIdx  = -1;
+
+var PAL_ITEMS = [
+  { sec:'หน้าหลัก', label:'Dashboard — ภาพรวมระบบ', tab:'dashboard', key:'Ctrl+1',
+    icon:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>' },
+  { sec:'หน้าหลัก', label:'Stock — จัดการสต็อก', tab:'stock', key:'Ctrl+2',
+    icon:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>' },
+  { sec:'หน้าหลัก', label:'Asset Tracking — ติดตามอุปกรณ์', tab:'asset', key:'Ctrl+3',
+    icon:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>' },
+  { sec:'หน้าหลัก', label:'Farm Monitor — ติดตามฟาร์ม', tab:'farmMonitorTab', key:'Ctrl+4',
+    icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+  { sec:'รายงาน', label:'ประวัติ — รายการเบิก–คืน', tab:'history', key:'Ctrl+5',
+    icon:'<path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><line x1="12" y1="7" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/>' },
+  { sec:'รายงาน', label:'รายงาน — Export PDF', tab:'report', key:'Ctrl+6',
+    icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
+  { sec:'ระบบ', label:'Settings — ตั้งค่าระบบ', tab:'settings', key:'Ctrl+7',
+    icon:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' }
+];
+
+function emsPalOpen() {
+  _palOpen = true; _palIdx = -1;
+  document.getElementById('ems-pal').classList.add('open');
+  var inp = document.getElementById('ems-pal-inp');
+  inp.value = ''; inp.focus();
+  emsPalRender('');
+}
+
+window.emsPalClose = function() {
+  _palOpen = false;
+  document.getElementById('ems-pal').classList.remove('open');
+};
+
+function emsPalRender(q) {
+  var list = document.getElementById('ems-pal-list');
+  if (!list) return;
+  q = q.toLowerCase().trim();
+  var items = q ? PAL_ITEMS.filter(i => i.label.toLowerCase().includes(q) || i.sec.toLowerCase().includes(q)) : PAL_ITEMS;
+  if (!items.length) {
+    list.innerHTML = '<div class="ems-pal-empty">ไม่พบผลลัพธ์สำหรับ "' + q + '"</div>';
+    return;
+  }
+  var html = ''; var lastSec = '';
+  items.forEach(function(item, idx) {
+    if (item.sec !== lastSec) {
+      html += '<div class="ems-pal-sec">' + item.sec + '</div>';
+      lastSec = item.sec;
+    }
+    html += '<button class="ems-pal-item" data-idx="' + idx + '" data-tab="' + item.tab + '" onclick="emsPalGo(\'' + item.tab + '\')">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + item.icon + '</svg>' +
+      item.label +
+      '<span class="ems-pal-chip">' + item.key + '</span>' +
+    '</button>';
+  });
+  list.innerHTML = html;
+  _palIdx = -1;
+}
+
+window.emsPalGo = function(tabId) {
+  emsPalClose();
+  emsHaptic();
+  emsTab(tabId);
+};
+
+// Input handler
+document.getElementById('ems-pal-inp').addEventListener('input', function() {
+  emsPalRender(this.value);
+});
+
+// Keyboard nav inside palette
+document.getElementById('ems-pal-inp').addEventListener('keydown', function(e) {
+  var items = document.querySelectorAll('.ems-pal-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _palIdx = Math.min(_palIdx + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _palIdx = Math.max(_palIdx - 1, 0);
+  } else if (e.key === 'Enter' && _palIdx >= 0) {
+    e.preventDefault();
+    items[_palIdx].click();
+    return;
+  } else if (e.key === 'Escape') {
+    emsPalClose(); return;
+  }
+  items.forEach(function(el, i) { el.classList.toggle('hi', i === _palIdx); });
+  if (_palIdx >= 0 && items[_palIdx]) items[_palIdx].scrollIntoView({ block:'nearest' });
+});
+
+/* ──────────────────────────────────────────────
+   TABLE → CARD VIEW: auto-inject data-label from thead
+   Runs once after app data loads (via MutationObserver)
+────────────────────────────────────────────── */
+function injectCardLabels(tableId) {
+  var table = document.getElementById(tableId);
+  if (!table) return;
+  // Find parent table element
+  var t = table.tagName === 'TABLE' ? table : table.closest('table');
+  if (!t) return;
+  var headers = Array.from(t.querySelectorAll('thead th')).map(th => th.textContent.trim());
+  if (!headers.length) return;
+
+  function labelRows() {
+    t.querySelectorAll('tbody tr').forEach(function(tr) {
+      var tds = tr.querySelectorAll('td');
+      tds.forEach(function(td, i) {
+        if (headers[i]) td.setAttribute('data-label', headers[i]);
+      });
+    });
+  }
+
+  labelRows();
+  var obs = new MutationObserver(labelRows);
+  obs.observe(t.querySelector('tbody') || t, { childList: true, subtree: true });
+}
+
+/* ──────────────────────────────────────────────
+   GLOBAL KEYBOARD SHORTCUTS
+   Ctrl/⌘+K = Command Palette
+   Ctrl+1..7 = Tab shortcuts (preserved from v3)
+────────────────────────────────────────────── */
+document.addEventListener('keydown', function(e) {
+  var mod = e.ctrlKey || e.metaKey;
+  // Ctrl/⌘+K
+  if (mod && e.key === 'k') {
+    e.preventDefault();
+    _palOpen ? emsPalClose() : emsPalOpen();
+    return;
+  }
+  // Escape closes palette
+  if (e.key === 'Escape' && _palOpen) {
+    emsPalClose(); return;
+  }
+  // Ctrl+1..7 tab shortcuts
+  if (mod && !isNaN(parseInt(e.key))) {
+    var tabs = ['dashboard','stock','asset','farmMonitorTab','history','report','settings'];
+    var idx = parseInt(e.key) - 1;
+    if (idx >= 0 && idx < tabs.length) {
+      e.preventDefault();
+      emsTab(tabs[idx]);
+    }
+  }
+});
+
+/* ──────────────────────────────────────────────
+   INIT ON DOM READY
+────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  // Inject card labels for all known tables
+  ['stockBody','historyBody','partAssetBody','monitorAssetBody'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      var tbl = el.closest('table');
+      if (tbl) injectCardLabels(tbl.id || (function(){ tbl.id='_t'+id; return tbl.id; })());
+    }
+  });
+
+  // Add haptic to all important buttons on mobile
+  if ('ontouchstart' in window) {
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.btn, .mbn-btn, .nav-btn, .pg-btn');
+      if (btn) emsHaptic(6);
+    });
+  }
+});
+
+})(); // end IIFE
+</script>
+
 </body>
-</html>
