@@ -1,0 +1,581 @@
+// routes/bundle.js
+// ════════════════════════════════════════════════
+//  INTRANIN EMS — Bundle System
+//  จัดกลุ่มชุดอุปกรณ์ ย้ายทีเดียวทั้งชุด
+//
+//  Sheet: "Bundles"
+//  A: BundleID  B: BundleName  C: Description
+//  D: Status    E: Location    F: FarmID
+//  G: AssetIDs  H: CreatedDate I: UpdatedDate  J: CreatedBy
+// ════════════════════════════════════════════════
+
+const express = require("express");
+const router  = express.Router();
+const { body } = require("express-validator");
+const {
+  getSheetsClient,
+  saveAssetHistory,
+  clearAssetCache,
+  cache,
+  SPREADSHEET_ID,
+} = require("../services/sheets");
+const { requireLogin, validate } = require("../middleware/auth");
+const { logAudit } = require("../services/audit");
+
+const BUNDLE_SHEET  = "Bundles";         // ชื่อ Sheet ที่สร้างใหม่
+const ASSET_SHEET   = "Asset_List";      // ชื่อเดียวกับ asset.js
+const CACHE_KEY     = "bundleData";
+
+// ─── helper: clear bundle cache ───────────────
+function clearBundleCache() {
+  cache.del(CACHE_KEY);
+}
+
+// ─── helper: today Thai locale string ─────────
+function nowTH() {
+  return new Date().toLocaleString("th-TH");
+}
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ─── helper: parse AssetIDs cell ──────────────
+function parseIds(raw) {
+  if (!raw) return [];
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+// ════════════════════════════════════════════════
+//  GET /api/bundles  — ดึงรายการ Bundle ทั้งหมด
+// ════════════════════════════════════════════════
+router.get("/api/bundles", requireLogin, async (req, res) => {
+  let data = cache.get(CACHE_KEY);
+  if (data) return res.json(data);
+
+  try {
+    const sheets = await getSheetsClient();
+    const resp   = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${BUNDLE_SHEET}!A2:J`,
+    });
+    const rows = resp.data.values || [];
+
+    data = rows
+      .filter((r) => r[0]) // skip empty rows
+      .map((r) => ({
+        bundleId:    r[0] || "",
+        bundleName:  r[1] || "",
+        description: r[2] || "",
+        status:      r[3] || "In Stock",
+        location:    r[4] || "Office",
+        farmId:      r[5] || "",
+        assetIds:    parseIds(r[6]),
+        createdDate: r[7] || "",
+        updatedDate: r[8] || "",
+        createdBy:   r[9] || "",
+      }));
+
+    cache.set(CACHE_KEY, data, 60); // cache 60 วิ
+    res.json(data);
+  } catch (err) {
+    console.error("❌ GET /api/bundles:", err);
+    res.status(500).json({ error: "โหลด Bundle ล้มเหลว" });
+  }
+});
+
+// ════════════════════════════════════════════════
+//  POST /api/bundles  — สร้าง Bundle ใหม่
+// ════════════════════════════════════════════════
+router.post(
+  "/api/bundles",
+  requireLogin,
+  [
+    body("bundleId").trim().notEmpty().withMessage("bundleId required"),
+    body("bundleName").trim().notEmpty().withMessage("bundleName required"),
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { bundleId, bundleName, description } = req.body;
+      const user   = req.session.user.username || req.session.user.email || "system";
+      const sheets = await getSheetsClient();
+
+      // ตรวจ duplicate
+      const existing = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${BUNDLE_SHEET}!A2:A`,
+      });
+      const ids = (existing.data.values || []).flat();
+      if (ids.includes(bundleId)) {
+        return res.status(400).json({ error: `Bundle ID "${bundleId}" มีอยู่แล้ว` });
+      }
+
+      const dt = today();
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${BUNDLE_SHEET}!A:J`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: {
+          values: [[
+            bundleId,
+            bundleName,
+            description || "",
+            "In Stock",
+            "Office",
+            "",          // FarmID
+            "",          // AssetIDs
+            dt,          // CreatedDate
+            dt,          // UpdatedDate
+            user,        // CreatedBy
+          ]],
+        },
+      });
+
+      clearBundleCache();
+      await logAudit(user, "CREATE_BUNDLE", `สร้าง Bundle: ${bundleId} — ${bundleName}`);
+      res.json({ success: true, message: "สร้าง Bundle สำเร็จ" });
+    } catch (err) {
+      console.error("❌ POST /api/bundles:", err);
+      res.status(500).json({ error: "สร้าง Bundle ล้มเหลว" });
+    }
+  }
+);
+
+// ════════════════════════════════════════════════
+//  PATCH /api/bundles/:id  — แก้ไขข้อมูล Bundle
+// ════════════════════════════════════════════════
+router.patch(
+  "/api/bundles/:id",
+  requireLogin,
+  [body("bundleName").trim().notEmpty()],
+  validate,
+  async (req, res) => {
+    try {
+      const bundleId   = req.params.id;
+      const { bundleName, description, status } = req.body;
+      const user       = req.session.user.username || req.session.user.email;
+      const sheets     = await getSheetsClient();
+
+      const resp = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${BUNDLE_SHEET}!A2:J`,
+      });
+      const rows = resp.data.values || [];
+      const idx  = rows.findIndex((r) => r[0] === bundleId);
+      if (idx === -1) return res.status(404).json({ error: "ไม่พบ Bundle" });
+
+      const rowNum = idx + 2; // +2 เพราะ header อยู่แถว 1 และ A2 เริ่ม idx 0
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          valueInputOption: "USER_ENTERED",
+          data: [
+            { range: `${BUNDLE_SHEET}!B${rowNum}`, values: [[bundleName]] },
+            { range: `${BUNDLE_SHEET}!C${rowNum}`, values: [[description || ""]] },
+            { range: `${BUNDLE_SHEET}!D${rowNum}`, values: [[status || rows[idx][3]]] },
+            { range: `${BUNDLE_SHEET}!I${rowNum}`, values: [[today()]] },
+          ],
+        },
+      });
+
+      clearBundleCache();
+      await logAudit(user, "EDIT_BUNDLE", `แก้ไข Bundle: ${bundleId}`);
+      res.json({ success: true, message: "อัพเดท Bundle สำเร็จ" });
+    } catch (err) {
+      console.error("❌ PATCH /api/bundles/:id:", err);
+      res.status(500).json({ error: "แก้ไข Bundle ล้มเหลว" });
+    }
+  }
+);
+
+// ════════════════════════════════════════════════
+//  POST /api/bundles/:id/assets  — เพิ่ม Asset เข้าชุด
+// ════════════════════════════════════════════════
+router.post(
+  "/api/bundles/:id/assets",
+  requireLogin,
+  [body("assetId").trim().notEmpty()],
+  validate,
+  async (req, res) => {
+    try {
+      const bundleId = req.params.id;
+      const { assetId } = req.body;
+      const user     = req.session.user.username || req.session.user.email;
+      const sheets   = await getSheetsClient();
+
+      const resp = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${BUNDLE_SHEET}!A2:J`,
+      });
+      const rows = resp.data.values || [];
+      const idx  = rows.findIndex((r) => r[0] === bundleId);
+      if (idx === -1) return res.status(404).json({ error: "ไม่พบ Bundle" });
+
+      const ids = parseIds(rows[idx][6]);
+      if (ids.includes(assetId)) {
+        return res.status(400).json({ error: `Asset ${assetId} อยู่ในชุดนี้อยู่แล้ว` });
+      }
+      ids.push(assetId);
+
+      const rowNum = idx + 2;
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          valueInputOption: "USER_ENTERED",
+          data: [
+            { range: `${BUNDLE_SHEET}!G${rowNum}`, values: [[ids.join(",")]] },
+            { range: `${BUNDLE_SHEET}!I${rowNum}`, values: [[today()]] },
+          ],
+        },
+      });
+
+      clearBundleCache();
+      clearAssetCache();
+      await logAudit(user, "BUNDLE_ADD_ASSET", `เพิ่ม ${assetId} เข้า Bundle ${bundleId}`);
+      res.json({ success: true, message: `เพิ่ม ${assetId} เข้าชุดสำเร็จ` });
+    } catch (err) {
+      console.error("❌ POST /api/bundles/:id/assets:", err);
+      res.status(500).json({ error: "เพิ่ม Asset ล้มเหลว" });
+    }
+  }
+);
+
+// ════════════════════════════════════════════════
+//  DELETE /api/bundles/:id/assets/:assetId  — ลบ Asset ออกจากชุด
+// ════════════════════════════════════════════════
+router.delete(
+  "/api/bundles/:id/assets/:assetId",
+  requireLogin,
+  async (req, res) => {
+    try {
+      const { id: bundleId, assetId } = req.params;
+      const user   = req.session.user.username || req.session.user.email;
+      const sheets = await getSheetsClient();
+
+      const resp = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${BUNDLE_SHEET}!A2:J`,
+      });
+      const rows = resp.data.values || [];
+      const idx  = rows.findIndex((r) => r[0] === bundleId);
+      if (idx === -1) return res.status(404).json({ error: "ไม่พบ Bundle" });
+
+      const ids      = parseIds(rows[idx][6]);
+      const filtered = ids.filter((id) => id !== assetId);
+
+      const rowNum = idx + 2;
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          valueInputOption: "USER_ENTERED",
+          data: [
+            { range: `${BUNDLE_SHEET}!G${rowNum}`, values: [[filtered.join(",")]] },
+            { range: `${BUNDLE_SHEET}!I${rowNum}`, values: [[today()]] },
+          ],
+        },
+      });
+
+      clearBundleCache();
+      await logAudit(user, "BUNDLE_REMOVE_ASSET", `ลบ ${assetId} ออกจาก Bundle ${bundleId}`);
+      res.json({ success: true, message: `ลบ ${assetId} ออกจากชุดสำเร็จ` });
+    } catch (err) {
+      console.error("❌ DELETE /api/bundles/:id/assets/:assetId:", err);
+      res.status(500).json({ error: "ลบ Asset ล้มเหลว" });
+    }
+  }
+);
+
+// ════════════════════════════════════════════════
+//  POST /api/bundles/:id/deploy  — ย้ายทั้งชุดไปฟาร์ม
+// ════════════════════════════════════════════════
+router.post(
+  "/api/bundles/:id/deploy",
+  requireLogin,
+  [
+    body("farmId").trim().notEmpty().withMessage("farmId required"),
+    body("farmName").trim().notEmpty().withMessage("farmName required"),
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const bundleId = req.params.id;
+      const { farmId, farmName, note } = req.body;
+      const user     = req.session.user.username || req.session.user.email;
+      const sheets   = await getSheetsClient();
+
+      // ── โหลด Bundle ──
+      const bdlResp = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${BUNDLE_SHEET}!A2:J`,
+      });
+      const bdlRows = bdlResp.data.values || [];
+      const bdlIdx  = bdlRows.findIndex((r) => r[0] === bundleId);
+      if (bdlIdx === -1) return res.status(404).json({ error: "ไม่พบ Bundle" });
+
+      const assetIds = parseIds(bdlRows[bdlIdx][6]);
+      const bdlRow   = bdlIdx + 2;
+
+      // ── 1. อัพเดท Bundle sheet ──
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          valueInputOption: "USER_ENTERED",
+          data: [
+            { range: `${BUNDLE_SHEET}!D${bdlRow}`, values: [["Deployed"]] },
+            { range: `${BUNDLE_SHEET}!E${bdlRow}`, values: [[farmName]] },
+            { range: `${BUNDLE_SHEET}!F${bdlRow}`, values: [[farmId]] },
+            { range: `${BUNDLE_SHEET}!I${bdlRow}`, values: [[today()]] },
+          ],
+        },
+      });
+
+      // ── 2. อัพเดทตำแหน่งแต่ละ Asset ใน Asset_List ──
+      if (assetIds.length > 0) {
+        const assetResp = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${ASSET_SHEET}!A2:M`,
+        });
+        const assetRows = assetResp.data.values || [];
+
+        // batchUpdate: เปลี่ยน Location (col G=7) และ SiteName (col H=8)
+        // ตรวจจาก asset.js: row[6]=location, row[7]=siteName
+        const updates = [];
+        assetIds.forEach((assetId) => {
+          const aIdx = assetRows.findIndex((r) => r[0] === assetId);
+          if (aIdx === -1) return;
+          const aRow = aIdx + 2;
+          updates.push({ range: `${ASSET_SHEET}!G${aRow}`, values: [[farmId]] });
+          updates.push({ range: `${ASSET_SHEET}!H${aRow}`, values: [[farmName]] });
+        });
+
+        if (updates.length > 0) {
+          await sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            requestBody: { valueInputOption: "USER_ENTERED", data: updates },
+          });
+        }
+
+        // ── 3. บันทึก Asset_History ทุกชิ้น ──
+        for (const assetId of assetIds) {
+          await saveAssetHistory(
+            assetId,
+            `Deploy Bundle: ${bundleId}`,
+            "Office",
+            `${farmName} (${farmId})`,
+            user,
+            note || `ย้ายทั้งชุด Bundle ${bdlRows[bdlIdx][1]}`
+          );
+        }
+      }
+
+      clearBundleCache();
+      clearAssetCache();
+      await logAudit(
+        user,
+        "BUNDLE_DEPLOY",
+        `Deploy Bundle ${bundleId} (${assetIds.length} อุปกรณ์) → ${farmName}`
+      );
+      res.json({
+        success: true,
+        message: `ย้าย Bundle ไป ${farmName} สำเร็จ (${assetIds.length} อุปกรณ์)`,
+      });
+    } catch (err) {
+      console.error("❌ POST /api/bundles/:id/deploy:", err);
+      res.status(500).json({ error: "Deploy Bundle ล้มเหลว" });
+    }
+  }
+);
+
+// ════════════════════════════════════════════════
+//  POST /api/bundles/:id/recall  — คืน Bundle กลับ Office
+// ════════════════════════════════════════════════
+router.post("/api/bundles/:id/recall", requireLogin, async (req, res) => {
+  try {
+    const bundleId = req.params.id;
+    const user     = req.session.user.username || req.session.user.email;
+    const sheets   = await getSheetsClient();
+
+    // ── โหลด Bundle ──
+    const bdlResp = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${BUNDLE_SHEET}!A2:J`,
+    });
+    const bdlRows = bdlResp.data.values || [];
+    const bdlIdx  = bdlRows.findIndex((r) => r[0] === bundleId);
+    if (bdlIdx === -1) return res.status(404).json({ error: "ไม่พบ Bundle" });
+
+    const prevFarm = bdlRows[bdlIdx][4] || "ฟาร์ม";
+    const assetIds = parseIds(bdlRows[bdlIdx][6]);
+    const bdlRow   = bdlIdx + 2;
+
+    // ── 1. อัพเดท Bundle sheet ──
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        valueInputOption: "USER_ENTERED",
+        data: [
+          { range: `${BUNDLE_SHEET}!D${bdlRow}`, values: [["In Stock"]] },
+          { range: `${BUNDLE_SHEET}!E${bdlRow}`, values: [["Office"]] },
+          { range: `${BUNDLE_SHEET}!F${bdlRow}`, values: [[""]] },
+          { range: `${BUNDLE_SHEET}!I${bdlRow}`, values: [[today()]] },
+        ],
+      },
+    });
+
+    // ── 2. อัพเดทตำแหน่ง Asset ทุกชิ้น → Office ──
+    if (assetIds.length > 0) {
+      const assetResp = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${ASSET_SHEET}!A2:M`,
+      });
+      const assetRows = assetResp.data.values || [];
+
+      const updates = [];
+      assetIds.forEach((assetId) => {
+        const aIdx = assetRows.findIndex((r) => r[0] === assetId);
+        if (aIdx === -1) return;
+        const aRow = aIdx + 2;
+        updates.push({ range: `${ASSET_SHEET}!G${aRow}`, values: [["Office"]] });
+        updates.push({ range: `${ASSET_SHEET}!H${aRow}`, values: [[""]] });
+      });
+
+      if (updates.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: { valueInputOption: "USER_ENTERED", data: updates },
+        });
+      }
+
+      // ── 3. บันทึก Asset_History ──
+      for (const assetId of assetIds) {
+        await saveAssetHistory(
+          assetId,
+          `Recall Bundle: ${bundleId}`,
+          prevFarm,
+          "Office",
+          user,
+          `คืนทั้งชุด Bundle ${bdlRows[bdlIdx][1]} กลับ Office`
+        );
+      }
+    }
+
+    clearBundleCache();
+    clearAssetCache();
+    await logAudit(
+      user,
+      "BUNDLE_RECALL",
+      `Recall Bundle ${bundleId} (${assetIds.length} อุปกรณ์) ← ${prevFarm}`
+    );
+    res.json({
+      success: true,
+      message: `คืน Bundle กลับ Office สำเร็จ (${assetIds.length} อุปกรณ์)`,
+    });
+  } catch (err) {
+    console.error("❌ POST /api/bundles/:id/recall:", err);
+    res.status(500).json({ error: "Recall Bundle ล้มเหลว" });
+  }
+});
+
+// POST /api/bundles/:id/assets/bulk — เพิ่ม Asset หลายตัวพร้อมกัน
+router.post(
+  "/api/bundles/:id/assets/bulk",
+  requireLogin,
+  [body("assetIds").isArray({ min: 1 })],
+  validate,
+  async (req, res) => {
+    try {
+      const bundleId = req.params.id;
+      const { assetIds } = req.body;
+      const user   = req.session.user.username || req.session.user.email;
+      const sheets = await getSheetsClient();
+
+      const resp = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${BUNDLE_SHEET}!A2:J`,
+      });
+      const rows = resp.data.values || [];
+      const idx  = rows.findIndex((r) => r[0] === bundleId);
+      if (idx === -1) return res.status(404).json({ error: "ไม่พบ Bundle" });
+
+      const existing = parseIds(rows[idx][6]);
+      // รวม array โดยไม่ซ้ำ
+      const merged = Array.from(new Set(existing.concat(assetIds)));
+      const added  = merged.length - existing.length;
+
+      const rowNum = idx + 2;
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          valueInputOption: "USER_ENTERED",
+          data: [
+            { range: `${BUNDLE_SHEET}!G${rowNum}`, values: [[merged.join(",")]] },
+            { range: `${BUNDLE_SHEET}!I${rowNum}`, values: [[today()]] },
+          ],
+        },
+      });
+
+      clearBundleCache();
+      await logAudit(user, "BUNDLE_BULK_ADD",
+        `เพิ่ม ${added} Asset เข้า Bundle ${bundleId}: ${assetIds.join(", ")}`
+      );
+      res.json({ success: true, message: `เพิ่ม ${added} อุปกรณ์เข้าชุดสำเร็จ` });
+    } catch (err) {
+      console.error("❌ POST /api/bundles/:id/assets/bulk:", err);
+      res.status(500).json({ error: "เพิ่ม Asset bulk ล้มเหลว" });
+    }
+  }
+);
+// ════════════════════════════════════════════════
+//  GET /api/bundles/search-assets?q=xxx  — ค้นหา Asset สำหรับเพิ่มเข้าชุด
+// ════════════════════════════════════════════════
+router.get("/api/bundles/search-assets", requireLogin, async (req, res) => {
+  try {
+    const q = (req.query.q || "").trim().toLowerCase();
+    if (!q || q.length < 2) {
+      return res.json([]);
+    }
+
+    // ใช้ asset cache ถ้ามี
+    let assetRows = cache.get("assetData");
+    if (!assetRows) {
+      const sheets = await getSheetsClient();
+      const resp   = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${ASSET_SHEET}!A2:M`,
+      });
+      assetRows = resp.data.values || [];
+    } else {
+      // cache เก็บ object array แล้ว ต้องแปลงกลับ
+      assetRows = assetRows.map((a) => [
+        a.assetId, a.code, a.name, a.partNumber,
+        a.serialNumber, a.status, a.location, a.siteName,
+      ]);
+    }
+
+    const results = assetRows
+      .filter((r) => {
+        const assetId = (r[0] || "").toLowerCase();
+        const name    = (r[2] || "").toLowerCase();
+        const serial  = (r[4] || "").toLowerCase();
+        const code    = (r[1] || "").toLowerCase();
+        return assetId.includes(q) || name.includes(q) || serial.includes(q) || code.includes(q);
+      })
+      .slice(0, 20)
+      .map((r) => ({
+        assetId:  r[0] || "",
+        code:     r[1] || "",
+        name:     r[2] || "",
+        serial:   r[4] || "",
+        status:   r[5] || "",
+        location: r[6] || "",
+        site:     r[7] || "",
+      }));
+
+    res.json(results);
+  } catch (err) {
+    console.error("❌ GET /api/bundles/search-assets:", err);
+    res.status(500).json({ error: "ค้นหา Asset ล้มเหลว" });
+  }
+});
+
+module.exports = router;

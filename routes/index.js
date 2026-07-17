@@ -12,6 +12,7 @@ const labelRoutes = require("./label");
 const partRoutes = require("./part");
 const authRoutes = require("./auth");
 const auditRoutes = require("./audit");
+const bundleRouter = require("./bundle");
 
 router.use("/", stockRoutes);
 router.use("/", assetRoutes);
@@ -23,5 +24,6 @@ router.use("/", labelRoutes);
 router.use("/", partRoutes);
 router.use("/", authRoutes);
 router.use("/", auditRoutes);
+router.use("/", bundleRouter);
  
 module.exports = router;
