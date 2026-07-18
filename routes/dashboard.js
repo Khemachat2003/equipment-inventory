@@ -4,6 +4,77 @@ const router = express.Router();
 const { getSheetsClient, cache, SPREADSHEET_ID } = require("../services/sheets");
 const { requireLogin } = require("../middleware/auth");
 
+// -------------------- SHARED HELPERS: Farm/Stock breakdown --------------------
+// กติกา:
+// 1) อุปกรณ์ที่อยู่ใน Bundle (มี bundleId) จะไม่ถูกนับด้วย SiteName ของตัวเอง (เพราะ SiteName
+//    ของอุปกรณ์ใน Bundle จะเป็น "ชื่อ Bundle" เสมอ ไม่ใช่ชื่อฟาร์มจริง) — ให้ไปนับที่ฟาร์มจริง
+//    ที่ Bundle นั้นถูก deploy ไปแทน (ดูจาก Bundle.status / Bundle.location)
+// 2) นับเป็น "ฟาร์ม" ได้ก็ต่อเมื่อชื่อฟาร์มนั้นมีลงทะเบียนอยู่ใน Farm_Sites จริงๆ เท่านั้น
+//    ถ้าไม่เจอในนั้น (รวมถึง "Intranin"/Stock/ค่าว่าง) ให้ถือว่ายังอยู่ใน Stock ทั้งหมด
+async function getFarmSiteNames(sheets) {
+  const r = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "Farm_Sites!A2:F",
+  });
+  const rows = r.data.values || [];
+  return new Set(rows.map((row) => (row[1] || "").trim()).filter(Boolean));
+}
+
+async function getBundleFarmMap(sheets) {
+  const r = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "Bundles!A2:G",
+  });
+  const rows = r.data.values || [];
+  const map = {};
+  rows.forEach((row) => {
+    const id = row[0] || "";
+    if (!id) return;
+    map[id] = { status: row[3] || "In Stock", location: (row[4] || "").trim() };
+  });
+  return map;
+}
+
+function computeFarmBreakdown(assets, farmSiteNames, bundleFarmMap) {
+  let totalFarmAssets = 0, totalStockAssets = 0;
+  const farmCount = {};
+  const statusCount = {};
+
+  assets.forEach((row) => {
+    const status = row[5] || "ไม่ระบุ";
+    statusCount[status] = (statusCount[status] || 0) + 1;
+
+    const bundleId = (row[13] || "").trim();
+    let farm = null;
+
+    if (bundleId) {
+      const b = bundleFarmMap[bundleId];
+      if (b && b.status === "Deployed" && b.location && farmSiteNames.has(b.location)) {
+        farm = b.location;
+      }
+    } else {
+      const site = (row[7] || "").trim();
+      if (site && site !== "Intranin" && farmSiteNames.has(site)) {
+        farm = site;
+      }
+    }
+
+    if (farm) {
+      totalFarmAssets++;
+      farmCount[farm] = (farmCount[farm] || 0) + 1;
+    } else {
+      totalStockAssets++;
+    }
+  });
+
+  const topFarms = Object.entries(farmCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+
+  return { totalFarmAssets, totalStockAssets, farmCount, topFarms, statusCount };
+}
+
 // -------------------- DASHBOARD --------------------
 router.get("/api/dashboard", requireLogin, async (req, res) => {
   const cacheKey = "dashboardData";
@@ -99,50 +170,24 @@ router.get("/api/dashboard-stats", requireLogin, async (req, res) => {
 router.get("/api/dashboard-asset", requireLogin, async (req, res) => {
   try {
     const sheets = await getSheetsClient();
-    const assetRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: 'Asset_List!A2:M',
-    });
+    const [assetRes, farmSiteNames, bundleFarmMap] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Asset_List!A2:N',
+      }),
+      getFarmSiteNames(sheets),
+      getBundleFarmMap(sheets),
+    ]);
     const assets = assetRes.data.values || [];
 
-    const STOCK_SITE = 'Intranin';
-
-    let total = 0;
-    let totalStock = 0;
-    let totalFarm = 0;
-    const bySite = {};
-    const byStatus = {};
-    const farmCount = {};
-
-    assets.forEach(row => {
-      const site = row[7] || '-';
-      const status = row[5] || 'ไม่ระบุ';
-
-      total++;
-
-      byStatus[status] = (byStatus[status] || 0) + 1;
-
-      if (site === STOCK_SITE) {
-        totalStock++;
-        bySite[site] = (bySite[site] || 0) + 1;
-      } else if (site && site !== '-') {
-        totalFarm++;
-        bySite[site] = (bySite[site] || 0) + 1;
-        farmCount[site] = (farmCount[site] || 0) + 1;
-      }
-    });
-
-    const topFarms = Object.entries(farmCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
+    const { totalFarmAssets, totalStockAssets, farmCount, topFarms, statusCount } =
+      computeFarmBreakdown(assets, farmSiteNames, bundleFarmMap);
 
     res.json({
-      total,
-      totalStock,
-      totalFarm,
-      bySite,
-      byStatus,
+      total: assets.length,
+      totalStock: totalStockAssets,
+      totalFarm: totalFarmAssets,
+      byStatus: statusCount,
       topFarms,
       totalFarms: Object.keys(farmCount).length,
     });
@@ -162,40 +207,26 @@ router.get("/api/dashboard-stats-extended", requireLogin, async (req, res) => {
   try {
     const sheets = await getSheetsClient();
 
-    const assetRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Asset_List!A2:M",
-    });
+    const [assetRes, farmRes, farmSiteNames, bundleFarmMap] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_List!A2:N",
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Farm_Sites!A2:F",
+      }),
+      getFarmSiteNames(sheets),
+      getBundleFarmMap(sheets),
+    ]);
     const assets = assetRes.data.values || [];
-
-    const farmRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Farm_Sites!A2:F",
-    });
     const farms = farmRes.data.values || [];
 
     const totalFarms = farms.length;
-    const totalFarmAssets = assets.filter(a => a[7] && a[7] !== "-" && a[7] !== "").length;
-    const totalStockAssets = assets.filter(a => !a[7] || a[7] === "-" || a[7] === "").length;
     const totalAssets = assets.length;
 
-    const statusCount = {};
-    assets.forEach(a => {
-      const status = a[5] || "ไม่ระบุ";
-      statusCount[status] = (statusCount[status] || 0) + 1;
-    });
-
-    const farmCount = {};
-    assets.forEach(a => {
-      const site = a[7] || "ไม่ระบุ";
-      if (site !== "-" && site !== "") {
-        farmCount[site] = (farmCount[site] || 0) + 1;
-      }
-    });
-    const topFarms = Object.entries(farmCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
+    const { totalFarmAssets, totalStockAssets, topFarms, statusCount } =
+      computeFarmBreakdown(assets, farmSiteNames, bundleFarmMap);
 
     const result = {
       totalFarms,
@@ -223,14 +254,15 @@ router.get("/api/dashboard-full", requireLogin, async (req, res) => {
   try {
     const sheets = await getSheetsClient();
 
-    const [assetRes, stockRes, officeRes, siteRes, logRes, farmRes, partRes] = await Promise.all([
-      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Asset_List!A2:M' }),
+    const [assetRes, stockRes, officeRes, siteRes, logRes, farmRes, partRes, bdlRes] = await Promise.all([
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Asset_List!A2:N' }),
       sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Stock_Master!A2:I' }),
       sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Stock_Office!A2:C' }),
       sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Stock_Site!A2:C' }),
       sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Transfer_Log!A2:H' }),
       sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Farm_Sites!A2:F' }),
       sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Part_Catalog!A2:G' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Bundles!A2:G' }),
     ]);
 
     const assets = assetRes.data.values || [];
@@ -240,6 +272,7 @@ router.get("/api/dashboard-full", requireLogin, async (req, res) => {
     const logs = logRes.data.values || [];
     const farms = farmRes.data.values || [];
     const parts = partRes.data.values || [];
+    const bdlRows = bdlRes.data.values || [];
 
     const totalItems = stock.length;
     const totalOffice = office.reduce((sum, r) => sum + parseInt(r[2] || 0), 0);
@@ -255,32 +288,16 @@ router.get("/api/dashboard-full", requireLogin, async (req, res) => {
       }
     });
 
-    const STOCK_SITE = 'Intranin';
-    let totalFarmAssets = 0,
-      totalStockAssets = 0;
-    const farmCount = {};
-    const statusCount = {};
-    const siteList = new Set();
-
-    assets.forEach(row => {
-      const site = row[7] || '-';
-      const status = row[5] || 'ไม่ระบุ';
-
-      statusCount[status] = (statusCount[status] || 0) + 1;
-
-      if (site === STOCK_SITE) {
-        totalStockAssets++;
-      } else if (site && site !== '-') {
-        totalFarmAssets++;
-        farmCount[site] = (farmCount[site] || 0) + 1;
-        siteList.add(site);
-      }
+    const farmSiteNames = new Set(farms.map(row => (row[1] || '').trim()).filter(Boolean));
+    const bundleFarmMap = {};
+    bdlRows.forEach(row => {
+      const id = row[0] || '';
+      if (!id) return;
+      bundleFarmMap[id] = { status: row[3] || 'In Stock', location: (row[4] || '').trim() };
     });
 
-    const topFarms = Object.entries(farmCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
+    const { totalFarmAssets, totalStockAssets, topFarms, statusCount } =
+      computeFarmBreakdown(assets, farmSiteNames, bundleFarmMap);
 
     const statsMap = {};
     const now = new Date();
@@ -342,6 +359,8 @@ router.get("/api/dashboard-full", requireLogin, async (req, res) => {
         location: row[6] || '-',
         siteName: row[7] || '-',
         user: row[8] || '-',
+        farmType: row[10] || '-',
+        bundleId: row[13] || '',
       })),
     };
 

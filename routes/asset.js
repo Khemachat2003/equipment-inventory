@@ -66,7 +66,7 @@ router.get("/api/assets", requireLogin, async (req, res) => {
     const sheets = await getSheetsClient();
     const assetResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Asset_List!A2:M",
+      range: "Asset_List!A2:P",
     });
     const assetRows = assetResponse.data.values || [];
     assets = assetRows.map((row) => ({
@@ -82,6 +82,7 @@ router.get("/api/assets", requireLogin, async (req, res) => {
       farmType: row[10] || "-",
       houseId: row[11] || "-",
       houseName: row[12] || "-",
+      bundleId: row[13] || "", // ว่าง = ไม่ได้อยู่ใน Bundle ไหน
     }));
     cache.set(cacheKey, assets);
     res.json(assets);
@@ -583,6 +584,31 @@ router.get("/api/qrcode/:serial", requireLogin, async (req, res) => {
     console.error("QR Error:", error);
     res.status(500).json({ success: false });
   }
+});
+
+// PATCH /api/assets/:assetId/location
+router.patch('/api/assets/:assetId/location', requireLogin, async (req, res) => {
+  try {
+    const { assetId } = req.params;
+    const { location, site, remark } = req.body;
+    const sheets = await getSheetsClient();
+    const resp = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID, range: 'Asset_List!A2:M'
+    });
+    const rows = resp.data.values || [];
+    const idx  = rows.findIndex(r => r[0] === assetId);
+    if (idx === -1) return res.status(404).json({ error: 'ไม่พบ Asset' });
+    const rowNum = idx + 2;
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'USER_ENTERED', data: [
+        { range: `Asset_List!G${rowNum}`, values: [[location || '']] },
+        { range: `Asset_List!H${rowNum}`, values: [[site || '']] },
+      ]}
+    });
+    clearAssetCache();
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // -------------------- BULK ADD ASSET --------------------

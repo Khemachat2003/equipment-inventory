@@ -34,3 +34,15 @@ function toast(msg, type = 'ok') {
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
 }
+
+// ---- Mobile collapsible sidebar (Part Number / Farm Monitor lists) ----
+// บนมือถือ รายการยาวๆ จะถูกยุบเป็น dropdown แทนที่จะกางเป็นแท็บเรียงกันจนรก
+function toggleMonSidebar(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('mon-sb-open');
+}
+function collapseMonSidebarMobile(id) {
+  if (window.innerWidth > 768) return;
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('mon-sb-open');
+}

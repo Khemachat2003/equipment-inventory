@@ -69,12 +69,15 @@ function selectPart(part) {
   _renderPartList(Object.keys(partMap).sort(), partMap, document.getElementById("partSearch").value || "");
   document.getElementById("partAssetSearch").value = "";
   _applyPart(part, partMap);
+  collapseMonSidebarMobile('partSidebar');
 }
 
 function _applyPart(part, partMap) {
   const list = part === "ALL" ? assetData : (partMap[part]?.items || []);
   const name = part === "ALL" ? "ทุก Part" : part;
   document.getElementById("partLabel").textContent = `📦 ${name}`;
+  const partSbCurrent = document.getElementById("partSbCurrent");
+  if (partSbCurrent) partSbCurrent.textContent = name;
   const ok = list.filter(a => a.status && a.status.includes("ใช้งานได้")).length;
   const rep = list.filter(a => a.status && a.status.includes("ซ่อม")).length;
   document.getElementById("partStatsRow").innerHTML = `

@@ -191,13 +191,13 @@
   function _cardHTML(b) {
     var cnt = b.assetIds ? b.assetIds.length : 0;
     var sc  = { 'In Stock': 'bdl-s-stock', 'Deployed': 'bdl-s-dep', 'Maintenance': 'bdl-s-maint' }[b.status] || '';
-    var loc = b.status === 'Deployed' ? (b.location || b.farmId || '—') : 'Office';
+    var loc = b.status === 'Deployed' ? (b.location || b.farmId || '—') : 'Stock';
 
     var actionBtn = b.status === 'In Stock'
       ? '<button class="btn btn-blue btn-sm" onclick="BDL.openDeploy(\'' + _esc(b.bundleId) + '\')" style="flex:1">'
         + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg> ส่งฟาร์ม</button>'
       : '<button class="btn btn-out btn-sm" onclick="BDL.recall(\'' + _esc(b.bundleId) + '\')" style="flex:1">'
-        + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> คืน Office</button>';
+        + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> คืน Stock</button>';
 
     return '<div class="bdl-card">'
       + '<div class="bdl-card-head">'
@@ -254,12 +254,12 @@
   }
 
   function _renderDetailShell(b, assets) {
-    var loc = b.status === 'Deployed' ? (b.location || b.farmId) : 'Office';
+    var loc = b.status === 'Deployed' ? (b.location || b.farmId) : 'Stock';
     var sc  = { 'In Stock': 'bdl-s-stock', 'Deployed': 'bdl-s-dep', 'Maintenance': 'bdl-s-maint' }[b.status] || '';
 
     var actionBtn = b.status === 'In Stock'
       ? '<button class="btn btn-blue" onclick="BDL.openDeploy(\'' + _esc(b.bundleId) + '\')">📤 ส่งไปฟาร์ม</button>'
-      : '<button class="btn btn-out" onclick="BDL.recall(\'' + _esc(b.bundleId) + '\')">↩ คืน Office</button>';
+      : '<button class="btn btn-out" onclick="BDL.recall(\'' + _esc(b.bundleId) + '\')">↩ คืน Stock</button>';
 
     var assetHTML = '';
     if (assets === null) {
@@ -425,12 +425,12 @@
   function recallBundle(bundleId) {
     var b = _find(bundleId);
     if (!b) return;
-    if (!confirm('คืน "' + b.bundleName + '" ทั้งชุดกลับ Office?\n(' + (b.assetIds ? b.assetIds.length : 0) + ' อุปกรณ์)')) return;
+    if (!confirm('คืน "' + b.bundleName + '" ทั้งชุดกลับ Stock?\n(' + (b.assetIds ? b.assetIds.length : 0) + ' อุปกรณ์)')) return;
 
     _post('/api/bundles/' + encodeURIComponent(bundleId) + '/recall')
       .then(function (res) {
         if (res.success === false) { _toast(res.error || 'คืนล้มเหลว', 'err'); return; }
-        _toast(res.message || 'คืน Office สำเร็จ', 'ok');
+        _toast(res.message || 'คืน Stock สำเร็จ', 'ok');
         loadBundles().then(function () { if (_currentId === bundleId) openDetail(bundleId); });
       }).catch(function (err) { _toast(err.message, 'err'); });
   }
@@ -588,6 +588,8 @@ function commitAddAssets() {
   ───────────────────────────────────────── */
   window.BDL = {
     refresh:     loadBundles,
+    getAll:      function () { return _all; },
+    ensureLoaded: function () { return _all.length ? Promise.resolve(_all) : loadBundles(); },
     filter:      filterBundles,
     openCreate:  openCreate,
     openEdit:    openEdit,

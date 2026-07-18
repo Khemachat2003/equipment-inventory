@@ -112,6 +112,7 @@ function renderChart(days) {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       interaction: { intersect: false, mode: "index" },
       plugins: {
         legend: { position: "top", labels: { usePointStyle: true, padding: 20, font: { size: 12, weight: "600" } } },

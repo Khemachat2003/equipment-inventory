@@ -34,6 +34,46 @@ router.get("/api/farm-sites", requireLogin, async (req, res) => {
   }
 });
 
+// -------------------- GET FARMS (alias สำหรับหน้า Bundle) --------------------
+// public/js/bundle.js เรียก /api/farms และคาดหวังฟิลด์ชื่อ farmId / farmName
+// (ไม่ใช่ siteId / siteName แบบที่ /api/farm-sites คืนให้) — เส้นนี้ไม่เคยมีมาก่อน
+// ทำให้ dropdown เลือกฟาร์มตอน deploy ว่างเปล่าถ้าฟาร์มนั้นยังไม่เคยถูก deploy ผ่าน
+// Bundle มาก่อน (fallback ฝั่ง frontend สร้าง option จาก bundle ที่เคย deploy แล้วเท่านั้น)
+router.get("/api/farms", requireLogin, async (req, res) => {
+  const cacheKey = "farmSites";
+  let sites = cache.get(cacheKey);
+
+  try {
+    if (!sites) {
+      const sheets = await getSheetsClient();
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Farm_Sites!A2:F",
+      });
+      const rows = r.data.values || [];
+      sites = rows.map((row) => ({
+        siteId: row[0] || "",
+        siteName: row[1] || "",
+        farmType: row[2] || "",
+        province: row[3] || "",
+        manager: row[4] || "",
+        note: row[5] || "",
+      }));
+      cache.set(cacheKey, sites);
+    }
+
+    const farms = sites.map((s) => ({
+      farmId: s.siteId,
+      farmName: s.siteName,
+      farmType: s.farmType,
+    }));
+    res.json(farms);
+  } catch (e) {
+    console.error("❌ GET /api/farms:", e);
+    res.status(500).json([]);
+  }
+});
+
 // -------------------- GET FARM HOUSES --------------------
 router.get("/api/farm-houses/:siteId", requireLogin, async (req, res) => {
   try {
