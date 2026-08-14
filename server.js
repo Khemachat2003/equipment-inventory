@@ -108,9 +108,21 @@ const sessionConfig = {
 
 if (DATABASE_URL) {
   const PGStore = pgSession(session);
+  // ⚠️ connect-pg-simple v10 อ่านได้เฉพาะ conString/conObject ไม่ส่ง ssl ตรงๆ
+  // Render ตั้ง sslmode=require ใน URL → pg ใหม่ตีความเป็น verify-full (ตรวจ cert)
+  // ซึ่ง cert ของ Render เป็น self-signed → ต้อง force ssl + rejectUnauthorized:false
+  let storeUrl = DATABASE_URL;
+  try {
+    const u = new URL(storeUrl);
+    u.searchParams.delete('sslmode');
+    storeUrl = u.toString();
+  } catch (e) { /* keep as-is */ }
   sessionConfig.store = new PGStore({
-    conString: DATABASE_URL,
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    conObject: {
+      connectionString: storeUrl,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+    },
     createTableIfMissing: true,
     pruneSessionInterval: 60 * 60, // ล้าง session ที่หมดอายุชั่วโมงละครั้ง
   });
