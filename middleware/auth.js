@@ -27,7 +27,11 @@ function validate(req, res, next) {
 }
 
 // ── Admin Session Lock: ป้องกัน Admin เข้าพร้อมกัน ──
+// เก็บข้อมูล { sessionId, username } ลง cache และ "ต่ออายุ" (refresh TTL) ทุกครั้ง
+// ที่ Admin คนปัจจุบันยังใช้งาน API อยู่ — ถ้า session นั้นตาย(ไม่ logout) lock จะ
+// ปลดปล่อยไปเองเมื่อพ้นระยะ idle หลังจากที่คนเดิมหยุดใช้งานจริง
 const ADMIN_SESSION_KEY = 'active_admin_session';
+const ADMIN_LOCK_TTL = parseInt(process.env.ADMIN_LOCK_TTL, 10) || 15 * 60; // 15 นาที
 
 function createCheckAdminSessionLock(cache) {
   return function checkAdminSessionLock(req, res, next) {
@@ -35,21 +39,24 @@ function createCheckAdminSessionLock(cache) {
       return next();
     }
     const currentSessionId = req.session.id;
-    const storedSessionId = cache.get(ADMIN_SESSION_KEY);
-    if (!storedSessionId) {
-      cache.set(ADMIN_SESSION_KEY, currentSessionId, 3600);
+    const stored = cache.get(ADMIN_SESSION_KEY);
+
+    if (!stored) {
+      cache.set(ADMIN_SESSION_KEY, { sessionId: currentSessionId, username: req.session.user.username }, ADMIN_LOCK_TTL);
       return next();
     }
-    if (storedSessionId !== currentSessionId) {
-      req.session.destroy((err) => {
-        if (err) console.error('Destroy session error:', err);
-        return res.status(403).json({ 
-          error: 'มี Admin กำลังใช้งานระบบอยู่ กรุณาติดต่อ Admin คนปัจจุบัน' 
-        });
-      });
-      return;
+
+    if (stored.sessionId === currentSessionId) {
+      // Admin คนเดิมใช้งานอยู่ → ต่ออายุ lock (ไม่ปล่อยให้ตายกลางคัน)
+      cache.set(ADMIN_SESSION_KEY, stored, ADMIN_LOCK_TTL);
+      return next();
     }
-    next();
+
+    // มี Admin คนอื่น (session อื่น) ทำงานอยู่ → บล็อก
+    return res.status(403).json({
+      error: 'มี Admin กำลังใช้งานระบบอยู่',
+      hint: stored.username ? `ตอนนี้ ${stored.username} กำลังใช้งานอยู่ กรุณาติดต่อ Admin คนปัจจุบัน` : undefined,
+    });
   };
 }
 

@@ -61,13 +61,14 @@ router.post("/api/login",
       }
 
       if (role === 'admin') {
-        const existingSessionId = cache.get('active_admin_session');
-        if (existingSessionId && existingSessionId !== req.session.id) {
+        const existing = cache.get('active_admin_session');
+        if (existing && existing.sessionId !== req.session.id) {
           return res.status(401).json({ 
-            error: "⚠️ มี Admin กำลังใช้งานระบบอยู่ กรุณาติดต่อ Admin คนปัจจุบัน" 
+            error: "⚠️ มี Admin กำลังใช้งานระบบอยู่",
+            hint: existing.username ? `${existing.username} กำลังใช้งานอยู่ กรุณาติดต่อ Admin คนปัจจุบัน` : undefined,
           });
         }
-        cache.set('active_admin_session', req.session.id, 3600);
+        cache.set('active_admin_session', { sessionId: req.session.id, username }, 15 * 60);
       }
 
       req.session.user = { username, role };

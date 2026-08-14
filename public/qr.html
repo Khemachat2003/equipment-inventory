@@ -879,8 +879,7 @@ function bcDataFor(serial){
 async function refreshAssets(){
   g('assetBody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);">⏳ กำลังโหลด...</td></tr>';
   try{
-    let res=await fetch('/api/assets');
-    if(!res.ok) res=await fetch('/api/public/assets');
+    let res=await fetch('/api/assets', { headers:{'X-Requested-With':'XMLHttpRequest'} });
     if(res.ok){
       const data=await res.json();
       allAssets=(data.assets||data||[]).map(a=>({
@@ -902,7 +901,7 @@ async function refreshAssets(){
       {serial:'SN-PSU-21062025-0001',   name:'Power Supply 24V/10A',  status:'active'},
       {serial:'SN-HMI-21062025-0001',   name:'หน้าจอ HMI 7"',         status:'storage'},
     ];
-    toast('⚠️ ใช้ข้อมูลตัวอย่าง (API ไม่พร้อม)','warn');
+    toast('⚠️ ใช้ข้อมูลตัวอย่าง (ยังไม่ได้เข้าสู่ระบบ)','warn');
   }
   g('totalCount').textContent=allAssets.length+' ทั้งหมด';
   applyFilters();

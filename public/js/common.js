@@ -26,6 +26,10 @@ function getInitials(name = "") {
 }
 
 function toast(msg, type = 'ok') {
+  // ใช้ EMS.toast (index.html v4+) เป็นหลัก ถ้าอยู่หน้าเก่าให้ fallback ไป #toast
+  if (window.EMS && typeof EMS.toast === 'function') {
+    return EMS.toast(msg, type === 'err' ? 'err' : 'ok');
+  }
   const el = document.getElementById('toast');
   if (!el) return;
   el.textContent = msg;

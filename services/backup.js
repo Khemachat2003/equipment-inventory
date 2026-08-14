@@ -1,6 +1,4 @@
 // services/backup.js
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 const { Client } = require('pg');
 const { getSheetsClient, SPREADSHEET_ID } = require('./sheets');
 const format = require('pg-format');

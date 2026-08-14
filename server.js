@@ -3,6 +3,7 @@ const express = require("express");
 const { google } = require("googleapis");
 const path = require("path");
 const session = require("express-session");
+const pgSession = require("connect-pg-simple");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const compression = require("compression");
@@ -89,19 +90,36 @@ app.use(
   })
 );
 
-app.use(
-  session({
-    name: "borrow-session",
-    secret: process.env.SESSION_SECRET || "default-insecure-secret-change-me",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    },
-  })
-);
+// ========== SESSION STORE ==========
+// ใช้ PostgreSQL เป็นที่เก็บ session (ถ้ามี DATABASE_URL) - session จะไม่หลุด
+// ทุกครั้งที่ Render restart สลับ instance และ locks ใช้ร่วมกันได้ทั้งระบบ
+const DATABASE_URL = process.env.DATABASE_URL;
+const sessionConfig = {
+  name: "borrow-session",
+  secret: process.env.SESSION_SECRET || "default-insecure-secret-change-me",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  },
+};
+
+if (DATABASE_URL) {
+  const PGStore = pgSession(session);
+  sessionConfig.store = new PGStore({
+    conString: DATABASE_URL,
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 60, // ล้าง session ที่หมดอายุชั่วโมงละครั้ง
+  });
+  console.log("✅ Session store: PostgreSQL");
+} else {
+  console.warn("⚠️ DATABASE_URL ไม่อยู่ - ใช้ MemoryStore (session จะหลุดเมื่อ restart)");
+}
+
+app.use(session(sessionConfig));
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -122,6 +140,10 @@ app.use("/image", express.static(path.join(__dirname, "image")));
 
 // ========== RATE LIMIT ==========
 app.use("/api", limiter);
+
+// ========== ADMIN SESSION LOCK (ต่ออายุอัตโนมัติทุก request) ==========
+const { createCheckAdminSessionLock } = require("./middleware/auth");
+app.use("/api", createCheckAdminSessionLock(cache));
 
 // ========== GOOGLE LOGIN ==========
 app.get("/auth/google", (req, res) => {
@@ -165,10 +187,29 @@ app.post('/api/full-backup', requireLogin, requireAdmin, async (req, res) => {
 // server.js (เพิ่มตรงส่วน Routes)
 const { Client } = require('pg');
 
+// whitelist ตารางที่อนุญาตให้ดูผ่าน backup-View (กัน SQL injection)
+const BACKUP_TABLES = [
+  'backup_stock_master',
+  'backup_users',
+  'backup_transfer_log',
+  'backup_audit_log',
+  'backup_stock_office',
+  'backup_stock_site',
+  'backup_farm_sites',
+  'backup_farm_houses',
+  'backup_part_catalog',
+  'backup_asset_list',
+  'backup_asset_history',
+];
+
 app.get('/api/backup-data', requireLogin, requireAdmin, async (req, res) => {
   const { table } = req.query;
   if (!table) {
     return res.status(400).json({ error: 'table parameter required' });
+  }
+  // ✅ ตรวจว่าชื่อตารางอยู่ใน whitelist ก่อน (ไม่อนุญาตให้ใส่ SQL อื่น)
+  if (!BACKUP_TABLES.includes(table)) {
+    return res.status(400).json({ error: 'invalid table name' });
   }
 
   const DATABASE_URL = process.env.DATABASE_URL;
@@ -259,11 +300,31 @@ app.listen(PORT, () => {
   assetRouter.syncInitialAssetHistory().catch(console.error);
 });
 
-//const cron = require('node-cron');
-
-// Backup ทุกวันเวลา 02:00 (ตามเวลาท้องถิ่นของเซิร์ฟเวอร์)
-//cron.schedule('0 19 * * *', async () => {
- // console.log('🔄 Running scheduled backup...');
-  //const result = await backupToPostgres();
-  //console.log('📊 Backup result:', result);
-//});
+// ========== SCHEDULED BACKUP ==========
+// รัน Full System Backup อัตโนมัติ เวลา 02:00 ตามเวลาท้องถิ่นของเซิร์ฟเวอร์
+// (Render timelines เป็น UTC → 02:00 ไทย = 19:00 UTC วันก่อนหน้า)
+// ปิดได้ด้วย env BACKUP_CRON="" 
+const cron = require("node-cron");
+const BACKUP_CRON = process.env.BACKUP_CRON;
+if (BACKUP_CRON) {
+  try {
+    cron.schedule(BACKUP_CRON, async () => {
+      console.log("🔄 Running scheduled full backup...");
+      if (!process.env.DATABASE_URL) {
+        console.warn("⚠️ DATABASE_URL ไม่อยู่ - ข้าม scheduled backup");
+        return;
+      }
+      try {
+        const result = await fullSystemBackup();
+        console.log("📊 Scheduled backup result:", result.totalRows ? `OK (${result.totalRows} rows)` : result);
+      } catch (err) {
+        console.error("❌ Scheduled backup failed:", err.message);
+      }
+    });
+    console.log(`✅ Scheduled backup: ${BACKUP_CRON}`);
+  } catch (e) {
+    console.error("❌ Invalid BACKUP_CRON:", e.message);
+  }
+} else {
+  console.log("ℹ️ Scheduled backup disabled (set BACKUP_CRON env เช่น '0 19 * * *')");
+}

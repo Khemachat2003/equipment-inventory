@@ -4,7 +4,7 @@ const router = express.Router();
 const { body } = require("express-validator");
 const { getSheetsClient, clearStockCache, cache, SPREADSHEET_ID } = require("../services/sheets");
 const { logAudit } = require("../services/audit");
-const { requireLogin, validate } = require("../middleware/auth");
+const { requireLogin, requireAdmin, validate } = require("../middleware/auth");
 
 // -------------------- GET STOCK --------------------
 router.get("/api/stock", requireLogin, async (req, res) => {
@@ -520,6 +520,8 @@ res.json({ success: true });
 
 // -------------------- UPLOAD IMAGE --------------------
 router.post("/upload-image",
+  requireLogin,
+  requireAdmin,
   [
     body("fileName").trim().notEmpty(),
     body("base64").notEmpty().custom((val) => val.startsWith("data:image/")),
