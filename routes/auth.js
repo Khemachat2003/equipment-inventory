@@ -104,4 +104,9 @@ router.get("/api/me", requireLogin, (req, res) => {
   res.json({ username: req.session.user.username });
 });
 
+// -------------------- GET SPREADSHEET URL --------------------
+router.get("/api/settings/spreadsheet-url", requireLogin, (req, res) => {
+  res.json({ url: `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}` });
+});
+
 module.exports = router;

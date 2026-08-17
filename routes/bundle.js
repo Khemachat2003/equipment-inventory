@@ -724,6 +724,45 @@ router.post(
   }
 );
 // ════════════════════════════════════════════════
+//  GET /api/bundles/asset-info?ids=a,b,c  — ดึงรายละเอียด Asset ตาม ID
+//  ต่างจาก search-assets ตรงที่ไม่กรอง "อยู่ใน Bundle แล้ว" เพราะใช้แสดง
+//  รายชื่ออุปกรณ์ภายใน Bundle (หน้า detail) ที่อุปกรณ์ทุกชิ้นอยู่ในชุดอยู่แล้ว
+// ════════════════════════════════════════════════
+router.get("/api/bundles/asset-info", requireLogin, async (req, res) => {
+  try {
+    const ids = String(req.query.ids || "")
+      .split(",").map((s) => s.trim()).filter(Boolean);
+    if (!ids.length) return res.json([]);
+
+    const sheets = await getSheetsClient();
+    const resp   = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${ASSET_SHEET}!A2:P`,
+    });
+    const assetRows = resp.data.values || [];
+
+    const results = assetRows
+      .filter((r) => r[0] && ids.includes(r[0]))
+      .map((r) => ({
+        assetId:  r[0] || "",
+        code:     r[1] || "",
+        name:     r[2] || "",
+        serial:   r[4] || "",
+        status:   r[5] || "",
+        location: r[6] || "",
+        site:     r[7] || "",
+        user:     r[8] || "",
+        bundleId: r[13] || "",
+      }));
+
+    res.json(results);
+  } catch (err) {
+    console.error("❌ GET /api/bundles/asset-info:", err);
+    res.status(500).json({ error: "โหลดข้อมูล Asset ล้มเหลว" });
+  }
+});
+
+// ════════════════════════════════════════════════
 //  GET /api/bundles/search-assets?q=xxx  — ค้นหา Asset สำหรับเพิ่มเข้าชุด
 //  แสดงเฉพาะอุปกรณ์ที่ "ยังไม่ได้อยู่ใน Bundle ไหน" เท่านั้น (คอลัมน์ N ว่าง)
 //  เพื่อกันเผลอหยิบอุปกรณ์ที่ถูกจับกลุ่มอยู่ในอีกชุดไปแล้วมาใส่ซ้ำ

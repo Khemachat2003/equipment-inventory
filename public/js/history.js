@@ -69,5 +69,10 @@ function exportPDF() {
 }
 
 function openDatabase() {
-  window.open("https://docs.google.com/spreadsheets/d/1xAqS4dwT91fGVqTp2b3z6VWlXug28ilUHYVJ_tHe3QE", "_blank");
+  fetch('/api/settings/spreadsheet-url')
+    .then(function (r) { return r.json(); })
+    .then(function (d) { window.open(d.url, '_blank'); })
+    .catch(function () {
+      window.open('https://docs.google.com/spreadsheets/d/1CheIF--yOt2mRxubU1000TmIIjKpuzIExH-9O0RS7FA', '_blank');
+    });
 }

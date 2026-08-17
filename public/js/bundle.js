@@ -242,15 +242,10 @@
       return;
     }
 
-    // ค้นหา asset ทีละตัวจาก cache ที่ได้จาก search
-    // ใช้ search endpoint เพื่อดึง info พร้อมกัน
-    Promise.all(ids.map(function (id) {
-      return _get('/api/bundles/search-assets?q=' + encodeURIComponent(id))
-        .then(function (res) { return res.find(function (a) { return a.assetId === id; }) || { assetId: id, name: id, status: '—' }; })
-        .catch(function () { return { assetId: id, name: id, status: '—' }; });
-    })).then(function (assets) {
-      _renderDetailShell(b, assets);
-    });
+    // ดึงรายละเอียด asset ทั้งชุดพร้อมกัน (ไม่กรอง "อยู่ใน Bundle แล้ว")
+    _get('/api/bundles/asset-info?ids=' + ids.map(encodeURIComponent).join(','))
+      .then(function (assets) { _renderDetailShell(b, assets); })
+      .catch(function () { _renderDetailShell(b, []); });
   }
 
   function _renderDetailShell(b, assets) {
@@ -279,6 +274,12 @@
       assetHTML = assets.map(function (a) {
         var stColor = a.status === 'ใช้งานได้' ? 'var(--emerald-d)'
                     : a.status === 'ซ่อมแซม'  ? 'var(--amber)' : 'var(--g500)';
+        var ser = a.serial || a.assetId;
+        var enc = encodeURIComponent(ser);
+        var actBtns =
+          '<a href="/trace.html?serial=' + enc + '&from=bundle" target="_blank" title="ดูประวัติ" class="btn btn-out btn-sm" style="padding:2px 8px">📜</a>'
+          + '<a href="/qr.html?serial=' + enc + '" target="_blank" title="QR Code" class="btn btn-teal btn-sm" style="padding:2px 8px">📷</a>'
+          + '<button onclick="openTransferModal(\'' + _esc(ser).replace(/'/g, "\\'") + '\',\'' + _esc(a.status || '').replace(/'/g, "\\'") + '\',\'' + _esc(a.location || '').replace(/'/g, "\\'") + '\',\'' + _esc(a.site || '').replace(/'/g, "\\'") + '\',\'' + _esc(a.user || '').replace(/'/g, "\\'") + '\')" title="จัดการ/โอนย้าย" class="btn btn-blue btn-sm" style="padding:2px 8px">🚚</button>';
         return '<div class="bdl-asset-row">'
           + '<div class="bdl-asset-serial">' + _esc(a.serial || a.assetId) + '</div>'
           + '<div class="bdl-asset-info">'
@@ -288,10 +289,13 @@
           + '<span class="bdl-asset-status" style="color:' + stColor + ';background:' + stColor + '18;border-color:' + stColor + '30">'
           +   _esc(a.status || '—')
           + '</span>'
-          + '<button onclick="BDL.removeAsset(\'' + _esc(b.bundleId) + '\',\'' + _esc(a.assetId) + '\')" '
-          +   'title="ลบออกจากชุด" style="background:none;border:none;cursor:pointer;color:var(--red);padding:4px 8px;border-radius:6px">'
-          +   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
-          + '</button>'
+          + '<div style="display:flex;gap:6px;flex-shrink:0">'
+          +   actBtns
+          +   '<button onclick="BDL.removeAsset(\'' + _esc(b.bundleId) + '\',\'' + _esc(a.assetId) + '\')" '
+          +     'title="ลบออกจากชุด" style="background:none;border:none;cursor:pointer;color:var(--red);padding:4px 8px;border-radius:6px">'
+          +     '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+          +   '</button>'
+          + '</div>'
           + '</div>';
       }).join('');
     }
