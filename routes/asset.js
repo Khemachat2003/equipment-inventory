@@ -452,8 +452,6 @@ router.post("/api/transfer-asset",
         serialNumber,
         action,
         status,
-        location,
-        siteName,
         user,
         remark,
         fromLocation,
@@ -462,6 +460,8 @@ router.post("/api/transfer-asset",
         houseName,
         animalType,
       } = req.body;
+      let location = req.body.location;
+      let siteName = req.body.siteName;
 
       const sheets = await getSheetsClient();
       const currentDate = new Date().toLocaleString("th-TH");
