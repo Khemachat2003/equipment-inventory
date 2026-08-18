@@ -12,14 +12,13 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 const { fullSystemBackup } = require('./services/backup');
-
 // ========== IMPORT ROUTES ==========
 const routes = require("./routes");
 // ดึง asset router เพื่อเรียก sync (module cache จะใช้ตัวเดียวกัน)
 const assetRouter = require("./routes/asset");
 const { requireLogin, requireAdmin, validate } = require("./middleware/auth");
 // ========== CACHE ==========
-const { cache } = require("./services/sheets");
+const { cache, getSheetsClient } = require("./services/sheets");
 
 // -------------------- CONFIG --------------------
 const PORT = process.env.PORT || 3000;
@@ -212,6 +211,7 @@ const BACKUP_TABLES = [
   'backup_part_catalog',
   'backup_asset_list',
   'backup_asset_history',
+  'backup_damaged_assets',
 ];
 
 app.get('/api/backup-data', requireLogin, requireAdmin, async (req, res) => {
@@ -313,30 +313,71 @@ app.listen(PORT, () => {
 });
 
 // ========== SCHEDULED BACKUP ==========
-// รัน Full System Backup อัตโนมัติ เวลา 02:00 ตามเวลาท้องถิ่นของเซิร์ฟเวอร์
-// (Render timelines เป็น UTC → 02:00 ไทย = 19:00 UTC วันก่อนหน้า)
-// ปิดได้ด้วย env BACKUP_CRON="" 
+// รัน Full System Backup อัตโนมัติตาม BACKUP_CRON
+// แบบ "smart": จะ backup ก็ต่อเมื่อมี Audit Log ใหม่เกิดขึ้น หลัง backup ครั้งล่าสุด
+// (กรณีไม่มีการเปลี่ยนแปลงข้อมูลจริงในวันนั้น จะข้ามไป ไม่สิ้นเปลือง quota)
+// ปิดได้ด้วย env BACKUP_CRON=""
 const cron = require("node-cron");
 const BACKUP_CRON = process.env.BACKUP_CRON;
 if (BACKUP_CRON) {
   try {
     cron.schedule(BACKUP_CRON, async () => {
-      console.log("🔄 Running scheduled full backup...");
+      console.log("🔄 Running scheduled backup check...");
       if (!process.env.DATABASE_URL) {
         console.warn("⚠️ DATABASE_URL ไม่อยู่ - ข้าม scheduled backup");
         return;
       }
       try {
+        const changed = await hasNewAuditSinceLastBackup();
+        if (!changed) {
+          console.log("ℹ️ ไม่พบ Audit Log ใหม่หลัง backup ล่าสุด — ข้าม backup วันนี้");
+          return;
+        }
         const result = await fullSystemBackup();
         console.log("📊 Scheduled backup result:", result.totalRows ? `OK (${result.totalRows} rows)` : result);
       } catch (err) {
         console.error("❌ Scheduled backup failed:", err.message);
       }
     });
-    console.log(`✅ Scheduled backup: ${BACKUP_CRON}`);
+    console.log(`✅ Scheduled backup (smart): ${BACKUP_CRON}`);
   } catch (e) {
     console.error("❌ Invalid BACKUP_CRON:", e.message);
   }
 } else {
   console.log("ℹ️ Scheduled backup disabled (set BACKUP_CRON env เช่น '0 19 * * *')");
+}
+
+// ── ตรวจว่า Audit_Log มีแถวใหม่กว่า backup ครั้งล่าสุดหรือไม่ ──
+async function hasNewAuditSinceLastBackup() {
+  try {
+    const sheets = await getSheetsClient();
+    const auditResp = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: "Audit_Log!A2:A",
+    });
+    const sheetRows = (auditResp.data.values || []).filter((r) => r[0]).length;
+
+    const url = process.env.DATABASE_URL;
+    const pgUrl = url.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
+    const client = new Client({
+      connectionString: pgUrl,
+      ssl: { rejectUnauthorized: false },
+    });
+    await client.connect();
+
+    let backupRows = 0;
+    try {
+      const res = await client.query('SELECT count(*) AS cnt FROM backup_audit_log');
+      backupRows = parseInt(res.rows[0].cnt, 10) || 0;
+    } catch (e) {
+      // ตาราง backup ยังไม่เคยถูกสร้าง → ถือว่าต้อง backup
+      console.warn("ℹ️ ยังไม่มี backup_audit_log (ครั้งแรก) — จะ backup");
+    }
+    await client.end();
+
+    return sheetRows > backupRows;
+  } catch (err) {
+    console.error("❌ hasNewAuditSinceLastBackup error:", err.message);
+    return true; // error → ให้ backup ไปก่อน ปลอดภัยกว่า
+  }
 }

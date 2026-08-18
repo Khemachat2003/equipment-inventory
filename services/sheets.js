@@ -73,11 +73,80 @@ function clearAssetCache() {
   cache.del("assetData");
 }
 
+const DAMAGED_SHEET = "Damaged_Assets";
+const DAMAGED_HEADER = [
+  "Date", "SerialNumber", "AssetID", "Code", "Name", "PartNumber",
+  "Status", "OldLocation", "OldSite", "TransferredBy", "Remark", "Action",
+];
+
+// ── ตรวจว่ามี sheet "Damaged_Assets" แล้วหรือยัง ถ้ายังไม่มีให้สร้าง + ตั้ง header ──
+async function ensureDamagedAssetsSheet() {
+  const sheets = await getSheetsClient();
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  const exists = (meta.data.sheets || []).some(
+    (s) => s.properties && s.properties.title === DAMAGED_SHEET
+  );
+  if (exists) return true;
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: {
+      requests: [
+        {
+          addSheet: {
+            properties: {
+              title: DAMAGED_SHEET,
+              gridProperties: { rowCount: 1000, columnCount: DAMAGED_HEADER.length },
+            },
+          },
+        },
+      ],
+    },
+  });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${DAMAGED_SHEET}!A1:L1`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [DAMAGED_HEADER] },
+  });
+  console.log("✅ Created sheet: Damaged_Assets");
+  return true;
+}
+
+// ── บันทึกอุปกรณ์ที่ "ชำรุด/สูญหาย" หลังโอนย้ายลง sheet แยก ──
+async function logDamagedAsset(record) {
+  await ensureDamagedAssetsSheet();
+  const sheets = await getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${DAMAGED_SHEET}!A:L`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[
+        record.date || new Date().toLocaleString("th-TH"),
+        record.serialNumber || "",
+        record.assetId || "",
+        record.code || "",
+        record.name || "",
+        record.partNumber || "",
+        record.status || "",
+        record.oldLocation || "",
+        record.oldSite || "",
+        record.user || "",
+        record.remark || "",
+        record.action || "",
+      ]],
+    },
+  });
+}
+
 module.exports = {
   getSheetsClient,
   saveAssetHistory,
   clearStockCache,
   clearAssetCache,
   cache,
-  SPREADSHEET_ID
+  SPREADSHEET_ID,
+  DAMAGED_SHEET,
+  ensureDamagedAssetsSheet,
+  logDamagedAsset,
 };

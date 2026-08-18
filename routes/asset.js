@@ -8,7 +8,8 @@ const {
   saveAssetHistory, 
   clearAssetCache, 
   cache, 
-  SPREADSHEET_ID 
+  SPREADSHEET_ID,
+  logDamagedAsset,
 } = require("../services/sheets");
 const { requireLogin, validate } = require("../middleware/auth");
 const { logAudit } = require("../services/audit");
@@ -471,9 +472,10 @@ router.post("/api/transfer-asset",
       });
       const assetRows = assetRes.data.values || [];
       
-      const rowIndex = assetRows.findIndex(
+      const foundIdx = assetRows.findIndex(
         (row) => row[4] && row[4].trim() === serialNumber.trim()
-      ) + 2;
+      );
+      const rowIndex = foundIdx + 2;
 
       if (rowIndex === 1) {
         return res.status(400).json({
@@ -481,6 +483,17 @@ router.post("/api/transfer-asset",
           error: "ไม่พบ Serial Number นี้ในระบบ",
         });
       }
+
+      const prevRow = assetRows[foundIdx]; // ข้อมูลเดิมก่อนย้าย (A..M)
+
+      const remarkFull = [
+        remark,
+        farmType ? `ประเภทฟาร์ม: ${farmType}` : "",
+        animalType ? `ประเภทสัตว์: ${animalType}` : "",
+        houseName ? `โรงเรือน: ${houseName}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | ");
 
       const updateValues = [
         status,
@@ -500,14 +513,24 @@ router.post("/api/transfer-asset",
         requestBody: { values: [updateValues] },
       });
 
-      const remarkFull = [
-        remark,
-        farmType ? `ประเภทฟาร์ม: ${farmType}` : "",
-        animalType ? `ประเภทสัตว์: ${animalType}` : "",
-        houseName ? `โรงเรือน: ${houseName}` : "",
-      ]
-        .filter(Boolean)
-        .join(" | ");
+      // ── กรณี "คืนคลังสินค้า" + สถานะใหม่ "ชำรุด/สูญหาย" → บันทึกลง sheet อุปกรณ์เสีย ──
+      const isDamaged = action.includes("คืนคลัง") && status.includes("ชำรุด/สูญหาย");
+      if (isDamaged) {
+        await logDamagedAsset({
+          date: currentDate,
+          serialNumber,
+          assetId: prevRow[0] || "",
+          code: prevRow[1] || "",
+          name: prevRow[2] || "",
+          partNumber: prevRow[3] || "",
+          status,
+          oldLocation: prevRow[6] || "",
+          oldSite: prevRow[7] || "",
+          user: req.session.user.username,
+          remark: remarkFull || "",
+          action,
+        });
+      }
 
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,

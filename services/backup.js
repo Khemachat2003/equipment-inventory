@@ -113,6 +113,13 @@ async function fullSystemBackup() {
         table: 'backup_asset_history', 
         columns: ['date', 'serial_number', 'action', 'from_col', 'to_col', 'user_col', 'remark'] 
       },
+      // 12. Damaged_Assets
+      { 
+        name: 'Damaged_Assets', 
+        range: `'Damaged_Assets'!A2:L`,  // ✅ ระบุชื่อ Sheet
+        table: 'backup_damaged_assets', 
+        columns: ['date', 'serial_number', 'asset_id', 'code', 'name', 'part_number', 'status', 'old_location', 'old_site', 'user_col', 'remark', 'action'] 
+      },
     ];
 
     // Mapping: คอลัมน์ที่เป็นคำสงวน

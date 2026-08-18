@@ -61,6 +61,7 @@ tbody tr:hover{background:#fafcff}
     <option value="backup_transfer_log">📋 Transfer Log</option>
     <option value="backup_asset_list">🗃️ Asset List</option>
     <option value="backup_asset_history">📜 Asset History</option>
+    <option value="backup_damaged_assets">⚠️ อุปกรณ์ชำรุด/สูญหาย</option>
     <option value="backup_part_catalog">🔧 Part Catalog</option>
     <option value="backup_farm_sites">🌱 Farm Sites</option>
     <option value="backup_farm_houses">🏠 Farm Houses</option>
@@ -98,13 +99,26 @@ async function loadTableData() {
 
   try {
     const res = await fetch(`/api/backup-data?table=${encodeURIComponent(table)}`);
+
+    if (res.status === 401 || res.status === 403) {
+      document.getElementById('tableContainer').innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🔒</div>
+          <div>ต้องเข้าสู่ระบบในฐานะ Admin ก่อนดูข้อมูล Backup</div>
+          <div style="margin-top:14px"><a href="/" class="btn btn-primary">← กลับเข้าสู่ระบบ</a></div>
+        </div>
+      `;
+      document.getElementById('stats').innerHTML = '';
+      return;
+    }
+
     const data = await res.json();
 
     if (!data.success || !data.rows || !data.rows.length) {
       document.getElementById('tableContainer').innerHTML = `
         <div class="empty-state">
           <div class="icon">📭</div>
-          <div>ไม่มีข้อมูลในตารางนี้</div>
+          <div>ไม่มีข้อมูลในตารางนี้ — ยังไม่เคยกด Backup ทั้งระบบ หรือตารางว่าง</div>
         </div>
       `;
       document.getElementById('stats').innerHTML = '';
@@ -148,13 +162,35 @@ async function loadTableData() {
   }
 }
 
-// ✅ โหลดตารางแรกอัตโนมัติ
-document.addEventListener('DOMContentLoaded', function() {
-  const select = document.getElementById('tableSelect');
-  if (select) {
-    select.value = 'backup_stock_master';
-    loadTableData();
+// ✅ ตรวจว่าเข้าสู่ระบบเป็น Admin แล้วก่อนโหลด
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/check-auth');
+    const d = await res.json();
+    if (!d.loggedIn || d.role !== 'admin') {
+      document.getElementById('tableContainer').innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🔒</div>
+          <div>ต้องเข้าสู่ระบบในฐานะ Admin ก่อนดูข้อมูล Backup</div>
+          <div style="margin-top:14px"><a href="/" class="btn btn-primary">← กลับเข้าสู่ระบบ</a></div>
+        </div>
+      `;
+      return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
   }
+}
+
+// ✅ โหลดตารางแรกอัตโนมัติ
+document.addEventListener('DOMContentLoaded', async function() {
+  const select = document.getElementById('tableSelect');
+  if (!select) return;
+  const ok = await checkAuth();
+  if (!ok) return;
+  select.value = 'backup_stock_master';
+  loadTableData();
 });
 
 function exportCurrentTable() {
