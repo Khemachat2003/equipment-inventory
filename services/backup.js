@@ -157,27 +157,37 @@ async function fullSystemBackup() {
         });
         const rows = res.data.values || [];
 
-        // Insert ข้อมูล
+        // Insert ข้อมูล (batch ทีละ 500 แถว — เร็วกว่า insert ทีละแถวมาก)
         let inserted = 0;
         if (rows.length > 0) {
           const columnNames = config.columns.map(col => columnMap[col] || col);
-          const placeholders = config.columns.map((_, i) => `$${i + 1}`).join(', ');
+          const validRows = rows.filter(r => r[0]);
+          const BATCH = 500;
 
-          for (const row of rows) {
-            if (!row[0]) continue;
-            const values = config.columns.map((col, i) => {
-              return row[i] || '';
+          for (let i = 0; i < validRows.length; i += BATCH) {
+            const chunk = validRows.slice(i, i + BATCH);
+            const values = [];
+            const rowGroups = [];
+            chunk.forEach((row, ridx) => {
+              const rowPh = [];
+              config.columns.forEach((col, cidx) => {
+                values.push(row[cidx] || '');
+                rowPh.push(`$${ridx * config.columns.length + cidx + 1}`);
+              });
+              rowGroups.push('(' + rowPh.join(', ') + ')');
             });
 
+            // สร้าง SQL แบบ batch: INSERT INTO t (c1,c2) VALUES ($1,$2),($3,$4),...
+            // ใช้ format() แค่กับชื่อตาราง (มาจาก whitelist config) ที่เหลือเป็น string ตรงๆ ปลอดภัย
             const insertSQL = format(
-              'INSERT INTO %I (%s) VALUES (%s)',
+              'INSERT INTO %I (%s) VALUES %s',
               config.table,
               columnNames.join(', '),
-              placeholders
+              rowGroups.join(', ')
             );
 
             await client.query(insertSQL, values);
-            inserted++;
+            inserted += chunk.length;
           }
         }
 
