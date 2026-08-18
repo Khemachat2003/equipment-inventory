@@ -196,7 +196,7 @@ app.post('/api/full-backup', requireLogin, requireAdmin, async (req, res) => {
 });
 
 // server.js (เพิ่มตรงส่วน Routes)
-const { Client } = require('pg');
+const { createClient } = require('./services/pg');
 
 // whitelist ตารางที่อนุญาตให้ดูผ่าน backup-View (กัน SQL injection)
 const BACKUP_TABLES = [
@@ -229,10 +229,7 @@ app.get('/api/backup-data', requireLogin, requireAdmin, async (req, res) => {
     return res.status(500).json({ error: 'DATABASE_URL not set' });
   }
 
-  const client = new Client({
-    connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
+  const client = createClient();
 
   try {
     await client.connect();
@@ -357,12 +354,7 @@ async function hasNewAuditSinceLastBackup() {
     });
     const sheetRows = (auditResp.data.values || []).filter((r) => r[0]).length;
 
-    const url = process.env.DATABASE_URL;
-    const pgUrl = url.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
-    const client = new Client({
-      connectionString: pgUrl,
-      ssl: { rejectUnauthorized: false },
-    });
+    const client = createClient();
     await client.connect();
 
     let backupRows = 0;

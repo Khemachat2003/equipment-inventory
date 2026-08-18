@@ -1,7 +1,7 @@
 // services/backup.js
-const { Client } = require('pg');
 const { getSheetsClient, SPREADSHEET_ID } = require('./sheets');
 const format = require('pg-format');
+const { createClient } = require('./pg');
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -16,15 +16,11 @@ async function backupToPostgres() {
 // 2. FULL SYSTEM BACKUP (แก้ไขแล้ว)
 // ============================================================
 async function fullSystemBackup() {
-  const DATABASE_URL = process.env.DATABASE_URL;
-  if (!DATABASE_URL) {
+  if (!process.env.DATABASE_URL) {
     return { success: false, error: 'DATABASE_URL not set' };
   }
 
-  const client = new Client({
-    connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
+  const client = createClient();
 
   try {
     await client.connect();
