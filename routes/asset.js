@@ -486,6 +486,13 @@ router.post("/api/transfer-asset",
 
       const prevRow = assetRows[foundIdx]; // ข้อมูลเดิมก่อนย้าย (A..M)
 
+      // ── ถ้าเป็น "คืนคลังสินค้า" → บังคับกลับคลังกลาง Intranin/Stock เสมอ ──
+      const isReturn = action.includes("คืนคลัง");
+      if (isReturn) {
+        siteName = "Intranin";
+        location = "Stock";
+      }
+
       const remarkFull = [
         remark,
         farmType ? `ประเภทฟาร์ม: ${farmType}` : "",

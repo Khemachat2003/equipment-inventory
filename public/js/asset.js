@@ -153,11 +153,19 @@ function openTransferModal(serial, status, location, site, user) {
 function onActionChange() {
   const action = document.getElementById("transferAction").value;
   const fs = document.getElementById("farmSection");
-  if (action.includes("ซ่อม") || action.includes("คืนคลัง")) {
+  const isReturn = action.includes("คืนคลัง");
+  if (action.includes("ซ่อม") || isReturn) {
     if (fs) fs.style.display = "none";
     document.getElementById("transferStatus").value = action.includes("ซ่อม") ? "ส่งซ่อม" : "สำรอง";
   } else {
     if (fs) fs.style.display = "block";
+  }
+  // คืนคลัง → กลับไปคลังกลาง Intranin เสมอ (Stock)
+  if (isReturn) {
+    const site = document.getElementById("transferSite");
+    if (site) site.value = "Intranin";
+    const loc = document.getElementById("transferLocation");
+    if (loc) loc.value = "Stock";
   }
 }
 
