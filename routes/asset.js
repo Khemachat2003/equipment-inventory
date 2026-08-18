@@ -493,6 +493,24 @@ router.post("/api/transfer-asset",
         location = "Stock";
       }
 
+      // ถ้า asset นี้เคยถูกจับเข้าชุด (มี BundleID ที่ N) และถูกคืนคลัง
+      // ให้ถอดออกจาก Bundle ด้วย (ล้าง N/O/P/Q) กันไม่ให้ Bundle กลับมาเขียนสถานะทับ
+      const wasInBundle = !!(prevRow[13] || "");
+      if (isReturn && wasInBundle) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: {
+            valueInputOption: "USER_ENTERED",
+            data: [
+              { range: `Asset_List!N${rowIndex}`, values: [[""]] },
+              { range: `Asset_List!O${rowIndex}`, values: [[""]] },
+              { range: `Asset_List!P${rowIndex}`, values: [[""]] },
+              { range: `Asset_List!Q${rowIndex}`, values: [[""]] },
+            ],
+          },
+        });
+      }
+
       const remarkFull = [
         remark,
         farmType ? `ประเภทฟาร์ม: ${farmType}` : "",

@@ -66,11 +66,11 @@ function bundleLabel(bundleName, bundleId) {
 
 // ─── helper: ดึง Asset_List ทั้งหมด (สดจาก sheet ไม่ผ่าน cache
 //     เพราะเรากำลังจะเขียนทับแถวพวกนี้ต่อ)
-//     อ่านถึงคอลัมน์ P เพื่อให้ได้ BundleID / PrevLocation / PrevSiteName มาด้วย ──
+//     อ่านถึงคอลัมน์ Q เพื่อให้ได้ BundleID / PrevLocation / PrevSiteName / PrevStatus ──
 async function getAssetRows(sheets) {
   const resp = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${ASSET_SHEET}!A2:P`,
+    range: `${ASSET_SHEET}!A2:Q`,
   });
   return resp.data.values || [];
 }
@@ -109,6 +109,7 @@ async function applyBundleGroupingToAssets({
     const serial        = row[4] || assetId;
     const prevLocation  = row[6] || "-";
     const prevSite      = row[7] || "-";
+    const prevStatus    = row[5] || "ใช้งานได้"; // สถานะเดิมก่อนถูกบังคับเป็น "In Bundle"
 
     updates.push({ range: `${ASSET_SHEET}!F${aRow}`, values: [["In Bundle"]] });
     updates.push({ range: `${ASSET_SHEET}!G${aRow}`, values: [[bundleLocation]] });
@@ -116,6 +117,7 @@ async function applyBundleGroupingToAssets({
     updates.push({ range: `${ASSET_SHEET}!N${aRow}`, values: [[bundleId]] });
     updates.push({ range: `${ASSET_SHEET}!O${aRow}`, values: [[prevLocation]] });
     updates.push({ range: `${ASSET_SHEET}!P${aRow}`, values: [[prevSite]] });
+    updates.push({ range: `${ASSET_SHEET}!Q${aRow}`, values: [[prevStatus]] });
 
     result.applied.push(assetId);
     historyJobs.push(() => saveAssetHistory(
@@ -153,22 +155,24 @@ async function revertAssetFromBundle({
   const serial = row[4] || assetId;
   const label  = bundleLabel(bundleName, bundleId);
 
-  // ถ้าไม่เคยมี snapshot เดิมเก็บไว้ (เช่นสมุดยังไม่มีคอลัมน์ O/P) ใช้ค่า default
+  // ถ้าไม่เคยมี snapshot เดิมเก็บไว้ (เช่นสมุดยังไม่มีคอลัมน์ O/P/Q) ใช้ค่า default
   // ตามฐานที่ระบบใช้จริง คือของที่ยังไม่ได้ประกอบเข้า Bundle จะอยู่ที่ Stock/Intranin
   const restoreLocation = row[14] || "Stock";
   const restoreSite     = row[15] || "Intranin";
+  const restoreStatus   = row[16] || "ใช้งานได้";
 
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
     requestBody: {
       valueInputOption: "USER_ENTERED",
       data: [
-        { range: `${ASSET_SHEET}!F${aRow}`, values: [["ใช้งานได้"]] },
+        { range: `${ASSET_SHEET}!F${aRow}`, values: [[restoreStatus]] },
         { range: `${ASSET_SHEET}!G${aRow}`, values: [[restoreLocation]] },
         { range: `${ASSET_SHEET}!H${aRow}`, values: [[restoreSite]] },
         { range: `${ASSET_SHEET}!N${aRow}`, values: [[""]] },
         { range: `${ASSET_SHEET}!O${aRow}`, values: [[""]] },
         { range: `${ASSET_SHEET}!P${aRow}`, values: [[""]] },
+        { range: `${ASSET_SHEET}!Q${aRow}`, values: [[""]] },
       ],
     },
   });
