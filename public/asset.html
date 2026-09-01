@@ -103,12 +103,185 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:#f1f5f9;min-height:1
 .error .icon{font-size:40px;margin-bottom:8px}
 .error-title{font-weight:700;color:#0f172a;font-size:17px}
 .error-sub{font-size:14px;color:#94a3b8}
+
+/* ═══════════════════════════════════════════════════════════════
+   ICON DESIGN SYSTEM — Premium Material Symbols
+   Size × Weight × Fill × Grade × Color × State
+═══════════════════════════════════════════════════════════════ */
+
+/* Base icon element */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-variation-settings:
+    'wght' var(--icon-w-regular, 400),
+    'FILL' var(--icon-fill-none, 0),
+    'GRAD' var(--icon-grade-normal, 0),
+    'opsz' var(--icon-opsz-md, 24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  vertical-align: middle;
+  transition:
+    font-variation-settings var(--icon-transition),
+    color var(--icon-transition),
+    transform var(--icon-transition);
+}
+
+/* ─── Size Modifiers ─── */
+.icon-xs { font-size: var(--icon-xs); --icon-opsz-md: var(--icon-opsz-sm); }
+.icon-sm { font-size: var(--icon-sm); --icon-opsz-md: var(--icon-opsz-sm); }
+.icon-md { font-size: var(--icon-md); --icon-opsz-md: var(--icon-opsz-md); }
+.icon-lg { font-size: var(--icon-lg); --icon-opsz-md: var(--icon-opsz-lg); }
+.icon-xl { font-size: var(--icon-xl); --icon-opsz-md: var(--icon-opsz-lg); }
+.icon-2xl { font-size: var(--icon-2xl); --icon-opsz-md: var(--icon-opsz-xl); }
+
+/* ─── Weight Modifiers ─── */
+.icon-light     { --icon-w-regular: var(--icon-w-light); }
+.icon-regular   { --icon-w-regular: var(--icon-w-regular); }
+.icon-medium    { --icon-w-regular: var(--icon-w-medium); }
+.icon-semibold  { --icon-w-regular: var(--icon-w-semibold); }
+.icon-bold      { --icon-w-regular: var(--icon-w-bold); }
+
+/* ─── Fill Modifiers (semantic) ─── */
+.icon-outline   { --icon-fill-none: var(--icon-fill-none); }
+.icon-hover     { --icon-fill-none: var(--icon-fill-subtle); }
+.icon-active    { --icon-fill-none: var(--icon-fill-half); }
+.icon-filled    { --icon-fill-none: var(--icon-fill-full); }
+
+/* ─── Grade Modifiers ─── */
+.icon-grade-normal { --icon-grade-normal: var(--icon-grade-normal); }
+.icon-grade-dark   { --icon-grade-normal: var(--icon-grade-dark); }
+.icon-grade-light  { --icon-grade-normal: var(--icon-grade-light); }
+
+/* ─── Semantic Color Variants ─── */
+.icon-primary   { color: var(--blue); }
+.icon-secondary { color: var(--tsub); }
+.icon-muted     { color: var(--tmuted); }
+.icon-success   { color: var(--emerald); }
+.icon-warning   { color: var(--amber); }
+.icon-danger    { color: var(--red); }
+.icon-purple    { color: var(--purple); }
+.icon-white     { color: #fff; }
+.icon-inherit   { color: inherit; }
+
+/* ─── Composite Utility Classes ─── */
+.nav-icon {
+  --icon-w-regular: var(--icon-w-medium);
+  --icon-fill-none: var(--icon-fill-none);
+  --icon-grade-normal: var(--icon-grade-normal);
+  --icon-opsz-md: var(--icon-opsz-md);
+  font-size: var(--icon-md);
+  color: var(--tsub);
+  transition: color var(--icon-transition), font-variation-settings var(--icon-transition);
+}
+.nav-icon:hover,
+.nav-icon.active {
+  color: var(--blue);
+  --icon-fill-none: var(--icon-fill-full);
+  --icon-w-regular: var(--icon-w-semibold);
+}
+
+.btn-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-sm);
+}
+.btn-primary .btn-icon    { color: var(--blue); }
+.btn-primary:hover .btn-icon    { --icon-fill-none: var(--icon-fill-subtle); }
+.btn-primary:active .btn-icon   { --icon-fill-none: var(--icon-fill-half); }
+.btn-secondary .btn-icon  { color: var(--tsub); }
+.btn-outline .btn-icon    { color: var(--blue); }
+.btn-ghost .btn-icon      { color: var(--tsub); }
+.btn-ghost:hover .btn-icon    { color: var(--blue); --icon-fill-none: var(--icon-fill-subtle); }
+
+.status-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-xs);
+}
+.status-success .status-icon { color: var(--emerald); }
+.status-warning .status-icon { color: var(--amber); }
+.status-danger .status-icon  { color: var(--red); }
+.status-info .status-icon    { color: var(--blue); }
+
+.card-icon {
+  --icon-w-regular: var(--icon-w-regular);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-xl);
+  color: var(--blue);
+}
+.card:hover .card-icon {
+  --icon-fill-none: var(--icon-fill-subtle);
+  --icon-w-regular: var(--icon-w-medium);
+}
+
+.fab-icon {
+  --icon-w-regular: var(--icon-w-bold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-lg);
+  color: #fff;
+}
+
+.table-action-icon {
+  --icon-w-regular: var(--icon-w-medium);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-sm);
+  color: var(--tmuted);
+  transition: color var(--icon-transition), font-variation-settings var(--icon-transition), transform var(--icon-transition);
+}
+.table-action-icon:hover {
+  color: var(--blue);
+  --icon-fill-none: var(--icon-fill-subtle);
+  transform: scale(1.1);
+}
+
+.empty-icon {
+  --icon-w-regular: var(--icon-w-light);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-2xl);
+  color: var(--g300);
+}
+
+.header-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-lg);
+  color: var(--ink);
+}
+
+.material-symbols-rounded:not(.no-transition) {
+  transition: font-variation-settings 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.material-symbols-rounded:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .material-symbols-rounded {
+    transition: none;
+  }
+}
+
+
+/* ── Global: ลบเส้นใต้ anchor ทุกแบบ (รวม icon-button ที่ JS สร้างขึ้น) ── */
+a,
+a:link,
+a:visited { text-decoration: none; }
+a:hover,
+a:focus { text-decoration: none; }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" crossorigin="anonymous" />
 </head>
 <body>
 
 <header class="hdr">
-  <div class="hdr-logo">📦</div>
+  <div class="hdr-logo"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span></div>
   <div>
     <div class="hdr-text">Equipment Management</div>
     <div class="hdr-sub">Asset Information</div>
@@ -130,7 +303,7 @@ function getSerial(){
   return "";
 }
 
-// ✅ ฟังก์ชันตรวจสอบแหล่งที่มาของการสแกน
+// <span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span> ฟังก์ชันตรวจสอบแหล่งที่มาของการสแกน
 function getSource() {
   const q = new URLSearchParams(window.location.search);
   return q.get("from") || "external"; // ถ้าไม่มี from=internal → external
@@ -144,9 +317,9 @@ function getStatusBadgeClass(s=""){
 }
 function getStatusIcon(s=""){
   const t=s.toLowerCase();
-  if(t.includes("ซ่อม")) return "🔧";
-  if(t.includes("สำรอง")) return "📦";
-  return "✅";
+  if(t.includes("ซ่อม")) return "<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">build</span>";
+  if(t.includes("สำรอง")) return "<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span>";
+  return "<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span>";
 }
 
 const serial=getSerial();
@@ -162,7 +335,7 @@ async function checkAuth(){
       isAdmin=true;
       currentUser=d.username||"Admin";
       document.getElementById("headerBadge").className="hdr-badge hdr-admin";
-      document.getElementById("headerBadge").textContent=`👤 ${currentUser}`;
+      document.getElementById("headerBadge").textContent=`<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">person</span> ${currentUser}`;
     }
   }catch(e){}
 }
@@ -171,7 +344,7 @@ async function checkAuth(){
 async function loadAsset(){
   if(!serial){
     document.getElementById("root").innerHTML=`
-      <div class="error"><div class="icon">⚠️</div><div class="error-title">ไม่พบรหัสอุปกรณ์</div>
+      <div class="error"><div class="icon">⚠</div><div class="error-title">ไม่พบรหัสอุปกรณ์</div>
       <div class="error-sub">กรุณาสแกน QR Code ใหม่อีกครั้ง</div></div>`;
     return;
   }
@@ -191,7 +364,7 @@ async function loadAsset(){
     const name=d.name||"อุปกรณ์";
     const statusText=d.status||"ไม่ระบุ";
 
-    // ✅ ตรวจสอบแหล่งที่มาของการสแกน
+    // <span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span> ตรวจสอบแหล่งที่มาของการสแกน
     const source = getSource();
 
     // --- ถ้าเป็น admin และมาจาก internal scan (สแกนผ่านเว็บของเรา) เท่านั้น ---
@@ -204,7 +377,7 @@ async function loadAsset(){
       if(d.farmType && d.farmType!=="-"){
         factoryHtml=`
           <div style="margin-top:12px;border-top:1px solid #f1f5f9;padding-top:12px">
-            <div style="font-weight:700;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏭 ข้อมูลการติดตั้ง</div>
+            <div style="font-weight:700;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">factory</span> ข้อมูลการติดตั้ง</div>
             <div class="factory-grid">
               ${d.farmType!=="-" ? `<div class="factory-chip"><div class="fc-lbl">ประเภทฟาร์ม</div><div class="fc-val">${d.farmType}</div></div>`:""}
               ${d.siteName!=="-" ? `<div class="factory-chip"><div class="fc-lbl">ไซต์งาน</div><div class="fc-val">${d.siteName}</div></div>`:""}
@@ -219,39 +392,39 @@ async function loadAsset(){
       if(history.length){
         timelineHtml=`
           <div style="margin-top:16px;border-top:1px solid #f1f5f9;padding-top:16px">
-            <div style="font-weight:700;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📋 ประวัติการเคลื่อนย้าย (${history.length} รายการ)</div>
+            <div style="font-weight:700;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">assignment</span> ประวัติการเคลื่อนย้าย (${history.length} รายการ)</div>
             <div class="timeline">`;
         history.slice(0,6).forEach((h,i)=>{
           const isFirst=i===0;
           const dotClass=isFirst?"tl-cur":(h.action.includes("ซ่อม")?"tl-rep":h.action.includes("ลงทะเบียน")?"tl-reg":"tl-move");
-          const dotIcon=isFirst?"📍":(h.action.includes("ซ่อม")?"🔧":h.action.includes("ลงทะเบียน")?"✦":"→");
+          const dotIcon=isFirst?"<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span>":(h.action.includes("ซ่อม")?"<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">build</span>":h.action.includes("ลงทะเบียน")?"✦":"→");
           const routeHtml=(h.from&&h.from!=="-")
             ?`<div class="tl-route"><span class="tl-chip">${h.from}</span><span class="tl-arr">→</span><span class="tl-chip tl-chip-d">${h.to||"-"}</span></div>`
-            :(h.to&&h.to!=="-")?`<div class="tl-route"><span class="tl-chip tl-chip-d">📍 ${h.to}</span></div>`:"";
+            :(h.to&&h.to!=="-")?`<div class="tl-route"><span class="tl-chip tl-chip-d"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span> ${h.to}</span></div>`:"";
           timelineHtml+=`<div class="tl-item">
             <div class="tl-dot ${dotClass}">${dotIcon}</div>
             <div class="tl-box ${isFirst?"tl-box-cur":""}">
-              <div class="tl-top"><div class="tl-action">${h.action||"-"}${isFirst?'<span class="tl-now">ล่าสุด</span>':""}</div><div class="tl-date">📅 ${h.date||"-"}</div></div>
+              <div class="tl-top"><div class="tl-action">${h.action||"-"}${isFirst?'<span class="tl-now">ล่าสุด</span>':""}</div><div class="tl-date"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">event</span> ${h.date||"-"}</div></div>
               ${routeHtml}
-              <div class="tl-user">👤 ${h.user||"System"}${h.remark&&h.remark!=="-"?` · 💬 ${h.remark}`:""}</div>
+              <div class="tl-user"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">person</span> ${h.user||"System"}${h.remark&&h.remark!=="-"?` · <span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">chat</span> ${h.remark}`:""}</div>
             </div>
           </div>`;
         });
         timelineHtml+=`</div></div>`;
       }
 
-      // ✅ ปุ่มจัดการ (แก้ไขลิงก์ประวัติให้มี ?from=internal)
+      // <span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span> ปุ่มจัดการ (แก้ไขลิงก์ประวัติให้มี ?from=internal)
       const actionsHtml=`
         <div class="actions">
-          <button class="btn btn-blue" onclick="window.location.href='/trace.html?serial=${encodeURIComponent(serial)}&from=internal'">📋 ประวัติเต็ม</button>
-          <button class="btn btn-teal" onclick="window.location.href='/qr.html?serial=${encodeURIComponent(serial)}'">🖨️ พิมพ์ QR</button>
-          <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์หน้านี้</button>
+          <button class="btn btn-blue" onclick="window.location.href='/trace.html?serial=${encodeURIComponent(serial)}&from=internal'"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">assignment</span> ประวัติเต็ม</button>
+          <button class="btn btn-teal" onclick="window.location.href='/qr.html?serial=${encodeURIComponent(serial)}'"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">print</span> พิมพ์ QR</button>
+          <button class="btn btn-outline" onclick="window.print()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">print</span> พิมพ์หน้านี้</button>
         </div>`;
 
       // การ์ดเต็ม
       document.getElementById("root").innerHTML=`
         <div style="margin-bottom:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 16px;font-size:13px;color:#1e40af">
-          🔐 โหมดผู้ดูแลระบบ — คุณสามารถโอนย้ายและดูประวัติได้
+          <span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">lock</span> โหมดผู้ดูแลระบบ — คุณสามารถโอนย้ายและดูประวัติได้
         </div>
         ${actionsHtml}
         <div class="card">
@@ -292,19 +465,19 @@ async function loadAsset(){
             </div>
           </div>
           <div style="border-top:1px solid #f1f5f9;padding:16px 24px 20px">
-            <div class="info-row"><span class="info-lbl">📍 ตำแหน่ง</span><span class="info-val">${d.siteName||"-"} ${d.location?`(${d.location})`:""}</span></div>
-            ${d.houseName && d.houseName!=="-" ? `<div class="info-row"><span class="info-lbl">🏠 โรงเรือน</span><span class="info-val">${d.houseName}</span></div>`:""}
-            ${d.farmType && d.farmType!=="-" ? `<div class="info-row"><span class="info-lbl">🏭 ประเภทฟาร์ม</span><span class="info-val">${d.farmType}</span></div>`:""}
-            <div class="info-row"><span class="info-lbl">👤 ผู้รับผิดชอบ</span><span class="info-val">${d.user||"-"}</span></div>
-            <div class="info-row"><span class="info-lbl">📅 อัปเดตล่าสุด</span><span class="info-val">${d.date||"-"}</span></div>
+            <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span> ตำแหน่ง</span><span class="info-val">${d.siteName||"-"} ${d.location?`(${d.location})`:""}</span></div>
+            ${d.houseName && d.houseName!=="-" ? `<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">home</span> โรงเรือน</span><span class="info-val">${d.houseName}</span></div>`:""}
+            ${d.farmType && d.farmType!=="-" ? `<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">factory</span> ประเภทฟาร์ม</span><span class="info-val">${d.farmType}</span></div>`:""}
+            <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">person</span> ผู้รับผิดชอบ</span><span class="info-val">${d.user||"-"}</span></div>
+            <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">event</span> อัปเดตล่าสุด</span><span class="info-val">${d.date||"-"}</span></div>
           </div>
-          <div style="text-align:center;padding:14px;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9">🔒 ข้อมูล ณ ปัจจุบัน · ${new Date().toLocaleDateString("th-TH")}</div>
+          <div style="text-align:center;padding:14px;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">lock</span> ข้อมูล ณ ปัจจุบัน · ${new Date().toLocaleDateString("th-TH")}</div>
         </div>`;
     }
 
   }catch(e){
     document.getElementById("root").innerHTML=`
-      <div class="error"><div class="icon">📭</div><div class="error-title">ไม่พบข้อมูล</div>
+      <div class="error"><div class="icon"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">mail</span></div><div class="error-title">ไม่พบข้อมูล</div>
       <div class="error-sub">Serial <strong>${serial}</strong> ไม่มีในระบบ</div></div>`;
   }
 }
@@ -315,5 +488,11 @@ async function loadAsset(){
   await loadAsset();
 })();
 </script>
+<script>
+  // Initialize Lucide icons
+  
+</script>
+
+<script src="/js/emoji-walker.js"></script>
 </body>
 </html>

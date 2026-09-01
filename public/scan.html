@@ -60,7 +60,7 @@ body{font-family:"Inter",-apple-system,"Segoe UI",sans-serif;background:#0a0f18;
 .scan-frame .corner-bl{bottom:0;left:0;border-width:0 0 3px 3px}
 .scan-frame .corner-br{bottom:0;right:0;border-width:0 3px 3px 0}
 
-/* ✅ แก้ไข: ใช้ px แทน % ให้ตรงกับกรอบ */
+/* <span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span> แก้ไข: ใช้ px แทน % ให้ตรงกับกรอบ */
 .scan-line{position:absolute;left:18px;right:18px;height:2px;background:linear-gradient(90deg,transparent,#22d3ee,transparent);border-radius:1px;animation:scanMove 1.8s ease-in-out infinite;top:18px}
 @keyframes scanMove{0%,100%{top:18px;opacity:.5}50%{top:calc(100% - 18px);opacity:1}}
 
@@ -96,11 +96,184 @@ body{font-family:"Inter",-apple-system,"Segoe UI",sans-serif;background:#0a0f18;
  .scan-frame{width:min(75%,200px)}
  #readerWrap,#reader{min-height:180px}
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ICON DESIGN SYSTEM — Premium Material Symbols
+   Size × Weight × Fill × Grade × Color × State
+═══════════════════════════════════════════════════════════════ */
+
+/* Base icon element */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-variation-settings:
+    'wght' var(--icon-w-regular, 400),
+    'FILL' var(--icon-fill-none, 0),
+    'GRAD' var(--icon-grade-normal, 0),
+    'opsz' var(--icon-opsz-md, 24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  vertical-align: middle;
+  transition:
+    font-variation-settings var(--icon-transition),
+    color var(--icon-transition),
+    transform var(--icon-transition);
+}
+
+/* ─── Size Modifiers ─── */
+.icon-xs { font-size: var(--icon-xs); --icon-opsz-md: var(--icon-opsz-sm); }
+.icon-sm { font-size: var(--icon-sm); --icon-opsz-md: var(--icon-opsz-sm); }
+.icon-md { font-size: var(--icon-md); --icon-opsz-md: var(--icon-opsz-md); }
+.icon-lg { font-size: var(--icon-lg); --icon-opsz-md: var(--icon-opsz-lg); }
+.icon-xl { font-size: var(--icon-xl); --icon-opsz-md: var(--icon-opsz-lg); }
+.icon-2xl { font-size: var(--icon-2xl); --icon-opsz-md: var(--icon-opsz-xl); }
+
+/* ─── Weight Modifiers ─── */
+.icon-light     { --icon-w-regular: var(--icon-w-light); }
+.icon-regular   { --icon-w-regular: var(--icon-w-regular); }
+.icon-medium    { --icon-w-regular: var(--icon-w-medium); }
+.icon-semibold  { --icon-w-regular: var(--icon-w-semibold); }
+.icon-bold      { --icon-w-regular: var(--icon-w-bold); }
+
+/* ─── Fill Modifiers (semantic) ─── */
+.icon-outline   { --icon-fill-none: var(--icon-fill-none); }
+.icon-hover     { --icon-fill-none: var(--icon-fill-subtle); }
+.icon-active    { --icon-fill-none: var(--icon-fill-half); }
+.icon-filled    { --icon-fill-none: var(--icon-fill-full); }
+
+/* ─── Grade Modifiers ─── */
+.icon-grade-normal { --icon-grade-normal: var(--icon-grade-normal); }
+.icon-grade-dark   { --icon-grade-normal: var(--icon-grade-dark); }
+.icon-grade-light  { --icon-grade-normal: var(--icon-grade-light); }
+
+/* ─── Semantic Color Variants ─── */
+.icon-primary   { color: var(--blue); }
+.icon-secondary { color: var(--tsub); }
+.icon-muted     { color: var(--tmuted); }
+.icon-success   { color: var(--emerald); }
+.icon-warning   { color: var(--amber); }
+.icon-danger    { color: var(--red); }
+.icon-purple    { color: var(--purple); }
+.icon-white     { color: #fff; }
+.icon-inherit   { color: inherit; }
+
+/* ─── Composite Utility Classes ─── */
+.nav-icon {
+  --icon-w-regular: var(--icon-w-medium);
+  --icon-fill-none: var(--icon-fill-none);
+  --icon-grade-normal: var(--icon-grade-normal);
+  --icon-opsz-md: var(--icon-opsz-md);
+  font-size: var(--icon-md);
+  color: var(--tsub);
+  transition: color var(--icon-transition), font-variation-settings var(--icon-transition);
+}
+.nav-icon:hover,
+.nav-icon.active {
+  color: var(--blue);
+  --icon-fill-none: var(--icon-fill-full);
+  --icon-w-regular: var(--icon-w-semibold);
+}
+
+.btn-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-sm);
+}
+.btn-primary .btn-icon    { color: var(--blue); }
+.btn-primary:hover .btn-icon    { --icon-fill-none: var(--icon-fill-subtle); }
+.btn-primary:active .btn-icon   { --icon-fill-none: var(--icon-fill-half); }
+.btn-secondary .btn-icon  { color: var(--tsub); }
+.btn-outline .btn-icon    { color: var(--blue); }
+.btn-ghost .btn-icon      { color: var(--tsub); }
+.btn-ghost:hover .btn-icon    { color: var(--blue); --icon-fill-none: var(--icon-fill-subtle); }
+
+.status-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-xs);
+}
+.status-success .status-icon { color: var(--emerald); }
+.status-warning .status-icon { color: var(--amber); }
+.status-danger .status-icon  { color: var(--red); }
+.status-info .status-icon    { color: var(--blue); }
+
+.card-icon {
+  --icon-w-regular: var(--icon-w-regular);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-xl);
+  color: var(--blue);
+}
+.card:hover .card-icon {
+  --icon-fill-none: var(--icon-fill-subtle);
+  --icon-w-regular: var(--icon-w-medium);
+}
+
+.fab-icon {
+  --icon-w-regular: var(--icon-w-bold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-lg);
+  color: #fff;
+}
+
+.table-action-icon {
+  --icon-w-regular: var(--icon-w-medium);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-sm);
+  color: var(--tmuted);
+  transition: color var(--icon-transition), font-variation-settings var(--icon-transition), transform var(--icon-transition);
+}
+.table-action-icon:hover {
+  color: var(--blue);
+  --icon-fill-none: var(--icon-fill-subtle);
+  transform: scale(1.1);
+}
+
+.empty-icon {
+  --icon-w-regular: var(--icon-w-light);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-2xl);
+  color: var(--g300);
+}
+
+.header-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-lg);
+  color: var(--ink);
+}
+
+.material-symbols-rounded:not(.no-transition) {
+  transition: font-variation-settings 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.material-symbols-rounded:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .material-symbols-rounded {
+    transition: none;
+  }
+}
+
+
+/* ── Global: ลบเส้นใต้ anchor ทุกแบบ (รวม icon-button ที่ JS สร้างขึ้น) ── */
+a,
+a:link,
+a:visited { text-decoration: none; }
+a:hover,
+a:focus { text-decoration: none; }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" crossorigin="anonymous" />
 </head>
 <body>
 <header class="site-header">
- <div class="logo-icon">📦</div>
+ <div class="logo-icon"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span></div>
  <div><div class="logo-text">Equipment Management</div><div class="logo-sub">Asset Scanner · Industrial</div></div>
 </header>
 
@@ -108,15 +281,15 @@ body{font-family:"Inter",-apple-system,"Segoe UI",sans-serif;background:#0a0f18;
  <!-- INPUT CARD -->
  <div class="scan-card">
   <div class="scan-title">
-   <h2>📷 สแกนอุปกรณ์</h2>
+   <h2><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">camera_alt</span> สแกนอุปกรณ์</h2>
    <p>ใช้เครื่องยิง Barcode หรือสแกน QR Code</p>
   </div>
   <div class="scan-body">
    <div class="input-wrap">
     <input id="scanInput" type="text" placeholder="รอสแกน หรือพิมพ์ Serial / URL..." autocomplete="off" autocorrect="off" spellcheck="false">
-    <span class="input-icon">🔍</span>
+    <span class="input-icon"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary icon-secondary">search</span></span>
    </div>
-   <button class="btn-submit" onclick="submitManual()">🚀 ค้นหาอุปกรณ์</button>
+   <button class="btn-submit" onclick="submitManual()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">rocket_launch</span> ค้นหาอุปกรณ์</button>
    <div class="result-box" id="resultBox">
     <div class="result-label">Serial Number ที่พบ</div>
     <div class="result-serial" id="resultSerial"></div>
@@ -127,7 +300,7 @@ body{font-family:"Inter",-apple-system,"Segoe UI",sans-serif;background:#0a0f18;
  <!-- CAMERA CARD -->
  <div class="camera-card">
   <div class="camera-title">
-   <span>📱 สแกนด้วยกล้อง</span>
+   <span><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">phone_android</span> สแกนด้วยกล้อง</span>
    <button class="toggle-btn" id="toggleCamBtn" onclick="toggleCamera()">เปิดกล้อง</button>
   </div>
   <div id="readerWrap">
@@ -148,7 +321,7 @@ body{font-family:"Inter",-apple-system,"Segoe UI",sans-serif;background:#0a0f18;
      <span id="statusText">กล้องปิด</span>
     </div>
     <div class="format-badge" id="formatBadge">
-     <span class="fmt-icon">📡</span>
+     <span class="fmt-icon"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">wifi</span></span>
      <span id="formatText">รอสแกน</span>
     </div>
    </div>
@@ -169,7 +342,7 @@ body{font-family:"Inter",-apple-system,"Segoe UI",sans-serif;background:#0a0f18;
 </div>
 
 <div class="toast" id="toast">
- <span class="icon">🔔</span>
+ <span class="icon"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">notifications</span></span>
  <span id="toastMsg">ข้อความ</span>
 </div>
 
@@ -247,7 +420,7 @@ scanInput.addEventListener('input', () => {
 
 function submitManual() {
   const raw = scanInput.value.trim();
-  if (!raw) { showToast('⚠️ กรุณาใส่ Serial Number หรือ URL'); return; }
+  if (!raw) { showToast('⚠ กรุณาใส่ Serial Number หรือ URL'); return; }
   handleScan(raw);
 }
 
@@ -255,13 +428,13 @@ function submitManual() {
 function handleScan(raw) {
   const serial = extractSerial(raw);
   if (!serial) {
-    showToast('⚠️ ไม่พบ Serial Number');
+    showToast('⚠ ไม่พบ Serial Number');
     return;
   }
 
   resultSerial.textContent = serial;
   resultBox.classList.add('show');
-  showToast(`🔍 กำลังโหลด: ${serial}`);
+  showToast(`<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary icon-secondary">search</span> กำลังโหลด: ${serial}`);
 
   setTimeout(() => {
     window.location.href = `/a/${encodeURIComponent(serial)}?from=internal`;
@@ -295,7 +468,7 @@ function startCamera() {
   Html5Qrcode.getCameras()
     .then(devices => {
       if (!devices || !devices.length) {
-        showToast('⚠️ ไม่พบกล้อง');
+        showToast('⚠ ไม่พบกล้อง');
         stopCamera();
         return;
       }
@@ -324,17 +497,17 @@ function startCamera() {
         .then(() => {
           cameraOn = true;
           setStatus('กล้องพร้อมใช้งาน', 'idle');
-          showToast('✅ กล้องเปิดแล้ว');
+          showToast('<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span> กล้องเปิดแล้ว');
         })
         .catch(err => {
           console.error('Start error:', err);
-          showToast('⚠️ เปิดกล้องไม่ได้: ' + err);
+          showToast('⚠ เปิดกล้องไม่ได้: ' + err);
           stopCamera();
         });
     })
     .catch(err => {
       console.error('Camera list error:', err);
-      showToast('⚠️ ไม่สามารถเข้าถึงกล้อง');
+      showToast('⚠ ไม่สามารถเข้าถึงกล้อง');
       stopCamera();
     });
 }
@@ -352,7 +525,7 @@ function onScanSuccess(decodedText, decodedResult) {
   }
 
   setStatus('กำลังสแกน...', 'scanning');
-  showToast(`📷 อ่านได้: ${decodedText}`);
+  showToast(`<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">camera_alt</span> อ่านได้: ${decodedText}`);
 
   if (navigator.vibrate) navigator.vibrate(50);
 
@@ -380,7 +553,7 @@ function stopCamera() {
   formatBadge.classList.remove('show');
   formatText.textContent = 'รอสแกน';
   setStatus('กล้องปิด', 'inactive');
-  showToast('📴 ปิดกล้องแล้ว');
+  showToast('<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">wifi_off</span> ปิดกล้องแล้ว');
 }
 
 /* ── STATUS INDICATOR ── */
@@ -416,5 +589,11 @@ window.onload = () => {
   setStatus('กล้องปิด', 'inactive');
 };
 </script>
+<script>
+  // Initialize Lucide icons
+  
+</script>
+
+<script src="/js/emoji-walker.js"></script>
 </body>
 </html>

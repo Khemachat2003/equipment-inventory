@@ -93,34 +93,115 @@ function renderChart(days) {
   const labels = all.slice(-days);
   const bD = labels.map(d => allChartData[d]?.borrow || 0);
   const rD = labels.map(d => allChartData[d]?.return || 0);
-  const ctx = document.getElementById("historyChart").getContext("2d");
+  const canvas = document.getElementById("historyChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
   if (historyChart) historyChart.destroy();
-  const bG = ctx.createLinearGradient(0, 0, 0, 280);
-  bG.addColorStop(0, "rgba(37,99,235,.3)");
-  bG.addColorStop(1, "rgba(37,99,235,0)");
-  const rG = ctx.createLinearGradient(0, 0, 0, 280);
-  rG.addColorStop(0, "rgba(13,148,136,.3)");
-  rG.addColorStop(1, "rgba(13,148,136,0)");
+
+  // Premium design-system gradients (blue #1B6CA8 / emerald #00C896)
+  const cH = canvas.parentElement ? canvas.parentElement.clientHeight || 280 : 280;
+  const bG = ctx.createLinearGradient(0, 0, 0, cH);
+  bG.addColorStop(0, "rgba(27,108,168,.28)");
+  bG.addColorStop(.55, "rgba(27,108,168,.10)");
+  bG.addColorStop(1, "rgba(27,108,168,0)");
+  const rG = ctx.createLinearGradient(0, 0, 0, cH);
+  rG.addColorStop(0, "rgba(0,200,150,.24)");
+  rG.addColorStop(.55, "rgba(0,200,150,.08)");
+  rG.addColorStop(1, "rgba(0,200,150,0)");
+
   historyChart = new Chart(ctx, {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label: "เบิก", data: bD, borderColor: "#2563eb", backgroundColor: bG, fill: true, tension: .35, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2 },
-        { label: "คืน", data: rD, borderColor: "#0d9488", backgroundColor: rG, fill: true, tension: .35, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2 }
+        {
+          label: "เบิก",
+          data: bD,
+          borderColor: "#1B6CA8",
+          backgroundColor: bG,
+          fill: true,
+          tension: .45,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: "#fff",
+          pointBorderColor: "#1B6CA8",
+          pointBorderWidth: 2,
+          pointHoverBorderColor: "#1B6CA8",
+          pointHoverBorderWidth: 3,
+          pointHoverBackgroundColor: "#1B6CA8",
+          borderWidth: 2.5,
+          borderCapStyle: "round",
+          borderJoinStyle: "round"
+        },
+        {
+          label: "คืน",
+          data: rD,
+          borderColor: "#00C896",
+          backgroundColor: rG,
+          fill: true,
+          tension: .45,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: "#fff",
+          pointBorderColor: "#00C896",
+          pointBorderWidth: 2,
+          pointHoverBorderColor: "#00C896",
+          pointHoverBorderWidth: 3,
+          pointHoverBackgroundColor: "#00C896",
+          borderWidth: 2.5,
+          borderCapStyle: "round",
+          borderJoinStyle: "round"
+        }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: "index" },
+      animation: { duration: 900, easing: "easeOutQuart" },
       plugins: {
-        legend: { position: "top", labels: { usePointStyle: true, padding: 20, font: { size: 12, weight: "600" } } },
-        tooltip: { backgroundColor: "#1e293b", titleColor: "#f1f5f9", bodyColor: "#94a3b8", cornerRadius: 10, padding: 12 }
+        legend: {
+          position: "top",
+          align: "end",
+          labels: {
+            usePointStyle: true,
+            pointStyle: "circle",
+            padding: 22,
+            boxWidth: 8,
+            boxHeight: 8,
+            color: "#475569",
+            font: { size: 12, weight: "600", family: "Inter, sans-serif" }
+          }
+        },
+        tooltip: {
+          backgroundColor: "#0F172A",
+          titleColor: "#F8FAFC",
+          bodyColor: "#E2E8F0",
+          borderColor: "rgba(255,255,255,.08)",
+          borderWidth: 1,
+          cornerRadius: 12,
+          padding: 14,
+          boxPadding: 6,
+          displayColors: true,
+          usePointStyle: true,
+          titleFont: { size: 12, weight: "700" },
+          bodyFont: { size: 13, weight: "600" },
+          caretSize: 6,
+          titleMarginBottom: 8
+        }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: "#94a3b8", maxTicksLimit: 10 } },
-        y: { beginAtZero: true, grid: { color: "rgba(0,0,0,.04)" }, ticks: { precision: 0, font: { size: 10 }, color: "#94a3b8" } }
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: { font: { size: 10, family: "Inter, sans-serif" }, color: "#94A3B8", maxTicksLimit: 12, maxRotation: 0 }
+        },
+        y: {
+          beginAtZero: true,
+          border: { display: false },
+          grid: { color: "rgba(100,116,139,.10)", drawTicks: false },
+          ticks: { precision: 0, font: { size: 10, family: "Inter, sans-serif" }, color: "#94A3B8", padding: 8 }
+        }
       }
     }
   });

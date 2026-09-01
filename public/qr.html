@@ -546,13 +546,186 @@ input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); c
   }
   #a4Sheet { box-shadow: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ICON DESIGN SYSTEM — Premium Material Symbols
+   Size × Weight × Fill × Grade × Color × State
+═══════════════════════════════════════════════════════════════ */
+
+/* Base icon element */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-variation-settings:
+    'wght' var(--icon-w-regular, 400),
+    'FILL' var(--icon-fill-none, 0),
+    'GRAD' var(--icon-grade-normal, 0),
+    'opsz' var(--icon-opsz-md, 24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  vertical-align: middle;
+  transition:
+    font-variation-settings var(--icon-transition),
+    color var(--icon-transition),
+    transform var(--icon-transition);
+}
+
+/* ─── Size Modifiers ─── */
+.icon-xs { font-size: var(--icon-xs); --icon-opsz-md: var(--icon-opsz-sm); }
+.icon-sm { font-size: var(--icon-sm); --icon-opsz-md: var(--icon-opsz-sm); }
+.icon-md { font-size: var(--icon-md); --icon-opsz-md: var(--icon-opsz-md); }
+.icon-lg { font-size: var(--icon-lg); --icon-opsz-md: var(--icon-opsz-lg); }
+.icon-xl { font-size: var(--icon-xl); --icon-opsz-md: var(--icon-opsz-lg); }
+.icon-2xl { font-size: var(--icon-2xl); --icon-opsz-md: var(--icon-opsz-xl); }
+
+/* ─── Weight Modifiers ─── */
+.icon-light     { --icon-w-regular: var(--icon-w-light); }
+.icon-regular   { --icon-w-regular: var(--icon-w-regular); }
+.icon-medium    { --icon-w-regular: var(--icon-w-medium); }
+.icon-semibold  { --icon-w-regular: var(--icon-w-semibold); }
+.icon-bold      { --icon-w-regular: var(--icon-w-bold); }
+
+/* ─── Fill Modifiers (semantic) ─── */
+.icon-outline   { --icon-fill-none: var(--icon-fill-none); }
+.icon-hover     { --icon-fill-none: var(--icon-fill-subtle); }
+.icon-active    { --icon-fill-none: var(--icon-fill-half); }
+.icon-filled    { --icon-fill-none: var(--icon-fill-full); }
+
+/* ─── Grade Modifiers ─── */
+.icon-grade-normal { --icon-grade-normal: var(--icon-grade-normal); }
+.icon-grade-dark   { --icon-grade-normal: var(--icon-grade-dark); }
+.icon-grade-light  { --icon-grade-normal: var(--icon-grade-light); }
+
+/* ─── Semantic Color Variants ─── */
+.icon-primary   { color: var(--blue); }
+.icon-secondary { color: var(--tsub); }
+.icon-muted     { color: var(--tmuted); }
+.icon-success   { color: var(--emerald); }
+.icon-warning   { color: var(--amber); }
+.icon-danger    { color: var(--red); }
+.icon-purple    { color: var(--purple); }
+.icon-white     { color: #fff; }
+.icon-inherit   { color: inherit; }
+
+/* ─── Composite Utility Classes ─── */
+.nav-icon {
+  --icon-w-regular: var(--icon-w-medium);
+  --icon-fill-none: var(--icon-fill-none);
+  --icon-grade-normal: var(--icon-grade-normal);
+  --icon-opsz-md: var(--icon-opsz-md);
+  font-size: var(--icon-md);
+  color: var(--tsub);
+  transition: color var(--icon-transition), font-variation-settings var(--icon-transition);
+}
+.nav-icon:hover,
+.nav-icon.active {
+  color: var(--blue);
+  --icon-fill-none: var(--icon-fill-full);
+  --icon-w-regular: var(--icon-w-semibold);
+}
+
+.btn-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-sm);
+}
+.btn-primary .btn-icon    { color: var(--blue); }
+.btn-primary:hover .btn-icon    { --icon-fill-none: var(--icon-fill-subtle); }
+.btn-primary:active .btn-icon   { --icon-fill-none: var(--icon-fill-half); }
+.btn-secondary .btn-icon  { color: var(--tsub); }
+.btn-outline .btn-icon    { color: var(--blue); }
+.btn-ghost .btn-icon      { color: var(--tsub); }
+.btn-ghost:hover .btn-icon    { color: var(--blue); --icon-fill-none: var(--icon-fill-subtle); }
+
+.status-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-xs);
+}
+.status-success .status-icon { color: var(--emerald); }
+.status-warning .status-icon { color: var(--amber); }
+.status-danger .status-icon  { color: var(--red); }
+.status-info .status-icon    { color: var(--blue); }
+
+.card-icon {
+  --icon-w-regular: var(--icon-w-regular);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-xl);
+  color: var(--blue);
+}
+.card:hover .card-icon {
+  --icon-fill-none: var(--icon-fill-subtle);
+  --icon-w-regular: var(--icon-w-medium);
+}
+
+.fab-icon {
+  --icon-w-regular: var(--icon-w-bold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-lg);
+  color: #fff;
+}
+
+.table-action-icon {
+  --icon-w-regular: var(--icon-w-medium);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-sm);
+  color: var(--tmuted);
+  transition: color var(--icon-transition), font-variation-settings var(--icon-transition), transform var(--icon-transition);
+}
+.table-action-icon:hover {
+  color: var(--blue);
+  --icon-fill-none: var(--icon-fill-subtle);
+  transform: scale(1.1);
+}
+
+.empty-icon {
+  --icon-w-regular: var(--icon-w-light);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-2xl);
+  color: var(--g300);
+}
+
+.header-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-lg);
+  color: var(--ink);
+}
+
+.material-symbols-rounded:not(.no-transition) {
+  transition: font-variation-settings 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.material-symbols-rounded:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .material-symbols-rounded {
+    transition: none;
+  }
+}
+
+
+/* ── Global: ลบเส้นใต้ anchor ทุกแบบ (รวม icon-button ที่ JS สร้างขึ้น) ── */
+a,
+a:link,
+a:visited { text-decoration: none; }
+a:hover,
+a:focus { text-decoration: none; }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" crossorigin="anonymous" />
 </head>
 <body>
 
 <!-- ═══════════════ TOPBAR ═══════════════ -->
 <div class="topbar">
-  <div class="topbar-logo">🔖</div>
+  <div class="topbar-logo"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">bookmark</span></div>
   <div>
     <div class="topbar-title">Label Studio</div>
     <div class="topbar-sub">Equipment Management System</div>
@@ -577,7 +750,7 @@ input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); c
     <!-- ASSET TABLE CARD -->
     <div class="card">
       <div class="card-header">
-        <div class="card-header-icon icon-blue">📋</div>
+        <div class="card-header-icon icon-blue"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">assignment</span></div>
         <h2>เลือกอุปกรณ์เพื่อพิมพ์</h2>
         <span class="card-pill pill-blue" id="selCount">0 รายการ</span>
         <span class="card-pill pill-green" id="totalCount" style="margin-left:4px;">0 ทั้งหมด</span>
@@ -631,11 +804,11 @@ input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); c
       <div class="sec-head">โหมดการพิมพ์</div>
       <div class="mode-tabs">
         <button class="mode-tab active" id="tabLabel" onclick="setMode('label')">
-          🏷️ Label Printer
+          <span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">label</span> Label Printer
           <span>พิมพ์ทีละใบ</span>
         </button>
         <button class="mode-tab" id="tabA4" onclick="setMode('a4')">
-          📄 A4 Sheet
+          <span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">description</span> A4 Sheet
           <span>หลายดวงต่อแผ่น</span>
         </button>
       </div>
@@ -754,7 +927,7 @@ input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); c
       </div>
       <div class="save-row">
         <input class="save-input" id="tmplNameInput" type="text" placeholder="ชื่อเทมเพลต..." maxlength="40">
-        <button class="btn btn-primary btn-sm" onclick="saveTemplate()">💾 บันทึก</button>
+        <button class="btn btn-primary btn-sm" onclick="saveTemplate()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">save</span> บันทึก</button>
       </div>
     </div>
 
@@ -778,12 +951,12 @@ input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); c
               </div>
             </div>
           </div>
-          <div class="hint ok" id="hintEl" style="width:100%;">✅ กำลังโหลด...</div>
+          <div class="hint ok" id="hintEl" style="width:100%;"><span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span> กำลังโหลด...</div>
           <div class="preview-stats" id="labelStats"></div>
           <div class="btn-row" style="width:100%;margin-top:4px;">
-            <button class="btn btn-success btn-sm" onclick="downloadLabelPdf()">📄 PDF</button>
-            <button class="btn btn-ghost btn-sm"   onclick="window.print()">🖨️ พิมพ์</button>
-            <a      class="btn btn-ghost btn-sm"   id="traceLink" href="#">📋 ประวัติ</a>
+            <button class="btn btn-success btn-sm" onclick="downloadLabelPdf()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">description</span> PDF</button>
+            <button class="btn btn-ghost btn-sm"   onclick="window.print()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">print</span> พิมพ์</button>
+            <a      class="btn btn-ghost btn-sm"   id="traceLink" href="#"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">assignment</span> ประวัติ</a>
           </div>
         </div>
 
@@ -795,8 +968,8 @@ input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent); c
             </div>
           </div>
           <div class="btn-row" style="width:100%;margin-top:4px;">
-            <button class="btn btn-success btn-sm" id="btnA4Pdf"   onclick="downloadA4Pdf()"  disabled>📄 PDF A4</button>
-            <button class="btn btn-ghost btn-sm"   id="btnA4Print" onclick="printA4()"        disabled>🖨️ พิมพ์</button>
+            <button class="btn btn-success btn-sm" id="btnA4Pdf"   onclick="downloadA4Pdf()"  disabled><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">description</span> PDF A4</button>
+            <button class="btn btn-ghost btn-sm"   id="btnA4Print" onclick="printA4()"        disabled><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">print</span> พิมพ์</button>
           </div>
         </div>
 
@@ -901,7 +1074,7 @@ async function refreshAssets(){
       {serial:'SN-PSU-21062025-0001',   name:'Power Supply 24V/10A',  status:'active'},
       {serial:'SN-HMI-21062025-0001',   name:'หน้าจอ HMI 7"',         status:'storage'},
     ];
-    toast('⚠️ ใช้ข้อมูลตัวอย่าง (ยังไม่ได้เข้าสู่ระบบ)','warn');
+    toast('⚠ ใช้ข้อมูลตัวอย่าง (ยังไม่ได้เข้าสู่ระบบ)','warn');
   }
   g('totalCount').textContent=allAssets.length+' ทั้งหมด';
   applyFilters();
@@ -1101,15 +1274,15 @@ function renderLabel(){
   // hint
   const hEl=g('hintEl');
   if(barWidthMm<0.17){
-    hEl.className='hint err';hEl.textContent=`❌ X-dim ${barWidthMm.toFixed(2)} mm ต่ำกว่ามาตรฐาน — เพิ่มความกว้าง Label`;
+    hEl.className='hint err';hEl.textContent=`<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-danger">cancel</span> X-dim ${barWidthMm.toFixed(2)} mm ต่ำกว่ามาตรฐาน — เพิ่มความกว้าง Label`;
   } else if(barWidthMm<0.20){
-    hEl.className='hint warn';hEl.textContent=`⚠️ X-dim ${barWidthMm.toFixed(2)} mm (แนะนำ ≥0.20) — อาจสแกนยากบางอุปกรณ์`;
+    hEl.className='hint warn';hEl.textContent=`⚠ X-dim ${barWidthMm.toFixed(2)} mm (แนะนำ ≥0.20) — อาจสแกนยากบางอุปกรณ์`;
   } else {
-    hEl.className='hint ok';hEl.textContent=`✅ ${w}×${h} mm | X-dim ≈ ${barWidthMm.toFixed(2)} mm | Quiet zone ${quietZoneMm.toFixed(1)} mm`;
+    hEl.className='hint ok';hEl.textContent=`<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span> ${w}×${h} mm | X-dim ≈ ${barWidthMm.toFixed(2)} mm | Quiet zone ${quietZoneMm.toFixed(1)} mm`;
   }
   if(!isLight){
     hEl.className='hint warn';
-    hEl.textContent+=' | 🎨 Dark bg: White patch isolating barcode';
+    hEl.textContent+=' | <span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">palette</span> Dark bg: White patch isolating barcode';
   }
 
   // stats
@@ -1292,7 +1465,7 @@ function updateColorDisplay(){
 function updateInvertHint(){
   const hex=getLabelBgColor();
   const isLight=isLightColor(hex);
-  g('invertHint').textContent=isLight?'— บาร์โค้ดปกติ (dark on light)':'🔄 Dark bg: White patch + dark bars';
+  g('invertHint').textContent=isLight?'— บาร์โค้ดปกติ (dark on light)':'<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">refresh</span> Dark bg: White patch + dark bars';
   g('invertHint').style.color=isLight?'var(--text-3)':'var(--amber)';
 }
 function setColor(hex,dotEl){
@@ -1344,13 +1517,13 @@ function applyConfig(cfg){
 
 function saveTemplate(){
   const name=(g('tmplNameInput').value||'').trim();
-  if(!name){ toast('⚠️ กรุณาใส่ชื่อเทมเพลต','warn'); return; }
+  if(!name){ toast('⚠ กรุณาใส่ชื่อเทมเพลต','warn'); return; }
   const templates=loadTemplates();
   templates.unshift({ id:Date.now(), name, config:getCurrentConfig() });
   saveTemplates(templates.slice(0,20));
   g('tmplNameInput').value='';
   renderTemplateList();
-  toast('✅ บันทึกเทมเพลต: '+name);
+  toast('<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span> บันทึกเทมเพลต: '+name);
 }
 
 function loadTemplate(id){
@@ -1358,14 +1531,14 @@ function loadTemplate(id){
   const t=templates.find(x=>x.id===id);
   if(!t) return;
   applyConfig(t.config);
-  toast('📂 โหลดเทมเพลต: '+t.name);
+  toast('<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">folder_open</span> โหลดเทมเพลต: '+t.name);
 }
 
 function deleteTemplate(id){
   const templates=loadTemplates().filter(x=>x.id!==id);
   saveTemplates(templates);
   renderTemplateList();
-  toast('🗑️ ลบเทมเพลตแล้ว');
+  toast('<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">delete</span> ลบเทมเพลตแล้ว');
 }
 
 function renderTemplateList(){
@@ -1381,7 +1554,7 @@ function renderTemplateList(){
         <div class="tmpl-name">${esc(t.name)}</div>
         <div class="tmpl-meta">${t.config.lW}×${t.config.lH} mm | ${t.config.mode==='a4'?'A4 Sheet':'Label'}</div>
       </div>
-      <button class="tmpl-del" onclick="event.stopPropagation();deleteTemplate(${t.id})" title="ลบ">✕</button>
+      <button class="tmpl-del" onclick="event.stopPropagation();deleteTemplate(${t.id})" title="ลบ"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button>
     </div>
   `).join('');
 }
@@ -1392,7 +1565,7 @@ function renderTemplateList(){
 function downloadLabelPdf(){
   const {w,h,margin}=getLabelSettings();
   const items=[...selectedItems];
-  if(!items.length){ toast('⚠️ เลือกอุปกรณ์ก่อน','warn'); return; }
+  if(!items.length){ toast('⚠ เลือกอุปกรณ์ก่อน','warn'); return; }
   const params=new URLSearchParams({
     serial:items[0],name:getNameFor(items[0])||'',
     width:w,height:h,margin,
@@ -1404,7 +1577,7 @@ function downloadLabelPdf(){
 }
 
 function downloadA4Pdf(){
-  if(!selectedItems.size){ toast('⚠️ เลือกอุปกรณ์ก่อน','warn'); return; }
+  if(!selectedItems.size){ toast('⚠ เลือกอุปกรณ์ก่อน','warn'); return; }
   const {lw,lh,lm,pm,gapX,gapY}=getA4Settings();
   const items=[...selectedItems].map(s=>({serial:s,name:getNameFor(s)||'',status:getStatusFor(s)}));
   const payload={
@@ -1420,14 +1593,14 @@ function downloadA4Pdf(){
     a.href=url;a.download='labels_a4.pdf';a.click();
     URL.revokeObjectURL(url);
   })
-  .catch(()=>toast('❌ เกิดข้อผิดพลาดในการสร้าง PDF','err'));
+  .catch(()=>toast('<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-danger">cancel</span> เกิดข้อผิดพลาดในการสร้าง PDF','err'));
 }
 function printA4(){
   const printArea = g('printArea');
   const sheet = g('a4Sheet');
   
   if (!sheet) {
-    toast('❌ ไม่พบโครงสร้างหน้า A4 สำหรับพิมพ์', 'err');
+    toast('<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-danger">cancel</span> ไม่พบโครงสร้างหน้า A4 สำหรับพิมพ์', 'err');
     return;
   }
 
@@ -1479,5 +1652,11 @@ async function init(){
 }
 window.onload=init;
 </script>
+<script>
+  // Initialize Lucide icons
+  
+</script>
+
+<script src="/js/emoji-walker.js"></script>
 </body>
 </html>

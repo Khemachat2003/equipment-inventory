@@ -46,6 +46,7 @@ function _renderPartList(parts, partMap, searchTerm) {
     </div>`;
   });
   list.innerHTML = html;
+  if (window.EMS) window.EMS.replaceEmojis(list);
 }
 
 function filterPartList(val) {

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>INTRANIN — Equipment Management</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" crossorigin="anonymous" />
 <style>
 /* ════════════════════════════════════════════════
    INTRANIN EMS — Design System
@@ -81,6 +82,46 @@
   --sb-w: 240px;
   --sb-w-collapsed: 64px;
   --topbar-h: 56px;
+
+  /* ════════════════════════════════════════════════
+     ICON DESIGN SYSTEM — Premium Material Symbols
+     Hierarchy: Size × Weight × Fill × Grade × Color
+  ════════════════════════════════════════════════ */
+
+  /* Size scale */
+  --icon-xs: 16px;
+  --icon-sm: 20px;
+  --icon-md: 24px;
+  --icon-lg: 28px;
+  --icon-xl: 32px;
+  --icon-2xl: 40px;
+
+  /* Weight presets */
+  --icon-w-light: 300;
+  --icon-w-regular: 400;
+  --icon-w-medium: 500;
+  --icon-w-semibold: 600;
+  --icon-w-bold: 700;
+
+  /* Fill presets */
+  --icon-fill-none: 0;      /* Outline */
+  --icon-fill-subtle: 0.25; /* Hover hint */
+  --icon-fill-half: 0.5;    /* Active indicator */
+  --icon-fill-full: 1;      /* Selected/Primary */
+
+  /* Grade presets */
+  --icon-grade-normal: 0;
+  --icon-grade-dark: 100;   /* For dark backgrounds */
+  --icon-grade-light: -25;  /* For light backgrounds */
+
+  /* Optical size per context */
+  --icon-opsz-sm: 20;
+  --icon-opsz-md: 24;
+  --icon-opsz-lg: 32;
+  --icon-opsz-xl: 48;
+
+  /* Transition */
+  --icon-transition: 150ms cubic-bezier(0.2, 0, 0.38, 0.9);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -872,6 +913,22 @@ body {
   border: 1px solid var(--g200);
   box-shadow: var(--sh-sm);
   margin-bottom: 24px;
+  /* premium accent: soft blue tint gradient top edge */
+  background-image: linear-gradient(180deg, rgba(27,108,168,.035), rgba(27,108,168,0) 46px), linear-gradient(180deg,#fff,#fff);
+  position: relative;
+}
+
+/* subtle top accent bar */
+.cc::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  border-radius: var(--r3) var(--r3) 0 0;
+  background: linear-gradient(90deg, var(--blue), rgba(27,108,168,.12) 60%, transparent);
+  opacity: .8;
+  pointer-events: none;
 }
 
 .cc-head {
@@ -904,6 +961,13 @@ body {
   transition: all .15s;
   font-family: inherit;
 }
+.cr-btn:hover:not(.active) {
+  background: var(--g200);
+  color: var(--g600);
+  border-color: var(--g300);
+  transform: translateY(-1px);
+}
+.cr-btn:active { transform: translateY(0) scale(.97); }
 
 .cr-btn.active {
   background: var(--blue);
@@ -971,6 +1035,179 @@ body {
 }
 
 /* ════════════════════════════════════════════════
+   PREMIUM NATIVE-CONTROL UPGRADE
+   Date picker, File upload, Select — design-system
+   consistent with .si search & Material Symbols
+════════════════════════════════════════════════ */
+
+/* ─── Date input (calendar icon baked in via background) ─── */
+.di {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.di > .material-symbols-rounded {
+  display: none; /* icon now rendered via .din background */
+}
+input.din {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0 12px 0 34px !important;
+  width: 100%;
+  height: 40px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r);
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 9px center;
+  background-size: 18px 18px;
+  outline: none;
+  font-family: inherit;
+  transition: all .2s;
+  cursor: pointer;
+  box-sizing: border-box;
+  line-height: 40px;
+  min-width: 0;
+}
+input.din:hover { border-color: var(--g300); }
+input.din:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(27,108,168,.12);
+  background-color: #fff;
+}
+/* Calendar indicator: right side only, so it never covers the date text */
+input.din::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  left: auto;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  opacity: .5;
+  cursor: pointer;
+}
+input.din::-webkit-datetime-edit {
+  color: var(--text);
+  font-size: 13px;
+}
+input.din:-webkit-autofill { -webkit-box-shadow: 0 0 0 40px #fff inset; }
+
+/* ─── File upload (custom button + dashed dropzone) ─── */
+.upf {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.upf > input[type=file] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+.upf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--g300);
+  border-radius: var(--r2);
+  background: var(--surface2);
+  color: var(--g600);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.upf-btn .material-symbols-rounded { color: var(--blue); }
+.upf:hover .upf-btn {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-l);
+}
+.upf-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--tmuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Premium select system (ทุก select ในระบบ) ─── */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  min-height: 40px;
+  padding: 0 34px 0 12px;
+  border: 1.5px solid var(--g200);
+  border-radius: var(--r2);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 15px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--g700);
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .18s, box-shadow .18s, background-color .18s, transform .18s;
+  line-height: 1.2;
+}
+select:hover { border-color: var(--g400); background-color: #fff; }
+select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(27,108,168,.12);
+  background-color: #fff;
+}
+select:active { transform: scale(.99); }
+select:disabled { opacity: .45; cursor: not-allowed; }
+select option {
+  background: #fff;
+  color: var(--text);
+  font-weight: 500;
+}
+/* ฟิลด์ฟอร์มใน modal: ให้สูงเสมอกับ input (.ff input = 40px) */
+select.fi { width: 100%; }
+
+/* ขนาด compact สำหรับ pagination (อยู่ใน row เล็กๆ) */
+.pg-size select {
+  min-height: 30px;
+  height: 30px;
+  padding: 0 26px 0 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  background-position: right 8px center;
+  background-size: 13px;
+}
+.pg-size select:hover { background-color: #fff; }
+.pg-size select:focus { border-color: var(--blue); }
+
+/* ─── Chart / analytics card (premium container) ─── */
+.cc {
+  background: var(--surface);
+  border: 1px solid var(--g200);
+  border-radius: var(--r3);
+  box-shadow: var(--sh-sm);
+  padding: 18px 20px;
+}
+.cc-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.cc-title { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: -.2px; }
+
+
+/* ════════════════════════════════════════════════
    FORM ELEMENTS
 ════════════════════════════════════════════════ */
 .fg {
@@ -1014,77 +1251,454 @@ body {
 /* ════════════════════════════════════════════════
    BUTTONS
 ════════════════════════════════════════════════ */
-.btn {
-  padding: 9px 18px;
-  border-radius: var(--r);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1.5px solid transparent;
+/* =====================================================
+   PREMIUM ENTERPRISE ACTION BUTTONS
+===================================================== */
+
+.sh-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ICON DESIGN SYSTEM — Premium Material Symbols
+   Size × Weight × Fill × Grade × Color × State
+═══════════════════════════════════════════════════════════════ */
+
+/* Base icon element */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-variation-settings:
+    'wght' var(--icon-w-regular, 400),
+    'FILL' var(--icon-fill-none, 0),
+    'GRAD' var(--icon-grade-normal, 0),
+    'opsz' var(--icon-opsz-md, 24);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  transition: all .15s;
-  text-decoration: none;
-  white-space: nowrap;
-  font-family: inherit;
-  letter-spacing: .1px;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  vertical-align: middle;
+  transition:
+    font-variation-settings var(--icon-transition),
+    color var(--icon-transition),
+    transform var(--icon-transition);
 }
 
-.btn:hover { transform: translateY(-1px); }
-.btn:active { transform: translateY(0); }
+/* ─── Size Modifiers ─── */
+.icon-xs { font-size: var(--icon-xs); --icon-opsz-md: var(--icon-opsz-sm); }
+.icon-sm { font-size: var(--icon-sm); --icon-opsz-md: var(--icon-opsz-sm); }
+.icon-md { font-size: var(--icon-md); --icon-opsz-md: var(--icon-opsz-md); }
+.icon-lg { font-size: var(--icon-lg); --icon-opsz-md: var(--icon-opsz-lg); }
+.icon-xl { font-size: var(--icon-xl); --icon-opsz-md: var(--icon-opsz-lg); }
+.icon-2xl { font-size: var(--icon-2xl); --icon-opsz-md: var(--icon-opsz-xl); }
 
-.btn-blue {
-  background: var(--blue);
-  color: #fff;
-  border-color: var(--blue);
-}
-.btn-blue:hover {
-  background: var(--blue-d);
-  box-shadow: 0 6px 16px rgba(27,108,168,.35);
-}
+/* ─── Weight Modifiers ─── */
+.icon-light     { --icon-w-regular: var(--icon-w-light); }
+.icon-regular   { --icon-w-regular: var(--icon-w-regular); }
+.icon-medium    { --icon-w-regular: var(--icon-w-medium); }
+.icon-semibold  { --icon-w-regular: var(--icon-w-semibold); }
+.icon-bold      { --icon-w-regular: var(--icon-w-bold); }
 
-.btn-teal {
-  background: var(--emerald);
-  color: var(--ink);
-  border-color: var(--emerald);
-  font-weight: 700;
-}
-.btn-teal:hover {
-  background: var(--emerald-d);
-  box-shadow: 0 6px 16px rgba(0,200,150,.3);
-}
+/* ─── Fill Modifiers (semantic) ─── */
+.icon-outline   { --icon-fill-none: var(--icon-fill-none); }
+.icon-hover     { --icon-fill-none: var(--icon-fill-subtle); }
+.icon-active    { --icon-fill-none: var(--icon-fill-half); }
+.icon-filled    { --icon-fill-none: var(--icon-fill-full); }
 
-.btn-green {
-  background: var(--emerald-l);
-  color: var(--emerald-d);
-  border-color: var(--emerald-b);
-}
+/* ─── Grade Modifiers ─── */
+.icon-grade-normal { --icon-grade-normal: var(--icon-grade-normal); }
+.icon-grade-dark   { --icon-grade-normal: var(--icon-grade-dark); }
+.icon-grade-light  { --icon-grade-normal: var(--icon-grade-light); }
 
-.btn-red {
-  background: var(--red-l);
-  color: var(--red);
-  border-color: var(--red-b);
-}
+/* ─── Semantic Color Variants ─── */
+.icon-primary   { color: var(--blue); }
+.icon-secondary { color: var(--tsub); }
+.icon-muted     { color: var(--tmuted); }
+.icon-success   { color: var(--emerald); }
+.icon-warning   { color: var(--amber); }
+.icon-danger    { color: var(--red); }
+.icon-purple    { color: var(--purple); }
+.icon-white     { color: #fff; }
+.icon-inherit   { color: inherit; }
 
-.btn-out {
-  background: var(--surface);
+/* ─── Composite Utility Classes ─── */
+
+/* Navigation / Sidebar */
+.nav-icon {
+  --icon-w-regular: var(--icon-w-medium);
+  --icon-fill-none: var(--icon-fill-none);
+  --icon-grade-normal: var(--icon-grade-normal);
+  --icon-opsz-md: var(--icon-opsz-md);
+  font-size: var(--icon-md);
   color: var(--tsub);
-  border-color: var(--g200);
+  transition: color var(--icon-transition), font-variation-settings var(--icon-transition);
 }
-.btn-out:hover {
-  background: var(--g100);
-  border-color: var(--g300);
+.nav-icon:hover,
+.nav-icon.active {
+  color: var(--blue);
+  --icon-fill-none: var(--icon-fill-full);
+  --icon-w-regular: var(--icon-w-semibold);
 }
 
-.btn-ghost {
-  background: none;
-  border-color: transparent;
+/* Button Icons */
+.btn-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-sm);
+}
+.btn-primary .btn-icon    { color: var(--blue); }
+.btn-primary:hover .btn-icon    { --icon-fill-none: var(--icon-fill-subtle); }
+.btn-primary:active .btn-icon   { --icon-fill-none: var(--icon-fill-half); }
+.btn-secondary .btn-icon  { color: var(--tsub); }
+.btn-outline .btn-icon    { color: var(--blue); }
+.btn-ghost .btn-icon      { color: var(--tsub); }
+.btn-ghost:hover .btn-icon    { color: var(--blue); --icon-fill-none: var(--icon-fill-subtle); }
+
+/* Status / Badge Icons */
+.status-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-xs);
+}
+.status-success .status-icon { color: var(--emerald); }
+.status-warning .status-icon { color: var(--amber); }
+.status-danger .status-icon  { color: var(--red); }
+.status-info .status-icon    { color: var(--blue); }
+
+/* Card / Tile Icons */
+.card-icon {
+  --icon-w-regular: var(--icon-w-regular);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-xl);
+  color: var(--blue);
+}
+.card:hover .card-icon {
+  --icon-fill-none: var(--icon-fill-subtle);
+  --icon-w-regular: var(--icon-w-medium);
+}
+
+/* Floating Action / Primary Action */
+.fab-icon {
+  --icon-w-regular: var(--icon-w-bold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-lg);
+  color: #fff;
+}
+
+/* Table Action Icons */
+.table-action-icon {
+  --icon-w-regular: var(--icon-w-medium);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-sm);
   color: var(--tmuted);
+  transition: color var(--icon-transition), font-variation-settings var(--icon-transition), transform var(--icon-transition);
 }
-.btn-ghost:hover { background: var(--g100); }
+.table-action-icon:hover {
+  color: var(--blue);
+  --icon-fill-none: var(--icon-fill-subtle);
+  transform: scale(1.1);
+}
 
-.btn-sm { padding: 6px 20px; font-size: 12px; }
+/* Empty State Icons */
+.empty-icon {
+  --icon-w-regular: var(--icon-w-light);
+  --icon-fill-none: var(--icon-fill-none);
+  font-size: var(--icon-2xl);
+  color: var(--g300);
+}
+
+/* Header / Page Title Icons */
+.header-icon {
+  --icon-w-regular: var(--icon-w-semibold);
+  --icon-fill-none: var(--icon-fill-full);
+  font-size: var(--icon-lg);
+  color: var(--ink);
+}
+
+/* ─── State Transitions ─── */
+.material-symbols-rounded:not(.no-transition) {
+  transition: font-variation-settings 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+/* Focus visible for accessibility */
+.material-symbols-rounded:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .material-symbols-rounded {
+    transition: none;
+  }
+}
+
+/* -----------------------------------------------------
+   BASE
+----------------------------------------------------- */
+
+.btn {
+  --btn-radius: 10px;
+
+  height: 38px;
+  padding: 0 15px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  position: relative;
+  overflow: hidden;
+
+  border-radius: var(--btn-radius);
+  border: 1px solid transparent;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .15px;
+
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    transform .2s cubic-bezier(.22,1,.36,1),
+    box-shadow .2s ease,
+    border-color .2s ease,
+    background .2s ease,
+    color .2s ease;
+
+  -webkit-font-smoothing: antialiased;
+}
+
+
+/* -----------------------------------------------------
+   ICON
+----------------------------------------------------- */
+
+.btn-icon {
+  width: 15px;
+  height: 15px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+.btn-icon svg {
+  width: 15px;
+  height: 15px;
+
+  fill: none;
+  stroke: currentColor;
+
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+/* -----------------------------------------------------
+   MICRO HIGHLIGHT
+----------------------------------------------------- */
+
+.btn::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      115deg,
+      rgba(255,255,255,.13),
+      transparent 35%,
+      transparent 70%,
+      rgba(255,255,255,.04)
+    );
+
+  opacity: .7;
+
+  pointer-events: none;
+}
+
+
+/* -----------------------------------------------------
+   HOVER
+----------------------------------------------------- */
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+  transition-duration: .08s;
+}
+
+
+/* =====================================================
+   PRIMARY — เพิ่ม Asset
+===================================================== */
+
+.btn-primary {
+  color: #fff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #1976b8 0%,
+      #155d91 100%
+    );
+
+  border-color: rgba(255,255,255,.08);
+
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.08),
+    0 5px 14px rgba(21,93,145,.18),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.btn-primary:hover {
+  background:
+    linear-gradient(
+      135deg,
+      #2083c5 0%,
+      #17669e 100%
+    );
+
+  border-color: rgba(255,255,255,.14);
+
+  box-shadow:
+    0 2px 3px rgba(0,0,0,.08),
+    0 9px 24px rgba(21,93,145,.27),
+    inset 0 1px 0 rgba(255,255,255,.17);
+}
+
+
+/* =====================================================
+   BULK — เพิ่มหลายชิ้น
+===================================================== */
+
+.btn-bulk {
+  color: #08735f;
+
+  background:
+    linear-gradient(
+      135deg,
+      #e8faf5 0%,
+      #d7f5ed 100%
+    );
+
+  border-color: rgba(0,145,115,.20);
+
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.04),
+    inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+.btn-bulk:hover {
+  color: #05624f;
+
+  background:
+    linear-gradient(
+      135deg,
+      #edfcf8 0%,
+      #d8f6ed 100%
+    );
+
+  border-color: rgba(0,145,115,.30);
+
+  box-shadow:
+    0 6px 18px rgba(0,145,115,.13),
+    inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+
+/* =====================================================
+   REFRESH — Minimal
+===================================================== */
+
+.btn-refresh {
+  color: #68727d;
+
+  background: rgba(255,255,255,.72);
+
+  border-color: #e2e6ea;
+
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.025);
+}
+
+.btn-refresh:hover {
+  color: #29323a;
+
+  background: #fff;
+
+  border-color: #d2d8de;
+
+  box-shadow:
+    0 6px 16px rgba(0,0,0,.07);
+}
+
+
+/* =====================================================
+   FOCUS
+===================================================== */
+
+.btn:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(25,118,184,.14),
+    0 5px 16px rgba(25,118,184,.16);
+}
+
+/* =====================================================
+   DISABLED
+===================================================== */
+
+.btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media (max-width: 640px) {
+
+  .sh-actions {
+    gap: 6px;
+  }
+
+  .btn {
+    height: 36px;
+    padding: 0 11px;
+  }
+
+  .btn span:last-child {
+    display: none;
+  }
+
+  .btn-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+}
 
 /* ════════════════════════════════════════════════
    TABLE
@@ -1826,6 +2440,11 @@ tbody tr:last-child td { border-bottom: none; }
   position: relative;
   width: 100%;
   height: 280px;
+  border-radius: var(--r2);
+  background:
+    radial-gradient(120% 120% at 100% 0, rgba(27,108,168,.05), transparent 42%),
+    linear-gradient(180deg, var(--surface2), var(--surface));
+  border: 1px solid var(--g200);
 }
 
 @media (max-width: 640px) {
@@ -1862,6 +2481,409 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ── SETTINGS CARDS — icon alignment ─────── */
 .scard h3 svg { flex-shrink: 0; color: var(--blue); }
+
+/* ════════════════════════════════════════════════
+   PREMIUM DASHBOARD & SETTINGS LAYOUT V2
+   Hierarchy-first composition (depth + editorial order)
+════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────
+   DASHBOARD — HERO STATS BAND (depth)
+────────────────────────────────────── */
+.dash-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr auto;
+  align-items: center;
+  gap: 28px;
+  padding: 26px 28px;
+  border-radius: var(--r4);
+  background:
+    radial-gradient(110% 130% at 100% 0%, rgba(0,200,150,.16), transparent 55%),
+    radial-gradient(90% 120% at 0% 100%, rgba(27,108,168,.30), transparent 60%),
+    linear-gradient(140deg, #0F2038 0%, #16263F 55%, #1A2A44 100%);
+  color: #fff;
+  margin-bottom: 22px;
+  box-shadow: 0 18px 40px rgba(10,22,40,.20), inset 0 1px 0 rgba(255,255,255,.06);
+  overflow: hidden;
+  isolation: isolate;
+}
+.dash-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+  z-index: 2;
+}
+.dash-hero-primary .dash-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: rgba(255,255,255,.55);
+  margin-bottom: 8px;
+}
+.dash-hero-num {
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -2px;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #fff, #B9DCF8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.dash-hero-unit {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255,255,255,.62);
+}
+.dash-hero-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.dh-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r2);
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.09);
+  backdrop-filter: blur(4px);
+}
+.dh-stat-ico {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dh-stat-ico .material-symbols-rounded { font-size: 21px; }
+.dh-stat-ico.blue { background: rgba(27,108,168,.30); color: #A9D4F5; }
+.dh-stat-ico.amber { background: rgba(255,149,0,.22); color: #FFC46B; }
+.dh-stat-vals { min-width: 0; }
+.dh-stat-num {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.dh-stat-lbl {
+  font-size: 11.5px;
+  color: rgba(255,255,255,.55);
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.dash-hero-today {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 168px;
+}
+.dh-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+}
+.dh-chip .dh-chip-ico {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.dh-chip.up .dh-chip-ico { background: rgba(0,200,150,.22); color: #5CE0BE; }
+.dh-chip.dn .dh-chip-ico { background: rgba(112,72,232,.25); color: #C4B0F7; }
+.dh-chip .material-symbols-rounded { font-size: 18px; }
+.dh-chip-txt { flex: 1; min-width: 0; }
+.dh-chip-lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .7px; color: rgba(255,255,255,.52); }
+.dh-chip-num { font-size: 17px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+
+/* ──────────────────────────────────────
+   DASHBOARD — MAIN SPLIT (chart + rail)
+────────────────────────────────────── */
+.dash-main {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(250px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.dash-main .cc { margin-bottom: 0; }
+
+/* Rail — inventory structure */
+.dash-rail {
+  background: var(--surface);
+  border: 1px solid var(--g200);
+  border-radius: var(--r3);
+  box-shadow: var(--sh-sm);
+  overflow: hidden;
+}
+.rail-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 16px 18px 13px;
+  border-bottom: 1px solid var(--g100);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.2px;
+}
+.rail-head .material-symbols-rounded { color: var(--blue); }
+.rail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--g100);
+  transition: background .15s;
+}
+.rail-row:last-child { border-bottom: none; }
+.rail-row:hover { background: var(--surface2); }
+.rail-ico {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--blue-l);
+  color: var(--blue);
+}
+.rail-ico.teal { background: var(--emerald-l); color: var(--emerald-d); }
+.rail-ico.violet { background: var(--purple-l); color: var(--purple); }
+.rail-ico.amber { background: var(--amber-l); color: var(--amber); }
+.rail-ico .material-symbols-rounded { font-size: 20px; }
+.rail-txt { flex: 1; min-width: 0; }
+.rail-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tmuted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.rail-val {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin-top: 1px;
+}
+.rail-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, var(--blue-l), rgba(27,108,168,.04));
+  border-top: 1px solid rgba(27,108,168,.12);
+}
+.rail-top .rail-star {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--amber);
+  color: #fff;
+  flex-shrink: 0;
+}
+.rail-top .rail-star .material-symbols-rounded { font-size: 20px; }
+.rail-top-body { flex: 1; min-width: 0; }
+.rail-top-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--amber); }
+.rail-top-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ──────────────────────────────────────
+   SETTINGS — GROUPED ACTION-LIST PATTERN
+────────────────────────────────────── */
+.set-group { margin-bottom: 24px; }
+.set-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  color: var(--g500);
+  margin: 0 2px 9px;
+}
+.set-card {
+  background: var(--surface);
+  border: 1px solid var(--g200);
+  border-radius: var(--r3);
+  box-shadow: var(--sh-sm);
+  overflow: hidden;
+}
+
+/* Profile */
+.set-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px;
+}
+.set-avatar {
+  width: 54px; height: 54px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(140deg, var(--blue), #14506F);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(27,108,168,.30);
+}
+.set-avatar .material-symbols-rounded { font-size: 28px; }
+.set-profile-body { min-width: 0; }
+.set-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -.2px;
+}
+.set-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--emerald-d);
+}
+.set-status .s-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--emerald); display: inline-block; box-shadow: 0 0 0 3px rgba(0,200,150,.18); }
+.set-role {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--blue-l);
+  color: var(--blue);
+  white-space: nowrap;
+}
+
+/* Info rows */
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--g100);
+}
+.set-row:last-child { border-bottom: none; }
+.set-row:hover { background: var(--surface2); }
+.set-key {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tsub);
+}
+.set-key .material-symbols-rounded { font-size: 18px; color: var(--g400); }
+.set-val { font-size: 13px; font-weight: 700; color: var(--ink); }
+.set-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--emerald-d);
+}
+.set-ok .s-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); display: inline-block; }
+
+/* Action rows */
+.set-act {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--g100);
+  transition: background .15s;
+}
+.set-act:last-child { border-bottom: none; }
+.set-act:hover { background: var(--surface2); }
+.set-a-ico {
+  width: 40px; height: 40px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--blue-l);
+  color: var(--blue);
+}
+.set-a-ico.teal { background: var(--emerald-l); color: var(--emerald-d); }
+.set-a-ico.violet { background: var(--purple-l); color: var(--purple); }
+.set-a-ico.amber { background: var(--amber-l); color: var(--amber); }
+.set-a-ico.green { background: #E7F8EF; color: #22C55E; }
+.set-a-ico .material-symbols-rounded { font-size: 19px; line-height: 1; max-width: 100%; }
+.set-a-body { flex: 1; min-width: 0; }
+.set-a-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.1px;
+}
+.set-a-desc {
+  font-size: 12px;
+  color: var(--tmuted);
+  margin-top: 2px;
+}
+.set-a-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ghost-ish small button for action rows */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--g200);
+  background: var(--surface);
+  color: var(--g600);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+}
+.btn-ghost:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-l); }
+.btn-ghost .material-symbols-rounded { font-size: 17px; }
+.btn-ghost > a { text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── Responsive ── */
+@media (max-width: 1020px) {
+  .dash-hero { grid-template-columns: 1fr 1fr; }
+  .dash-hero-today { grid-column: 1 / -1; flex-direction: row; min-width: 0; }
+  .dh-chip { flex: 1; }
+  .dash-main { grid-template-columns: 1fr; }
+  .dash-main .cc { margin-bottom: 20px; }
+}
+@media (max-width: 640px) {
+  .dash-hero { grid-template-columns: 1fr; gap: 18px; padding: 22px 20px; }
+  .dash-hero-num { font-size: 46px; }
+  .dash-hero-stats { grid-template-columns: 1fr 1fr; }
+  .dh-chip { flex: 1 1 46%; }
+  .set-act { flex-wrap: wrap; }
+  .set-a-actions { width: 100%; justify-content: flex-start; }
+}
 
 /* ── MODAL: full-screen on small mobile ─────── */
 @media (max-width: 480px) {
@@ -2337,13 +3359,6 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 .pg-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 .pg-btn:disabled { opacity: .35; cursor: not-allowed; }
 .pg-size { display: flex; align-items: center; gap: 6px; color: var(--tmuted); font-size: 12px; }
-.pg-size select {
-  padding: 4px 8px; border: 1.5px solid var(--g200);
-  border-radius: var(--r); font-size: 12px;
-  background: var(--surface); color: var(--text);
-  outline: none; cursor: pointer; font-family: inherit;
-}
-.pg-size select:focus { border-color: var(--blue); }
 @media (max-width: 600px) {
   .pg-wrap { flex-direction: column; align-items: stretch; text-align: center; }
   .pg-btns { justify-content: center; }
@@ -2381,6 +3396,13 @@ body.on-login #ems-up { display: none !important; }
   .btn-sm { min-height: 40px; }
   .nav-btn { min-height: 48px; }
 }
+
+/* ── Global: ลบเส้นใต้ anchor ทุกแบบ (รวม icon-button ที่ JS สร้างขึ้น) ── */
+a,
+a:link,
+a:visited { text-decoration: none; }
+a:hover,
+a:focus { text-decoration: none; }
 </style>
 </head>
 <body>
@@ -2504,21 +3526,18 @@ body.on-login #ems-up { display: none !important; }
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             </span>
             <span class="nav-label">Dashboard</span>
-            <span class="kbd">1</span>
           </button>
           <button class="nav-btn" id="nav-stock" onclick="openTab('stock')">
             <span class="nav-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
             </span>
             <span class="nav-label">Stock</span>
-            <span class="kbd">2</span>
           </button>
           <button class="nav-btn" id="nav-asset" onclick="openTab('asset')">
             <span class="nav-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
             </span>
             <span class="nav-label">Asset Tracking</span>
-            <span class="kbd">3</span>
           </button>
           <button class="nav-btn" id="nav-bundle" onclick="openTab('bundle')">
             <span class="nav-icon">
@@ -2541,7 +3560,6 @@ body.on-login #ems-up { display: none !important; }
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </span>
             <span class="nav-label">Farm Monitor</span>
-            <span class="kbd">4</span>
           </button>
         </div>
       </div>
@@ -2558,14 +3576,12 @@ body.on-login #ems-up { display: none !important; }
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><line x1="12" y1="7" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/></svg>
             </span>
             <span class="nav-label">ประวัติ</span>
-            <span class="kbd">5</span>
           </button>
           <button class="nav-btn" id="nav-report" onclick="openTab('report')">
             <span class="nav-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </span>
             <span class="nav-label">รายงาน</span>
-            <span class="kbd">6</span>
           </button>
         </div>
       </div>
@@ -2582,7 +3598,6 @@ body.on-login #ems-up { display: none !important; }
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </span>
             <span class="nav-label">Settings</span>
-            <span class="kbd">7</span>
           </button>
         </div>
       </div>
@@ -2634,83 +3649,108 @@ body.on-login #ems-up { display: none !important; }
           <div class="sh-sub">ภาพรวมระบบ ณ วันนี้</div>
         </div>
         <div class="sh-actions">
-          <button class="btn btn-out btn-sm" onclick="refreshDashboard()">🔄 รีเฟรช</button>
+          <button class="btn btn-out btn-sm" onclick="refreshDashboard()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">refresh</span> รีเฟรช</button>
         </div>
       </div>
 
-      <div class="dash-grid">
-        <div class="dash-card">
-          <div class="bar bar-blue"></div>
-          <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
-          <div class="label">รายการทั้งหมด</div>
-          <div class="value" id="totalItems">—</div>
-          <div class="sub">ประเภทอุปกรณ์</div>
+      <!-- HERO: primary metric + kpi + today -->
+      <div class="dash-hero">
+        <div class="dash-hero-primary">
+          <div class="dash-eyebrow">ภาพรวมอุปกรณ์</div>
+          <div class="dash-hero-num" id="totalItems">—</div>
+          <div class="dash-hero-unit">ประเภทอุปกรณ์ทั้งหมดในระบบ</div>
         </div>
-        <div class="dash-card">
-          <div class="bar bar-teal"></div>
-          <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-d)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div>
-          <div class="label">คงอยู่ Office</div>
-          <div class="value" id="totalOffice">—</div>
-          <div class="sub">ชิ้น</div>
-        </div>
-        <div class="dash-card">
-          <div class="bar bar-amber"></div>
-          <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div>
-          <div class="label">อยู่ที่ Site</div>
-          <div class="value" id="totalSite">—</div>
-          <div class="sub">ชิ้น</div>
-        </div>
-        <div class="dash-card">
-          <div class="bar bar-green"></div>
-          <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 2 13 11"/><path d="M22 2L11 13l-4 9 4-4 9-4z"/><path d="M9 9L3 12l3 3"/></svg></div>
-          <div class="label">เบิกวันนี้</div>
-          <div class="value" id="todayBorrow">—</div>
-          <div class="sub">รายการ</div>
-        </div>
-        <div class="dash-card">
-          <div class="bar bar-purple"></div>
-          <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 9 12 3 21 9"/><polyline points="3 14 12 8 21 14"/><line x1="12" y1="3" x2="12" y2="21"/></svg></div>
-          <div class="label">คืนวันนี้</div>
-          <div class="value" id="todayReturn">—</div>
-          <div class="sub">รายการ</div>
-        </div>
-      </div>
 
-      <div class="extra-grid">
-        <div class="extra-card">
-          <div class="el"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>ฟาร์มทั้งหมด</div>
-          <div class="ev" id="totalFarms">—</div>
-        </div>
-        <div class="extra-card">
-          <div class="el"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>อุปกรณ์ในฟาร์ม</div>
-          <div class="ev" id="totalFarmAssets">—</div>
-        </div>
-        <div class="extra-card">
-          <div class="el"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>อุปกรณ์ในสต็อก</div>
-          <div class="ev" id="totalStockAssets">—</div>
-        </div>
-        <div class="extra-card">
-          <div class="el"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>ฟาร์มติดตั้งมากสุด</div>
-          <div class="ev" id="topFarmName" style="font-size:18px">—</div>
-        </div>
-      </div>
-
-      <div class="cc">
-        <div class="cc-head">
-          <div class="cc-title" style="display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> สถิติการเบิก–คืน</div>
-          <div class="cr-tabs">
-            <button class="cr-btn" onclick="setChartRange(7,this)">7 วัน</button>
-            <button class="cr-btn active" onclick="setChartRange(14,this)">14 วัน</button>
-            <button class="cr-btn" onclick="setChartRange(30,this)">30 วัน</button>
+        <div class="dash-hero-stats">
+          <div class="dh-stat">
+            <div class="dh-stat-ico blue"><span class="material-symbols-rounded">business_center</span></div>
+            <div class="dh-stat-vals">
+              <div class="dh-stat-num" id="totalOffice">—</div>
+              <div class="dh-stat-lbl">คงอยู่ Office (ชิ้น)</div>
+            </div>
+          </div>
+          <div class="dh-stat">
+            <div class="dh-stat-ico amber"><span class="material-symbols-rounded">factory</span></div>
+            <div class="dh-stat-vals">
+              <div class="dh-stat-num" id="totalSite">—</div>
+              <div class="dh-stat-lbl">อยู่ที่ Site (ชิ้น)</div>
+            </div>
           </div>
         </div>
-        <div class="chart-responsive-wrap">
-          <canvas id="historyChart"></canvas>
+
+        <div class="dash-hero-today">
+          <div class="dh-chip up">
+            <div class="dh-chip-ico"><span class="material-symbols-rounded">trending_up</span></div>
+            <div class="dh-chip-txt">
+              <div class="dh-chip-lbl">เบิกวันนี้</div>
+              <div class="dh-chip-num" id="todayBorrow">—</div>
+            </div>
+          </div>
+          <div class="dh-chip dn">
+            <div class="dh-chip-ico"><span class="material-symbols-rounded">trending_down</span></div>
+            <div class="dh-chip-txt">
+              <div class="dh-chip-lbl">คืนวันนี้</div>
+              <div class="dh-chip-num" id="todayReturn">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN SPLIT: chart (primary) + inventory rail (secondary) -->
+      <div class="dash-main">
+        <div class="cc">
+          <div class="cc-head">
+            <div class="cc-title" style="display:flex;align-items:center;gap:8px"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-primary">monitoring</span> สถิติการเบิก–คืน</div>
+            <div class="cr-tabs">
+              <button class="cr-btn" onclick="setChartRange(7,this)">7 วัน</button>
+              <button class="cr-btn" onclick="setChartRange(14,this)">14 วัน</button>
+              <button class="cr-btn active" onclick="setChartRange(30,this)">30 วัน</button>
+            </div>
+          </div>
+          <div class="chart-responsive-wrap">
+            <canvas id="historyChart"></canvas>
+          </div>
+        </div>
+
+        <div class="dash-rail">
+          <div class="rail-head"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-primary">account_tree</span> ขอบเขตระบบ</div>
+
+          <div class="rail-row">
+            <div class="rail-ico"><span class="material-symbols-rounded">agriculture</span></div>
+            <div class="rail-txt">
+              <div class="rail-lbl">ฟาร์มทั้งหมด</div>
+              <div class="rail-val" id="totalFarms">—</div>
+            </div>
+          </div>
+
+          <div class="rail-row">
+            <div class="rail-ico teal"><span class="material-symbols-rounded">precision_manufacturing</span></div>
+            <div class="rail-txt">
+              <div class="rail-lbl">อุปกรณ์ในฟาร์ม</div>
+              <div class="rail-val" id="totalFarmAssets">—</div>
+            </div>
+          </div>
+
+          <div class="rail-row">
+            <div class="rail-ico violet"><span class="material-symbols-rounded">inventory_2</span></div>
+            <div class="rail-txt">
+              <div class="rail-lbl">อุปกรณ์ในสต็อก</div>
+              <div class="rail-val" id="totalStockAssets">—</div>
+            </div>
+          </div>
+
+          <div class="rail-top">
+            <div class="rail-star"><span class="material-symbols-rounded">workspace_premium</span></div>
+            <div class="rail-top-body">
+              <div class="rail-top-lbl">ฟาร์มติดตั้งมากสุด</div>
+              <div class="rail-top-val" id="topFarmName">—</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ STOCK ═══ -->
+<!-- ═══ STOCK ═══ -->
     <div id="stock" class="tab">
       <div class="sh">
         <div>
@@ -2718,13 +3758,13 @@ body.on-login #ems-up { display: none !important; }
           <div class="sh-sub">รายการอุปกรณ์ทั้งหมด</div>
         </div>
         <div class="sh-actions">
-          <button class="btn btn-blue btn-sm" onclick="openModal('addStockModal')">➕ เพิ่มอุปกรณ์</button>
+          <button class="btn btn-blue btn-sm" onclick="openModal('addStockModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-primary">add_circle</span> เพิ่มอุปกรณ์</button>
         </div>
       </div>
       <div class="panel">
         <div class="ph">
           <input class="si" id="search" type="text" placeholder="ค้นหารหัสหรือชื่ออุปกรณ์..." onkeyup="filterTable()" style="max-width:320px">
-          <button class="btn btn-out btn-sm" onclick="_openReturnModal()">🔁 คืนจาก Site</button>
+          <button class="btn btn-out btn-sm" onclick="_openReturnModal()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">replay</span> คืนจาก Site</button>
         </div>
         <div class="tw">
           <table>
@@ -2754,10 +3794,10 @@ body.on-login #ems-up { display: none !important; }
       <div class="panel">
         <div class="ph">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:1">
-            <input type="date" id="historyStart" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit">
+            <span class="di"><span class="material-symbols-rounded icon-sm icon-regular icon-outline">event</span><input class="din" type="date" id="historyStart"></span>
             <span style="color:var(--tmuted);font-size:13px">ถึง</span>
-            <input type="date" id="historyEnd" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:var(--r);font-size:13px;outline:none;font-family:inherit">
-            <button class="btn btn-blue btn-sm" onclick="loadHistory()">🔍 ค้นหา</button>
+            <span class="di"><span class="material-symbols-rounded icon-sm icon-regular icon-outline">event</span><input class="din" type="date" id="historyEnd"></span>
+            <button class="btn btn-blue btn-sm" onclick="loadHistory()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-secondary">search</span> ค้นหา</button>
             <button class="btn btn-out btn-sm" onclick="clearHistoryFilter()">ล้าง</button>
           </div>
         </div>
@@ -2786,10 +3826,39 @@ body.on-login #ems-up { display: none !important; }
           <div class="sh-sub">ติดตามอุปกรณ์แยกตาม Part Number</div>
         </div>
         <div class="sh-actions">
-          <button class="btn btn-teal btn-sm" onclick="openBulkAddModal()">📦 เพิ่มหลายชิ้น</button>
-          <button class="btn btn-blue btn-sm" onclick="loadPartCatalogForSelect(); openModal('addAssetModal')">➕ เพิ่ม Asset</button>
-          <button class="btn btn-out btn-sm" onclick="loadAssets().then(renderAssetSidebar)">🔄 รีเฟรช</button>
-        </div>
+
+  <button class="btn btn-bulk" onclick="openBulkAddModal()">
+    <span class="btn-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3v18M3 12h18"/>
+      </svg>
+    </span>
+    <span>เพิ่มหลายชิ้น</span>
+  </button>
+
+  <button class="btn btn-primary" onclick="loadPartCatalogForSelect(); openModal('addAssetModal')">
+    <span class="btn-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </span>
+    <span>เพิ่ม Asset</span>
+  </button>
+
+  <button class="btn btn-refresh" onclick="loadAssets().then(renderAssetSidebar)">
+    <span class="btn-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20 11a8 8 0 0 0-14.9-4"/>
+        <path d="M4 4v5h5"/>
+        <path d="M4 13a8 8 0 0 0 14.9 4"/>
+        <path d="M20 20v-5h-5"/>
+      </svg>
+    </span>
+    <span>รีเฟรช</span>
+  </button>
+
+</div>
+
       </div>
       <div class="mon-layout">
         <div class="mon-sidebar" id="partSidebar">
@@ -2812,7 +3881,7 @@ body.on-login #ems-up { display: none !important; }
         </div>
         <div class="mon-main">
           <div class="mon-main-head">
-            <div class="mon-farm-label" id="partLabel">📦 เลือก Part</div>
+            <div class="mon-farm-label" id="partLabel"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span> เลือก Part</div>
             <div class="mon-stats-row" id="partStatsRow"></div>
           </div>
           <div class="mon-tb-search">
@@ -2911,7 +3980,7 @@ body.on-login #ems-up { display: none !important; }
           <div class="sh-sub">ดูอุปกรณ์แยกตามไซต์งาน แบบ Real-time</div>
         </div>
         <div class="sh-actions">
-          <button class="btn btn-out btn-sm" onclick="loadAssets().then(renderMonitorView)">🔄 รีเฟรช</button>
+          <button class="btn btn-out btn-sm" onclick="loadAssets().then(renderMonitorView)"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">refresh</span> รีเฟรช</button>
         </div>
       </div>
       <div class="mon-layout">
@@ -2935,7 +4004,7 @@ body.on-login #ems-up { display: none !important; }
         </div>
         <div class="mon-main">
           <div class="mon-main-head">
-            <div class="mon-farm-label" id="monFarmLabel">🌐 ทุกฟาร์ม</div>
+            <div class="mon-farm-label" id="monFarmLabel"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">public</span> ทุกฟาร์ม</div>
             <div class="mon-stats-row" id="monStatsRow"></div>
           </div>
           <div class="mon-tb-search">
@@ -2970,13 +4039,13 @@ body.on-login #ems-up { display: none !important; }
       </div>
       <div class="rc">
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--g100)">
-          <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px">📄 Export รายงาน PDF</div>
+          <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">description</span> Export รายงาน PDF</div>
           <div style="font-size:13px;color:var(--tmuted)">กรอกข้อมูลให้ครบแล้วกด Export</div>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <div class="ff" style="grid-column:1/-1"><label>หัวข้อรายงาน</label><input id="title" placeholder="รายงานประจำเดือน..."></div>
-          <div class="ff"><label>วันที่เริ่ม</label><input type="date" id="startDate"></div>
-          <div class="ff"><label>วันที่สิ้นสุด</label><input type="date" id="endDate"></div>
+<div class="ff"><label>วันที่เริ่ม</label><span class="di" style="width:100%"><span class="material-symbols-rounded icon-sm icon-regular icon-outline">event</span><input class="din" type="date" id="startDate"></span></div>
+           <div class="ff"><label>วันที่สิ้นสุด</label><span class="di" style="width:100%"><span class="material-symbols-rounded icon-sm icon-regular icon-outline">event</span><input class="din" type="date" id="endDate"></span></div>
           <div class="ff"><label>ประเภทรายการ</label>
             <select id="reportType">
               <option value="all">เบิกและคืน</option>
@@ -2990,7 +4059,7 @@ body.on-login #ems-up { display: none !important; }
           <div class="ff"><label>จำนวนพนักงาน</label><input type="number" id="employeeCount" placeholder="5"></div>
           <div class="ff" style="grid-column:1/-1"><label>รายชื่อพนักงาน (แต่ละบรรทัด)</label><textarea id="employees" rows="3" placeholder="สมชาย&#10;สมหญิง" style="resize:vertical"></textarea></div>
         </div>
-        <button class="btn btn-blue" onclick="exportPDF()" style="width:100%;justify-content:center;padding:13px;font-size:14px">📄 Export PDF</button>
+        <button class="btn btn-blue" onclick="exportPDF()" style="width:100%;justify-content:center;padding:13px;font-size:14px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">description</span> Export PDF</button>
       </div>
     </div>
 
@@ -3002,67 +4071,126 @@ body.on-login #ems-up { display: none !important; }
           <div class="sh-sub">ข้อมูลระบบและผู้ใช้งาน</div>
         </div>
       </div>
-      <div class="sg">
-        <div class="scard">
-          <h3>👤 User Info</h3>
-          <p><b>Username</b></p><p id="settingsUser">—</p>
-          <p style="margin-top:8px"><b>สถานะ</b></p>
-          <p class="s-ok"><span class="s-dot s-on"></span>Online</p>
-        </div>
-        <div class="scard">
-          <h3>⚙️ System Info</h3>
-          <p><b>Version</b></p><p>2.0</p>
-          <p style="margin-top:6px"><b>Server</b></p><p>Node.js</p>
-          <p style="margin-top:6px"><b>Database</b></p><p>Google Sheets</p>
-        </div>
-        <div class="scard">
-          <h3>📊 Database</h3>
-          <p>เปิดดู Google Sheets ของระบบ</p>
-          <button class="btn btn-blue btn-sm" style="margin-top:14px" onclick="openDatabase()">📊 Open Database</button>
-        </div>
-        <div class="scard">
-          <h3>📈 System Status</h3>
-          <p><b>Server</b></p><p class="s-ok"><span class="s-dot s-on"></span>Running</p>
-          <p style="margin-top:6px"><b>Database</b></p><p class="s-ok"><span class="s-dot s-on"></span>Connected</p>
-        </div>
-        <div class="scard">
-          <h3>📷 Quick Scan</h3>
-          <p>เปิดหน้าสแกน QR Code</p>
-          <a class="btn btn-teal btn-sm" href="/scan.html" target="_blank" style="margin-top:14px">📷 เปิด Scanner</a>
-        </div>
-        <div class="scard">
-          <h3>📋 Audit Log</h3>
-          <p>ดูประวัติการกระทำทั้งหมดในระบบ (เฉพาะ Admin)</p>
-          <a class="btn btn-blue btn-sm" href="/audit.html" target="_self" style="margin-top:14px">📋 เปิด Audit Log</a>
-        </div>
-        <div class="scard">
-          <h3>💾 Full System Backup</h3>
-          <p>สำรองข้อมูลทั้งระบบ (ทุก Sheet) ไปยัง PostgreSQL</p>
-          <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
-            <button class="btn btn-blue btn-sm" onclick="fullSystemBackup()">💾 Backup ทั้งระบบ</button>
-            <span id="fullBackupStatus" style="font-size:13px"></span>
+
+      <!-- บัญชีผู้ใช้ -->
+      <div class="set-group">
+        <div class="set-label">บัญชีผู้ใช้</div>
+        <div class="set-card">
+          <div class="set-profile">
+            <div class="set-avatar"><span class="material-symbols-rounded">person</span></div>
+            <div class="set-profile-body">
+              <div class="set-name" id="settingsUser">—</div>
+              <div class="set-status"><span class="s-dot"></span> Online</div>
+            </div>
+            <span class="set-role">ผู้ดูแลระบบ</span>
           </div>
-          <div style="margin-top:8px;font-size:11px;color:#94a3b8">📋 Backup ทุก Sheet: Stock, Asset, Transfer, Part, Farm, Users, Audit</div>
         </div>
-        <div class="scard">
-          <h3>📊 ดูข้อมูล Backup</h3>
-          <p>ดูและ Export ข้อมูลที่ Backup ไว้ใน PostgreSQL</p>
-          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-            <a class="btn btn-out btn-sm" href="/backup-view.html" target="_self">📊 เปิดหน้าดู Backup</a>
+      </div>
+
+      <!-- ระบบ -->
+      <div class="set-group">
+        <div class="set-label">ระบบ</div>
+        <div class="set-card">
+          <div class="set-row">
+            <span class="set-key"><span class="material-symbols-rounded">info</span> เวอร์ชันระบบ</span>
+            <span class="set-val">2.0</span>
           </div>
-          <div style="margin-top:8px;font-size:11px;color:#94a3b8">💡 สามารถ Export เป็น CSV ได้จากหน้านั้น</div>
+          <div class="set-row">
+            <span class="set-key"><span class="material-symbols-rounded">dns</span> เซิร์ฟเวอร์</span>
+            <span class="set-val">Node.js</span>
+          </div>
+          <div class="set-row">
+            <span class="set-key"><span class="material-symbols-rounded">table_view</span> ฐานข้อมูลหลัก</span>
+            <span class="set-val">Google Sheets</span>
+          </div>
+          <div class="set-row">
+            <span class="set-key"><span class="material-symbols-rounded">monitor_heart</span> สถานะเซิร์ฟเวอร์</span>
+            <span class="set-ok"><span class="s-dot"></span> Running</span>
+          </div>
+          <div class="set-row">
+            <span class="set-key"><span class="material-symbols-rounded">storage</span> สถานะฐานข้อมูล</span>
+            <span class="set-ok"><span class="s-dot"></span> Connected</span>
+          </div>
         </div>
-        <div class="scard">
-          <h3>🌱 จัดการฟาร์ม</h3>
-          <p>เพิ่มฟาร์มและโรงเรือนได้ที่นี่</p>
-          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-            <button class="btn btn-blue btn-sm" onclick="openModal('addFarmModal')">➕ เพิ่มฟาร์ม</button>
-            <button class="btn btn-teal btn-sm" onclick="openModal('addHouseModal')">🏠 เพิ่มโรงเรือน</button>
-            <button class="btn btn-out btn-sm" onclick="loadFarmSites();alert('โหลดข้อมูลฟาร์มเรียบร้อย')">🔄 รีเฟรช</button>
+      </div>
+
+      <!-- เครื่องมือ -->
+      <div class="set-group">
+        <div class="set-label">เครื่องมือ</div>
+        <div class="set-card">
+          <div class="set-act">
+            <div class="set-a-ico"><span class="material-symbols-rounded">grid_on</span></div>
+            <div class="set-a-body">
+              <div class="set-a-title">Open Database</div>
+              <div class="set-a-desc">เปิดดู Google Sheets ของระบบ</div>
+            </div>
+            <div class="set-a-actions">
+              <button class="btn-ghost" onclick="openDatabase()"><span class="material-symbols-rounded">open_in_new</span> เปิด</button>
+            </div>
+          </div>
+
+          <div class="set-act">
+            <div class="set-a-ico teal"><span class="material-symbols-rounded">qr_code_scanner</span></div>
+            <div class="set-a-body">
+              <div class="set-a-title">Quick Scan</div>
+              <div class="set-a-desc">เปิดหน้าสแกน QR Code</div>
+            </div>
+            <div class="set-a-actions">
+              <a class="btn-ghost" href="/scan.html" target="_blank"><span class="material-symbols-rounded">camera_alt</span> เปิด Scanner</a>
+            </div>
+          </div>
+
+          <div class="set-act">
+            <div class="set-a-ico amber"><span class="material-symbols-rounded">fact_check</span></div>
+            <div class="set-a-body">
+              <div class="set-a-title">Audit Log</div>
+              <div class="set-a-desc">ดูประวัติการกระทำทั้งหมดในระบบ (เฉพาะ Admin)</div>
+            </div>
+            <div class="set-a-actions">
+              <a class="btn-ghost" href="/audit.html" target="_self"><span class="material-symbols-rounded">list_alt</span> เปิด</a>
+            </div>
+          </div>
+
+          <div class="set-act">
+            <div class="set-a-ico violet"><span class="material-symbols-rounded">backup</span></div>
+            <div class="set-a-body">
+              <div class="set-a-title">Full System Backup</div>
+              <div class="set-a-desc">สำรองข้อมูลทุก Sheet (SS, Asset, Transfer, Part, Farm, Users, Audit) ไปยัง PostgreSQL</div>
+            </div>
+            <div class="set-a-actions">
+              <button class="btn-ghost" onclick="fullSystemBackup()">Backup ทั้งระบบ</button>
+            </div>
+          </div>
+          <div style="padding:9px 20px;border-bottom:1px solid var(--g100);font-size:12px;color:var(--tmuted);background:var(--surface2)" id="fullBackupStatus"></div>
+
+          <div class="set-act">
+            <div class="set-a-ico green"><span class="material-symbols-rounded">cloud_download</span></div>
+            <div class="set-a-body">
+              <div class="set-a-title">ดูข้อมูล Backup</div>
+              <div class="set-a-desc">ดูและ Export เป็น CSV ได้จากหน้านั้น</div>
+            </div>
+            <div class="set-a-actions">
+              <a class="btn-ghost" href="/backup-view.html" target="_self"><span class="material-symbols-rounded">visibility</span> เปิดหน้าดู</a>
+            </div>
+          </div>
+
+          <div class="set-act">
+            <div class="set-a-ico amber"><span class="material-symbols-rounded">eco</span></div>
+            <div class="set-a-body">
+              <div class="set-a-title">จัดการฟาร์ม</div>
+              <div class="set-a-desc">เพิ่มฟาร์มและโรงเรือนได้ที่นี่</div>
+            </div>
+            <div class="set-a-actions">
+              <button class="btn-ghost" onclick="openModal('addFarmModal')"><span class="material-symbols-rounded">add</span> ฟาร์ม</button>
+              <button class="btn-ghost" onclick="openModal('addHouseModal')"><span class="material-symbols-rounded">home</span> โรงเรือน</button>
+              <button class="btn-ghost" onclick="loadFarmSites();alert('โหลดข้อมูลฟาร์มเรียบร้อย')"><span class="material-symbols-rounded">refresh</span></button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+
 
   </div><!-- /main-wrap -->
 </div><!-- /mainApp -->
@@ -3072,7 +4200,7 @@ body.on-login #ems-up { display: none !important; }
 <!-- ADD FARM SITE MODAL -->
 <div class="mo" id="addFarmModal">
   <div class="mb mb-wide">
-    <div class="mh"><div class="mh-title">🌱 เพิ่มฟาร์มใหม่</div><button class="mc" onclick="closeModal('addFarmModal')">✕</button></div>
+    <div class="mh"><div class="mh-title"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">eco</span> เพิ่มฟาร์มใหม่</div><button class="mc" onclick="closeModal('addFarmModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button></div>
     <div class="mbd">
       <div class="fg">
         <div class="ff"><label>รหัสฟาร์ม *</label><input type="text" id="farmSiteId" placeholder="FS001"></div>
@@ -3080,10 +4208,10 @@ body.on-login #ems-up { display: none !important; }
         <div class="ff"><label>ประเภทฟาร์ม</label>
           <select id="farmSiteType">
             <option value="">-- เลือก --</option>
-            <option value="สัตว์ปีก">🐔 สัตว์ปีก</option>
-            <option value="สัตว์บก">🐄 สัตว์บก</option>
-            <option value="สุกร">🐷 สุกร</option>
-            <option value="อื่นๆ">⚙️ อื่นๆ</option>
+            <option value="สัตว์ปีก"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">pets</span> สัตว์ปีก</option>
+            <option value="สัตว์บก"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">pets</span> สัตว์บก</option>
+            <option value="สุกร"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">pets</span> สุกร</option>
+            <option value="อื่นๆ">⚙ อื่นๆ</option>
           </select>
         </div>
         <div class="ff"><label>จังหวัด</label><input type="text" id="farmSiteProvince" placeholder="เชียงใหม่"></div>
@@ -3093,7 +4221,7 @@ body.on-login #ems-up { display: none !important; }
     </div>
     <div class="mf">
       <button class="btn btn-out" onclick="closeModal('addFarmModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="addFarmSite()">💾 บันทึก</button>
+      <button class="btn btn-blue" onclick="addFarmSite()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">save</span> บันทึก</button>
     </div>
   </div>
 </div>
@@ -3101,7 +4229,7 @@ body.on-login #ems-up { display: none !important; }
 <!-- ADD FARM HOUSE MODAL -->
 <div class="mo" id="addHouseModal">
   <div class="mb mb-wide">
-    <div class="mh"><div class="mh-title">🏠 เพิ่มโรงเรือน</div><button class="mc" onclick="closeModal('addHouseModal')">✕</button></div>
+    <div class="mh"><div class="mh-title"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">home</span> เพิ่มโรงเรือน</div><button class="mc" onclick="closeModal('addHouseModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button></div>
     <div class="mbd">
       <div class="fg">
         <div class="ff"><label>รหัสโรงเรือน *</label><input type="text" id="houseId" placeholder="H001"></div>
@@ -3116,7 +4244,7 @@ body.on-login #ems-up { display: none !important; }
     </div>
     <div class="mf">
       <button class="btn btn-out" onclick="closeModal('addHouseModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="addFarmHouse()">💾 บันทึก</button>
+      <button class="btn btn-blue" onclick="addFarmHouse()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">save</span> บันทึก</button>
     </div>
   </div>
 </div>
@@ -3124,18 +4252,18 @@ body.on-login #ems-up { display: none !important; }
 <!-- ADD STOCK MODAL -->
 <div class="mo" id="addStockModal">
   <div class="mb">
-    <div class="mh"><div class="mh-title">➕ เพิ่มอุปกรณ์ใหม่</div><button class="mc" onclick="closeModal('addStockModal')">✕</button></div>
+    <div class="mh"><div class="mh-title"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-primary">add_circle</span> เพิ่มอุปกรณ์ใหม่</div><button class="mc" onclick="closeModal('addStockModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button></div>
     <div class="mbd">
       <div class="fg">
         <div class="ff"><label>รหัสอุปกรณ์</label><input type="text" id="newCode" placeholder="EQ001"></div>
         <div class="ff"><label>ชื่ออุปกรณ์</label><input type="text" id="newName" placeholder="ชื่ออุปกรณ์"></div>
         <div class="ff"><label>จำนวน</label><input type="number" id="newQty" placeholder="0"></div>
-        <div class="ff"><label>รูปภาพ</label><input type="file" id="newImage" accept="image/*"></div>
+        <div class="ff"><label>รูปภาพ</label><label class="upf"><input type="file" id="newImage" accept="image/*" onchange="document.getElementById('newImageName').textContent=this.files[0]?this.files[0].name:'ยังไม่ได้เลือกรูปภาพ'"><span class="upf-btn"><span class="material-symbols-rounded icon-sm icon-regular icon-outline">upload</span> เลือกไฟล์</span><span class="upf-name" id="newImageName">ยังไม่ได้เลือกรูปภาพ</span></label></div>
       </div>
     </div>
     <div class="mf">
       <button class="btn btn-out" onclick="closeModal('addStockModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="addItem()">💾 บันทึก</button>
+      <button class="btn btn-blue" onclick="addItem()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">save</span> บันทึก</button>
     </div>
   </div>
 </div>
@@ -3143,10 +4271,10 @@ body.on-login #ems-up { display: none !important; }
 <!-- ADD ASSET MODAL -->
 <div class="mo" id="addAssetModal">
   <div class="mb mb-wide">
-    <div class="mh"><div class="mh-title">➕ เพิ่ม Part + Asset ใหม่</div><button class="mc" onclick="closeModal('addAssetModal')">✕</button></div>
+    <div class="mh"><div class="mh-title"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-primary">add_circle</span> เพิ่ม Part + Asset ใหม่</div><button class="mc" onclick="closeModal('addAssetModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button></div>
     <div class="mbd">
       <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue)">
-        💡 สร้าง Part ใหม่ในคลัง และเพิ่ม Asset 1 ชิ้น โดย Asset ID จะรันอัตโนมัติ
+        <span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">lightbulb</span> สร้าง Part ใหม่ในคลัง และเพิ่ม Asset 1 ชิ้น โดย Asset ID จะรันอัตโนมัติ
       </div>
       <div class="fg">
         <div class="ff"><label>Part Number *</label><input type="text" id="newPartNumber" placeholder="FAN30" oninput="generateSerial()"></div>
@@ -3161,22 +4289,22 @@ body.on-login #ems-up { display: none !important; }
         <div class="ff" style="grid-column:1/-1"><label>คำอธิบาย</label><input type="text" id="newPartDescription" placeholder="รายละเอียดเพิ่มเติม..."></div>
       </div>
       <hr style="margin:16px 0;border-color:var(--g200)">
-      <div style="font-size:12px;font-weight:700;color:var(--g600);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">🗃️ ข้อมูล Asset (สร้าง 1 ชิ้น)</div>
+      <div style="font-size:12px;font-weight:700;color:var(--g600);margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">archive</span> ข้อมูล Asset (สร้าง 1 ชิ้น)</div>
       <div class="fg">
         <div class="ff"><label>Asset ID</label><input type="text" id="newAssetIdAuto" readonly style="background:var(--surface2);color:var(--g500)"></div>
         <div class="ff"><label>Serial Number</label><input type="text" id="newAssetSerialAuto" readonly style="background:var(--surface2);color:var(--g500)"></div>
         <div class="ff"><label>สถานะ</label>
           <select id="newAssetStatus">
-            <option value="ใช้งานได้">🟢 ใช้งานได้</option>
-            <option value="สำรอง">🟡 สำรอง</option>
-            <option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
-            <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+            <option value="ใช้งานได้"><span class="material-symbols-rounded icon-md icon-semibold icon-filled icon-success">check_circle</span> ใช้งานได้</option>
+            <option value="สำรอง"><span class="material-symbols-rounded icon-md icon-semibold icon-filled icon-warning">warning</span> สำรอง</option>
+            <option value="ส่งซ่อม"><span class="material-symbols-rounded icon-md icon-semibold icon-filled icon-danger">cancel</span> ส่งซ่อม</option>
+            <option value="ชำรุด/สูญหาย"><span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-danger">cancel</span> ชำรุด/สูญหาย</option>
           </select>
         </div>
         <div class="ff"><label>Location</label><input type="text" id="newAssetLocation" placeholder="สถานที่"></div>
         <div class="ff"><label>Site</label>
           <select id="newAssetSite" onchange="onSiteSelect(this.value)">
-            <option value="Intranin">🏢 บริษัท Intranin (คลังกลาง)</option>
+            <option value="Intranin"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">building</span> บริษัท Intranin (คลังกลาง)</option>
           </select>
         </div>
         <div class="ff"><label>ผู้ใช้งาน</label><input type="text" id="newAssetUser" placeholder="ชื่อผู้ดูแล"></div>
@@ -3184,7 +4312,7 @@ body.on-login #ems-up { display: none !important; }
     </div>
     <div class="mf">
       <button class="btn btn-out" onclick="closeModal('addAssetModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="addAssetNewPart()">💾 เพิ่ม Part + Asset</button>
+      <button class="btn btn-blue" onclick="addAssetNewPart()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">save</span> เพิ่ม Part + Asset</button>
     </div>
   </div>
 </div>
@@ -3192,7 +4320,7 @@ body.on-login #ems-up { display: none !important; }
 <!-- RETURN MODAL -->
 <div class="mo" id="returnModal">
   <div class="mb">
-    <div class="mh"><div class="mh-title">📦 คืนอุปกรณ์จาก Site</div><button class="mc" onclick="closeModal('returnModal')">✕</button></div>
+    <div class="mh"><div class="mh-title"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span> คืนอุปกรณ์จาก Site</div><button class="mc" onclick="closeModal('returnModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button></div>
     <div class="mbd">
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <button class="btn btn-out btn-sm" onclick="selectAllReturn()">เลือกทั้งหมด</button>
@@ -3210,42 +4338,42 @@ body.on-login #ems-up { display: none !important; }
 <!-- TRANSFER MODAL -->
 <div class="mo" id="transferModal">
   <div class="mb" style="max-width:600px">
-    <div class="mh"><div class="mh-title">🚚 โอนย้ายอุปกรณ์</div><button class="mc" onclick="closeModal('transferModal')">✕</button></div>
+    <div class="mh"><div class="mh-title"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">local_shipping</span> โอนย้ายอุปกรณ์</div><button class="mc" onclick="closeModal('transferModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button></div>
     <div class="mbd" style="padding:16px 20px">
       <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;color:var(--g600);font-weight:600">Serial Number</span>
         <span id="transferSerialTitle" style="font-family:monospace;color:var(--blue);font-weight:700;font-size:13px">-</span>
       </div>
       <input type="hidden" id="oldSiteName"><input type="hidden" id="oldLocation">
-      <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📋 ประเภทการโอนย้าย</div>
+      <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">assignment</span> ประเภทการโอนย้าย</div>
       <div class="fg" style="margin-bottom:14px">
         <div class="ff"><label>ประเภท</label>
           <select id="transferAction" onchange="onActionChange()">
-            <option value="ย้ายตำแหน่งอุปกรณ์">🚚 ย้ายตำแหน่ง</option>
-            <option value="ส่งซ่อมภายนอก">🔧 ส่งซ่อมภายนอก</option>
-            <option value="โอนย้ายผู้รับผิดชอบ">👤 โอนย้ายผู้รับผิดชอบ</option>
-            <option value="คืนคลังสินค้า">📦 คืนคลังสินค้า</option>
+            <option value="ย้ายตำแหน่งอุปกรณ์"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">local_shipping</span> ย้ายตำแหน่ง</option>
+            <option value="ส่งซ่อมภายนอก"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">build</span> ส่งซ่อมภายนอก</option>
+            <option value="โอนย้ายผู้รับผิดชอบ"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">person</span> โอนย้ายผู้รับผิดชอบ</option>
+            <option value="คืนคลังสินค้า"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span> คืนคลังสินค้า</option>
           </select>
         </div>
         <div class="ff"><label>สถานะใหม่</label>
           <select id="transferStatus">
-            <option value="ใช้งานได้">🟢 ใช้งานได้</option>
-            <option value="สำรอง">🟡 สำรอง</option>
-            <option value="ส่งซ่อม">🔴 ส่งซ่อม</option>
-            <option value="ชำรุด/สูญหาย">❌ ชำรุด/สูญหาย</option>
+            <option value="ใช้งานได้"><span class="material-symbols-rounded icon-md icon-semibold icon-filled icon-success">check_circle</span> ใช้งานได้</option>
+            <option value="สำรอง"><span class="material-symbols-rounded icon-md icon-semibold icon-filled icon-warning">warning</span> สำรอง</option>
+            <option value="ส่งซ่อม"><span class="material-symbols-rounded icon-md icon-semibold icon-filled icon-danger">cancel</span> ส่งซ่อม</option>
+            <option value="ชำรุด/สูญหาย"><span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-danger">cancel</span> ชำรุด/สูญหาย</option>
           </select>
         </div>
       </div>
       <div id="farmSection">
-        <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">🌱 ข้อมูลฟาร์มปลายทาง</div>
+        <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">eco</span> ข้อมูลฟาร์มปลายทาง</div>
         <div class="fg" style="margin-bottom:8px">
           <div class="ff"><label>ประเภทฟาร์ม</label>
             <select id="trFarmType" onchange="onFarmTypeChange()">
               <option value="">-- เลือกประเภท --</option>
-              <option value="สัตว์ปีก">🐔 สัตว์ปีก</option>
-              <option value="สัตว์บก">🐄 สัตว์บก</option>
-              <option value="สุกร">🐷 สุกร</option>
-              <option value="อื่นๆ">⚙️ อื่นๆ / ไม่ใช่ฟาร์ม</option>
+              <option value="สัตว์ปีก"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">pets</span> สัตว์ปีก</option>
+              <option value="สัตว์บก"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">pets</span> สัตว์บก</option>
+              <option value="สุกร"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">pets</span> สุกร</option>
+              <option value="อื่นๆ">⚙ อื่นๆ / ไม่ใช่ฟาร์ม</option>
             </select>
           </div>
           <div class="ff"><label>ประเภทสัตว์</label>
@@ -3278,7 +4406,7 @@ body.on-login #ems-up { display: none !important; }
           <div class="ff"><label>จำนวนโรงเรือน (ในฟาร์มนี้)</label><input type="number" id="trHouseCount" placeholder="4" min="0"></div>
         </div>
       </div>
-      <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;margin-top:4px">👤 ผู้รับผิดชอบ</div>
+      <div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;margin-top:4px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">person</span> ผู้รับผิดชอบ</div>
       <div class="fg">
         <div class="ff" style="grid-column:1/-1"><label>ชื่อผู้รับผิดชอบ</label><input type="text" id="transferUser" placeholder="ชื่อผู้ดูแลอุปกรณ์"></div>
         <div class="ff" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="transferRemark" placeholder="เหตุผล / รายละเอียดเพิ่มเติม..."></div>
@@ -3286,7 +4414,7 @@ body.on-login #ems-up { display: none !important; }
     </div>
     <div class="mf">
       <button class="btn btn-out" onclick="closeModal('transferModal')">ยกเลิก</button>
-      <button class="btn btn-blue" onclick="submitTransferAction()">💾 ยืนยันโอนย้าย</button>
+      <button class="btn btn-blue" onclick="submitTransferAction()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">save</span> ยืนยันโอนย้าย</button>
     </div>
   </div>
 </div>
@@ -3294,10 +4422,10 @@ body.on-login #ems-up { display: none !important; }
 <!-- BULK ADD ASSET MODAL -->
 <div class="mo" id="bulkAddModal">
   <div class="mb mb-wide">
-    <div class="mh"><div class="mh-title">📦 เพิ่ม Asset หลายชิ้น</div><button class="mc" onclick="closeModal('bulkAddModal')">✕</button></div>
+    <div class="mh"><div class="mh-title"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span> เพิ่ม Asset หลายชิ้น</div><button class="mc" onclick="closeModal('bulkAddModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button></div>
     <div class="mbd">
       <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--blue)">
-        💡 Serial จะถูกสร้างอัตโนมัติ: <strong>SN-{PartNumber}-{DDMMYYYY}-0001</strong>
+        <span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">lightbulb</span> Serial จะถูกสร้างอัตโนมัติ: <strong>SN-{PartNumber}-{DDMMYYYY}-0001</strong>
       </div>
       <div class="fg">
         <div class="ff"><label>Part Number *</label>
@@ -3309,10 +4437,10 @@ body.on-login #ems-up { display: none !important; }
         <div class="ff" style="grid-column:1/-1"><label>ชื่ออุปกรณ์ *</label><input type="text" id="bulkPartName" placeholder="ชื่ออุปกรณ์"></div>
         <div class="ff"><label>จำนวนที่เพิ่ม *</label><input type="number" id="bulkQty" placeholder="10" min="1" max="200"></div>
         <div class="ff"><label>สถานะ</label>
-          <select id="bulkStatus"><option value="ใช้งานได้">🟢 ใช้งานได้</option><option value="สำรอง">🟡 สำรอง</option></select>
+          <select id="bulkStatus"><option value="ใช้งานได้"><span class="material-symbols-rounded icon-md icon-semibold icon-filled icon-success">check_circle</span> ใช้งานได้</option><option value="สำรอง"><span class="material-symbols-rounded icon-md icon-semibold icon-filled icon-warning">warning</span> สำรอง</option></select>
         </div>
         <div class="ff"><label>ไซต์งาน (Site)</label>
-          <select id="bulkSite"><option value="Intranin">🏢 บริษัท Intranin (คลังกลาง)</option></select>
+          <select id="bulkSite"><option value="Intranin"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">building</span> บริษัท Intranin (คลังกลาง)</option></select>
         </div>
         <div class="ff"><label>Location / ตำแหน่ง</label><input type="text" id="bulkLocation" placeholder="เช่น ห้องเก็บอุปกรณ์ A"></div>
         <div class="ff"><label>ผู้รับผิดชอบ</label><input type="text" id="bulkUser" placeholder="ชื่อผู้ดูแล"></div>
@@ -3321,8 +4449,8 @@ body.on-login #ems-up { display: none !important; }
     </div>
     <div class="mf">
       <button class="btn btn-out" onclick="closeModal('bulkAddModal')">ยกเลิก</button>
-      <button class="btn btn-out btn-sm" onclick="previewBulkSerial()">👁 Preview</button>
-      <button class="btn btn-blue" onclick="confirmBulkAdd()">💾 เพิ่ม Asset</button>
+      <button class="btn btn-out btn-sm" onclick="previewBulkSerial()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-secondary">visibility</span> Preview</button>
+      <button class="btn btn-blue" onclick="confirmBulkAdd()"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">save</span> เพิ่ม Asset</button>
     </div>
   </div>
 </div>
@@ -3332,14 +4460,14 @@ body.on-login #ems-up { display: none !important; }
   <div class="mb mb-wide">
     <div class="mh">
       <div class="mh-title">
-        📋 ประวัติ
+        <span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">assignment</span> ประวัติ
         <span style="font-family:monospace;font-size:12px;font-weight:600;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-b);padding:2px 10px;border-radius:20px;margin-left:6px" id="modalSerialTitle">-</span>
       </div>
-      <button class="mc" onclick="closeModal('historyModal')">✕</button>
+      <button class="mc" onclick="closeModal('historyModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button>
     </div>
     <div style="padding:8px 24px 10px;border-bottom:1px solid var(--g100);display:flex;justify-content:space-between;align-items:center;background:var(--surface2)">
       <span style="font-size:13px;color:var(--tmuted)" id="hmCounter"></span>
-      <a id="hmExtLink" href="#" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px;padding:4px 12px;border-radius:6px;border:1px solid var(--blue-b);background:var(--blue-l)">📋 ดูหน้าเต็ม →</a>
+      <a id="hmExtLink" href="#" target="_blank" style="font-size:13px;color:var(--blue);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px;padding:4px 12px;border-radius:6px;border:1px solid var(--blue-b);background:var(--blue-l)"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">assignment</span> ดูหน้าเต็ม →</a>
     </div>
     <div class="mbd">
       <div id="historyModalBody"><div style="text-align:center;padding:40px 0"><div class="spin"></div></div></div>
@@ -3355,7 +4483,7 @@ body.on-login #ems-up { display: none !important; }
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
         <span id="bdlModalTitle">สร้าง Bundle ใหม่</span>
       </div>
-      <button class="mc" onclick="closeModal('bdlCreateModal')">✕</button>
+      <button class="mc" onclick="closeModal('bdlCreateModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button>
     </div>
     <div class="mbd">
       <input type="hidden" id="bdl-edit-id">
@@ -3397,7 +4525,7 @@ body.on-login #ems-up { display: none !important; }
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
         ย้ายชุดอุปกรณ์ไปฟาร์ม
       </div>
-      <button class="mc" onclick="closeModal('bdlDeployModal')">✕</button>
+      <button class="mc" onclick="closeModal('bdlDeployModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button>
     </div>
     <div class="mbd">
       <div style="background:var(--blue-l);border:1px solid var(--blue-b);border-radius:10px;padding:14px 16px;margin-bottom:16px">
@@ -3435,7 +4563,7 @@ body.on-login #ems-up { display: none !important; }
   <div class="mb">
     <div class="mh">
       <div class="mh-title">เพิ่มอุปกรณ์เข้าชุด</div>
-      <button class="mc" onclick="closeModal('bdlAddAssetModal')">✕</button>
+      <button class="mc" onclick="closeModal('bdlAddAssetModal')"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button>
     </div>
     <div class="mbd">
       <div class="fg">
@@ -3566,6 +4694,9 @@ const _userObs = new MutationObserver(function() {
 document.addEventListener('DOMContentLoaded', function() {
   const u = document.getElementById('currentUser');
   if (u) _userObs.observe(u, { childList: true, characterData: true, subtree: true });
+
+  // Initialize Lucide icons
+  
 });
 </script>
 
@@ -3878,7 +5009,7 @@ const EMS = window.EMS = window.EMS || {};
 
 EMS.toast = function(msg, type, title) {
   type = type || 'info';
-  const icons = { ok:'✓', err:'✕', info:'i', warn:'!' };
+  const icons = { ok:'✓', err:'<span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span>', info:'i', warn:'!' };
   const container = document.getElementById('ems-toasts');
   if (!container) return;
   const el = document.createElement('div');
@@ -3889,7 +5020,7 @@ EMS.toast = function(msg, type, title) {
       (title ? '<div class="ems-t-title"></div>' : '') +
       '<div class="ems-t-msg"></div>' +
     '</div>' +
-    '<button class="ems-t-x" aria-label="ปิด">✕</button>';
+    '<button class="ems-t-x" aria-label="ปิด"><span class="material-symbols-rounded icon-sm icon-regular icon-outline icon-muted">close</span></button>';
   if (title) el.querySelector('.ems-t-title').textContent = title;
   el.querySelector('.ems-t-msg').textContent = msg;
   el.querySelector('.ems-t-x').onclick = () => _dismissToast(el);
@@ -3907,10 +5038,10 @@ function _dismissToast(el) {
 const _origAlert = window.alert;
 window.alert = function(msg) {
   const s = String(msg || '');
-  if (/✅|สำเร็จ|เรียบร้อย|บันทึก/.test(s)) {
-    EMS.toast(s.replace(/✅\s*/, ''), 'ok', 'สำเร็จ');
-  } else if (/❌|ผิดพลาด|ล้มเหลว|Error/i.test(s)) {
-    EMS.toast(s.replace(/❌\s*/, ''), 'err', 'เกิดข้อผิดพลาด');
+  if (/icon-filled icon-success.*check_circle|สำเร็จ|เรียบร้อย|บันทึก/.test(s)) {
+    EMS.toast(s.replace(/<span class="material-symbols-rounded[^"]*icon-filled icon-success[^"]*">check_circle<\/span>\s*/, ''), 'ok', 'สำเร็จ');
+  } else if (/icon-filled icon-danger.*cancel|ผิดพลาด|ล้มเหลว|Error/i.test(s)) {
+    EMS.toast(s.replace(/<span class="material-symbols-rounded[^"]*icon-filled icon-danger[^"]*">cancel<\/span>\s*/, ''), 'err', 'เกิดข้อผิดพลาด');
   } else if (/⚠|คำเตือน|Warning/i.test(s)) {
     EMS.toast(s, 'warn', 'คำเตือน');
   } else {
@@ -4161,7 +5292,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.classList.remove('on-login');
   }
 
-  // Add Bundle to command palette
+// Add Bundle to command palette
   PAL_ITEMS.splice(3, 0, {
     sec: 'หน้าหลัก',
     label: 'Bundle — จัดกลุ่มชุดอุปกรณ์',
@@ -4170,7 +5301,162 @@ document.addEventListener('DOMContentLoaded', function() {
     icon: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'
   });
 
+  // Runtime emoji-to-Material-Symbols walker
+  // Replaces emoji characters in text nodes with Material Symbols spans
+  (function() {
+    const EMOJI_ICON_MAP = {
+      '📦': { name: 'inventory_2', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🔧': { name: 'build', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '⚙️': { name: 'settings', classes: 'icon-sm icon-regular icon-outline icon-secondary' },
+      '🔩': { name: 'precision_manufacturing', classes: 'icon-sm icon-regular icon-outline icon-secondary' },
+      '🗃️': { name: 'folder', classes: 'icon-sm icon-regular icon-outline icon-secondary' },
+      '💻': { name: 'computer', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🖥️': { name: 'desktop_mac', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '⌨️': { name: 'keyboard', classes: 'icon-sm icon-regular icon-outline icon-secondary' },
+      '🖨️': { name: 'print', classes: 'icon-sm icon-regular icon-outline icon-secondary' },
+      '📡': { name: 'wifi', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '📋': { name: 'clipboard_list', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '📭': { name: 'inbox', classes: 'icon-sm icon-regular icon-outline icon-muted' },
+      '📍': { name: 'place', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '📅': { name: 'event', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🔄': { name: 'refresh', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🏢': { name: 'business', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🗑️': { name: 'delete', classes: 'icon-sm icon-regular icon-filled icon-danger' },
+      '🔍': { name: 'search', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '📤': { name: 'send', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🐔': { name: 'egg', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🐄': { name: 'pets', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🐷': { name: 'pets', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🏭': { name: 'factory', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🌐': { name: 'public', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🌱': { name: 'eco', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '📊': { name: 'analytics', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🔴': { name: 'circle', classes: 'icon-sm icon-regular icon-filled icon-danger' },
+      '📜': { name: 'description', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '📷': { name: 'camera_alt', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '🚚': { name: 'local_shipping', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+      '✏️': { name: 'edit', classes: 'icon-sm icon-regular icon-outline icon-secondary' },
+      '✔': { name: 'check', classes: 'icon-sm icon-regular icon-filled icon-success' },
+    };
+
+    function isValidNode(node) {
+      return !!node && (node.nodeType === 1 || node.nodeType === 3);
+    }
+
+    function createIconSpan(icon) {
+      var span = document.createElement('span');
+      span.className = 'material-symbols-rounded ' + icon.classes;
+      span.textContent = icon.name;
+      span.style.cssText = "font-variation-settings:'wght' 400,'FILL' 0,'GRAD' 0,'opsz' 24;font-size:1.2em;vertical-align:middle;display:inline-block;";
+      return span;
+    }
+
+    function replaceEmojiInTextNodes(root) {
+      if (!isValidNode(root)) return;
+      var walker;
+      try {
+        walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+      } catch (e) { return; }
+      var textNodes = [];
+      var node;
+      while (node = walker.nextNode()) { textNodes.push(node); }
+      textNodes.forEach(function(textNode) {
+        if (!textNode || !textNode.textContent) return;
+        var text = textNode.textContent;
+        var keys = Object.keys(EMOJI_ICON_MAP);
+        for (var i = 0; i < keys.length; i++) {
+          var emoji = keys[i];
+          var icon = EMOJI_ICON_MAP[emoji];
+          if (text.indexOf(emoji) !== -1) {
+            var parent = textNode.parentNode;
+            if (!parent) return;
+            if (text === emoji) {
+              parent.replaceChild(createIconSpan(icon), textNode);
+            } else {
+              var parts = text.split(emoji);
+              var frag = document.createDocumentFragment();
+              parts.forEach(function(part, j) {
+                if (part) frag.appendChild(document.createTextNode(part));
+                if (j < parts.length - 1) frag.appendChild(createIconSpan(icon).cloneNode(true));
+              });
+              parent.replaceChild(frag, textNode);
+            }
+            break;
+          }
+        }
+      });
+    }
+
+    function replaceEmojiInNode(node) {
+      if (!isValidNode(node)) return;
+      if (node.nodeType === 3) {
+        if (!node.textContent) return;
+        var text = node.textContent;
+        var keys = Object.keys(EMOJI_ICON_MAP);
+        for (var i = 0; i < keys.length; i++) {
+          var emoji = keys[i];
+          var icon = EMOJI_ICON_MAP[emoji];
+          if (text.indexOf(emoji) !== -1) {
+            var parent = node.parentNode;
+            if (!parent) return;
+            if (text === emoji) {
+              parent.replaceChild(createIconSpan(icon), node);
+            } else {
+              var parts = text.split(emoji);
+              var frag = document.createDocumentFragment();
+              parts.forEach(function(part, j) {
+                if (part) frag.appendChild(document.createTextNode(part));
+                if (j < parts.length - 1) frag.appendChild(createIconSpan(icon).cloneNode(true));
+              });
+              parent.replaceChild(frag, node);
+            }
+            break;
+          }
+        }
+      } else {
+        replaceEmojiInTextNodes(node);
+      }
+    }
+
+    // Expose global API so other scripts can trigger replacement after render
+    window.EMS = window.EMS || {};
+    window.EMS.replaceEmojis = function(root) {
+      if (!root) {
+        if (document.body) replaceEmojiInTextNodes(document.body);
+        return;
+      }
+      replaceEmojiInNode(root);
+    };
+
+    function safeInit() {
+      if (document.body) replaceEmojiInTextNodes(document.body);
+
+      try {
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(m) {
+            m.addedNodes.forEach(function(node) {
+              replaceEmojiInNode(node);
+            });
+          });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      } catch (e) {}
+
+      var checkCount = 0;
+      var interval = setInterval(function() {
+        try { if (document.body) replaceEmojiInTextNodes(document.body); } catch (e) {}
+        checkCount++;
+        if (checkCount >= 20) clearInterval(interval);
+      }, 500);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', safeInit, { once: true });
+    } else {
+      safeInit();
+    }
+  })();
+
 })(); // end IIFE
 </script>
-
 </body>
