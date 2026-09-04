@@ -1,13 +1,47 @@
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout.jsx';
 import Placeholder from './pages/Placeholder.jsx';
+import Login from './pages/Login.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import { useAuth } from './context/AuthContext.jsx';
+
+function Protected({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <FullLoader />;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function FullLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
+      <div className="flex flex-col items-center gap-3 text-[var(--tmuted)]">
+        <span className="w-8 h-8 border-2 border-[var(--g300)] border-t-[var(--blue)] rounded-full animate-spin" />
+        <span className="text-sm">กำลังโหลด...</span>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
+  const { user, loading } = useAuth();
+
+  // If logged in and hitting /login, go to dashboard
+  if (loading) return <FullLoader />;
+
   return (
     <Routes>
-      <Route element={<Layout />}>
-        {/* Pages already migrated to React */}
-        <Route path="/" element={<Placeholder title="Dashboard" note="หน้านี้ยังใช้ API เดิม — กำลังย้าย" />} />
+      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+
+      <Route
+        element={
+          <Protected>
+            <Layout />
+          </Protected>
+        }
+      >
+        <Route path="/" element={<Dashboard />} />
 
         {/* Pages still served from the original static HTML — redirect to them */}
         <Route path="/stock" element={<Navigate to="/index.html" replace />} />

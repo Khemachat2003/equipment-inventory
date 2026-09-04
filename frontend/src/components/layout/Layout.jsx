@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import Icon from '../ui/Icon.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const NAV_GROUPS = [
   {
@@ -23,6 +24,14 @@ const NAV_GROUPS = [
 ];
 
 export default function Layout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await logout();
+    navigate('/login');
+  }
+
   return (
     <div className="flex min-h-screen bg-[var(--bg)]">
       {/* Sidebar */}
@@ -84,7 +93,7 @@ export default function Layout() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-[var(--tmuted)]">09:00</span>
-            <UserChip />
+            <UserChip name={user?.username} onLogout={handleLogout} />
           </div>
         </header>
 
@@ -97,13 +106,22 @@ export default function Layout() {
   );
 }
 
-function UserChip() {
+function UserChip({ name, onLogout }) {
   return (
-    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--surface2)] border border-[var(--g200)]">
-      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--blue)] text-white text-[10px] font-bold">
-        U
-      </span>
-      <span className="text-[12px] font-medium text-[var(--tsub)]">ผู้ใช้</span>
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--surface2)] border border-[var(--g200)]">
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--blue)] text-white text-[10px] font-bold">
+          {(name || 'U')[0]?.toUpperCase()}
+        </span>
+        <span className="text-[12px] font-medium text-[var(--tsub)]">{name || 'ผู้ใช้'}</span>
+      </div>
+      <button
+        onClick={onLogout}
+        title="ออกจากระบบ"
+        className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--tmuted)] hover:text-[var(--red)] hover:bg-[var(--red-l)] transition-colors"
+      >
+        <Icon name="logout" size="sm" />
+      </button>
     </div>
   );
 }
