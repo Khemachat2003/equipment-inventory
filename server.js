@@ -283,6 +283,22 @@ app.get("/a/:code", (req, res) => {
   res.sendFile(path.join(__dirname, "public/asset.html"));
 });
 
+// ========== REACT SPA (migrating UI) — preview at /app ==========
+// Serves the built React app from frontend/dist without touching the
+// original static pages. Static assets under /app/assets get served
+// directly; all other /app/* paths fall back to the SPA index.html so
+// React Router (client-side routing) works.
+const SPA_DIR = path.join(__dirname, "frontend", "dist");
+const SPA_ASSETS = path.join(SPA_DIR, "assets");
+app.use("/app/assets", express.static(SPA_ASSETS, { maxAge: "1y", immutable: true }));
+app.use("/app/fonts", express.static(path.join(SPA_DIR, "fonts")));
+app.get("/app", (req, res) => {
+  res.sendFile(path.join(SPA_DIR, "index.html"));
+});
+app.get(/^\/app(?:\/|$).*/, (req, res) => {
+  res.sendFile(path.join(SPA_DIR, "index.html"));
+});
+
 app.use(express.static("public"));
 
 app.get("/health", (req, res) => {

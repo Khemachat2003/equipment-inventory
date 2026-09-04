@@ -1,0 +1,152 @@
+/* frontend base styles — Tailwind v4 + EMS design system tokens */
+
+@import "tailwindcss";
+
+/* ── EMS design tokens (carried over from the original index.html) ── */
+:root {
+  /* Core palette */
+  --ink:       #0A1628;
+  --ink2:      #111E35;
+  --ink3:      #162040;
+  --panel:     #1A2840;
+  --rim:       rgba(255,255,255,.07);
+  --rim2:      rgba(255,255,255,.12);
+
+  /* Brand */
+  --blue:      #1B6CA8;
+  --blue-d:    #145487;
+  --blue-l:    #EBF4FF;
+  --blue-b:    #BDD9F3;
+  --blue-glow: rgba(27,108,168,.25);
+
+  /* Signal */
+  --emerald:   #00C896;
+  --emerald-d: #00A07A;
+  --emerald-l: #E6FBF5;
+  --emerald-b: #9FEDD8;
+  --amber:     #FF9500;
+  --amber-l:   #FFF8EC;
+  --amber-b:   #FFD99E;
+  --red:       #E03131;
+  --red-l:     #FFF0F0;
+  --red-b:     #FFC5C5;
+  --purple:    #7048E8;
+  --purple-l:  #F1EDFD;
+
+  /* Surface */
+  --bg:        #F3F5F8;
+  --surface:   #FFFFFF;
+  --surface2:  #F8F9FB;
+
+  /* Text */
+  --text:      #0D1E31;
+  --tsub:      #4A5568;
+  --tmuted:    #94A3B8;
+
+  /* Borders */
+  --g100:  #F1F5F9;
+  --g200:  #E2E8F0;
+  --g300:  #CBD5E1;
+  --g400:  #94A3B8;
+  --g500:  #64748B;
+  --g600:  #475569;
+  --g700:  #334155;
+
+  /* Shadows */
+  --sh-xs: 0 1px 2px rgba(0,0,0,.05);
+  --sh-sm: 0 1px 4px rgba(0,0,0,.07), 0 2px 8px rgba(0,0,0,.04);
+  --sh-md: 0 4px 16px rgba(0,0,0,.09), 0 1px 4px rgba(0,0,0,.05);
+  --sh-lg: 0 12px 40px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
+
+  /* Radius */
+  --r:  6px;
+  --r2: 10px;
+  --r3: 14px;
+  --r4: 18px;
+
+  /* Sidebar */
+  --sb-w: 240px;
+  --sb-w-collapsed: 64px;
+  --topbar-h: 56px;
+
+  /* Icon size scale */
+  --icon-xs: 16px;
+  --icon-sm: 20px;
+  --icon-md: 24px;
+  --icon-lg: 28px;
+  --icon-xl: 32px;
+  --icon-2xl: 40px;
+
+  /* Icon weight presets */
+  --icon-w-light: 300;
+  --icon-w-regular: 400;
+  --icon-w-medium: 500;
+  --icon-w-semibold: 600;
+  --icon-w-bold: 700;
+
+  /* Icon fill presets */
+  --icon-fill-none: 0;
+  --icon-fill-subtle: 0.25;
+  --icon-fill-half: 0.5;
+  --icon-fill-full: 1;
+
+  /* Icon grade presets */
+  --icon-grade-normal: 0;
+  --icon-grade-dark: 100;
+  --icon-grade-light: -25;
+
+  /* Icon optical size per context */
+  --icon-opsz-sm: 20;
+  --icon-opsz-md: 24;
+  --icon-opsz-lg: 32;
+  --icon-opsz-xl: 48;
+
+  /* Icon transition */
+  --icon-transition: 150ms cubic-bezier(0.2, 0, 0.38, 0.9);
+}
+
+/* ── Self-hosted Material Symbols Rounded font ── */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/fonts/material-symbols-rounded.woff2') format('woff2');
+}
+
+/* ── Base ── */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ── Material Symbols icon helper (React usage: <span className="msi">name</span>) ── */
+.msi {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: normal;
+  font-feature-settings: 'liga', 'calt';
+  font-variation-settings:
+    'wght' var(--icon-w-regular, 400),
+    'FILL' var(--icon-fill-none, 0),
+    'GRAD' var(--icon-grade-normal, 0),
+    'opsz' var(--icon-opsz-md, 24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  vertical-align: middle;
+  user-select: none;
+}
