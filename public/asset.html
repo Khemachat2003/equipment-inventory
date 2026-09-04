@@ -113,6 +113,7 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:#f1f5f9;min-height:1
 .material-symbols-rounded {
   font-family: 'Material Symbols Rounded';
   font-style: normal;
+  font-feature-settings: 'liga', 'calt';
   font-variation-settings:
     'wght' var(--icon-w-regular, 400),
     'FILL' var(--icon-fill-none, 0),
@@ -276,7 +277,15 @@ a:visited { text-decoration: none; }
 a:hover,
 a:focus { text-decoration: none; }
 </style>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" crossorigin="anonymous" />
+<style>
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/fonts/material-symbols-rounded.woff2') format('woff2');
+}
+</style>
 </head>
 <body>
 
@@ -317,9 +326,9 @@ function getStatusBadgeClass(s=""){
 }
 function getStatusIcon(s=""){
   const t=s.toLowerCase();
-  if(t.includes("ซ่อม")) return "<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">build</span>";
-  if(t.includes("สำรอง")) return "<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span>";
-  return "<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span>";
+  if(t.includes("ซ่อม")) return `<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">build</span>`;
+  if(t.includes("สำรอง")) return `<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">inventory_2</span>`;
+  return `<span class="material-symbols-rounded icon-sm icon-regular icon-filled icon-success">check_circle</span>`;
 }
 
 const serial=getSerial();
@@ -397,7 +406,7 @@ async function loadAsset(){
         history.slice(0,6).forEach((h,i)=>{
           const isFirst=i===0;
           const dotClass=isFirst?"tl-cur":(h.action.includes("ซ่อม")?"tl-rep":h.action.includes("ลงทะเบียน")?"tl-reg":"tl-move");
-          const dotIcon=isFirst?"<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span>":(h.action.includes("ซ่อม")?"<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">build</span>":h.action.includes("ลงทะเบียน")?"✦":"→");
+          const dotIcon=isFirst?`<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span>`:(h.action.includes("ซ่อม")?`<span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">build</span>`:h.action.includes("ลงทะเบียน")?"✦":"→");
           const routeHtml=(h.from&&h.from!=="-")
             ?`<div class="tl-route"><span class="tl-chip">${h.from}</span><span class="tl-arr">→</span><span class="tl-chip tl-chip-d">${h.to||"-"}</span></div>`
             :(h.to&&h.to!=="-")?`<div class="tl-route"><span class="tl-chip tl-chip-d"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span> ${h.to}</span></div>`:"";

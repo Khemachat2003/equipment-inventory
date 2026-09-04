@@ -49,6 +49,7 @@ tbody tr:hover{background:#fafcff}
 .material-symbols-rounded {
   font-family: 'Material Symbols Rounded';
   font-style: normal;
+  font-feature-settings: 'liga', 'calt';
   font-variation-settings:
     'wght' var(--icon-w-regular, 400),
     'FILL' var(--icon-fill-none, 0),
@@ -212,7 +213,15 @@ a:visited { text-decoration: none; }
 a:hover,
 a:focus { text-decoration: none; }
 </style>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" crossorigin="anonymous" />
+<style>
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/fonts/material-symbols-rounded.woff2') format('woff2');
+}
+</style>
 </head>
 <body>
 

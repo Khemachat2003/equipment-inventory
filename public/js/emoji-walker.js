@@ -12,7 +12,7 @@
     '⌨️': { name: 'keyboard', classes: 'icon-sm icon-regular icon-outline icon-secondary' },
     '🖨️': { name: 'print', classes: 'icon-sm icon-regular icon-outline icon-secondary' },
     '📡': { name: 'wifi', classes: 'icon-sm icon-regular icon-outline icon-primary' },
-    '📋': { name: 'clipboard_list', classes: 'icon-sm icon-regular icon-outline icon-primary' },
+    '📋': { name: 'content_paste', classes: 'icon-sm icon-regular icon-outline icon-primary' },
     '📭': { name: 'inbox', classes: 'icon-sm icon-regular icon-outline icon-muted' },
     '📍': { name: 'place', classes: 'icon-sm icon-regular icon-outline icon-primary' },
     '📅': { name: 'event', classes: 'icon-sm icon-regular icon-outline icon-primary' },
