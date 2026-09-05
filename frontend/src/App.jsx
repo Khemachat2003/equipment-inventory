@@ -4,6 +4,7 @@ import Layout from './components/layout/Layout.jsx';
 import Placeholder from './pages/Placeholder.jsx';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Stock from './pages/Stock.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 
 function Protected({ children }) {
@@ -42,9 +43,9 @@ export default function App() {
         }
       >
         <Route path="/" element={<Dashboard />} />
+        <Route path="/stock" element={<Stock />} />
 
         {/* Pages still served from the original static HTML — redirect to them */}
-        <Route path="/stock" element={<Navigate to="/index.html" replace />} />
         <Route path="/asset" element={<Navigate to="/asset.html" replace />} />
         <Route path="/bundle" element={<Navigate to="/index.html" replace />} />
         <Route path="/farm" element={<Navigate to="/index.html" replace />} />
