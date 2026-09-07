@@ -148,11 +148,25 @@ app.use((req, res, next) => {
 });
 // ===========================================
 
-app.use(express.static("public"));
+//app.use(express.static("public"));
 app.use("/image", express.static(path.join(__dirname, "image")));
 
 // ========== RATE LIMIT ==========
 app.use("/api", limiter);
+
+// ========== PORTAL MODE (auto-login regular users, optional via env) ==========
+// ต้อง mount ก่อน admin lock เพื่อให้ session.user มีก่อนที่ lock จะตรวจ role
+const { portalAutoLogin, portalLoginEnabled } = require("./middleware/portal");
+app.use("/api", portalAutoLogin);
+
+// endpoint ให้หน้าเว็บรู้ว่าเปิด PORTAL_MODE + กลับหน้า portal ไหนหลัง logout
+// (PORTAL_HOME_URL = หน้าแรกของระบบรวมของบริษัท เช่น https://portal.company.com)
+app.get("/api/portal-config", (req, res) => {
+  res.json({
+    portalMode: portalLoginEnabled(),
+    homeUrl: portalLoginEnabled() ? (process.env.PORTAL_HOME_URL || "/") : "/login",
+  });
+});
 
 // ========== ADMIN SESSION LOCK (ต่ออายุอัตโนมัติทุก request) ==========
 const { createCheckAdminSessionLock } = require("./middleware/auth");
@@ -269,33 +283,25 @@ app.get("/audit.html", (req, res) => {
 // ========== USE ROUTES ==========
 app.use("/", routes);
 
-// ========== FRONTEND ROUTES ==========
+// ========== REACT SPA (ระบบใหม่) — mount ที่ root "/" ==========
+// ระบบใหม่ (React) ถูก mount ที่ "/" กลายเป็นหน้า portal หลัก
+// เสิร์ฟจาก frontend/dist; font/icons เสิร์ฟจาก dist เอง (ไม่พึ่ง public/ เดิม)
+const SPA_DIR = path.join(__dirname, "frontend", "dist");
+const SPA_ASSETS = path.join(SPA_DIR, "assets");
+
+// ลิงก์เก่า /dashboard → เด้งเข้า SPA (เลิกเสิร์ฟ public/index.html ตรงนี้)
 app.get("/dashboard", (req, res) => {
-  if (!req.session.user) return res.redirect("/");
-  res.sendFile(path.join(__dirname, "public/index.html"));
+  res.redirect("/");
 });
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
-});
-
+// QR code เก่าที่แสกนแล้วได้ /a/:code ยังเปิด asset.html เดิมได้ (backward compat)
 app.get("/a/:code", (req, res) => {
   res.sendFile(path.join(__dirname, "public/asset.html"));
 });
 
-// ========== REACT SPA (migrating UI) — preview at /app ==========
-// Serves the built React app from frontend/dist without touching the
-// original static pages. Static assets under /app/assets get served
-// directly; all other /app/* paths fall back to the SPA index.html so
-// React Router (client-side routing) works.
-const SPA_DIR = path.join(__dirname, "frontend", "dist");
-const SPA_ASSETS = path.join(SPA_DIR, "assets");
-app.use("/app/assets", express.static(SPA_ASSETS, { maxAge: "1y", immutable: true }));
-app.use("/app/fonts", express.static(path.join(SPA_DIR, "fonts")));
-app.get("/app", (req, res) => {
-  res.sendFile(path.join(SPA_DIR, "index.html"));
-});
-app.get(/^\/app(?:\/|$).*/, (req, res) => {
+app.use("/assets", express.static(SPA_ASSETS, { maxAge: "1y", immutable: true }));
+app.use("/fonts", express.static(path.join(SPA_DIR, "fonts")));
+app.get("/", (req, res) => {
   res.sendFile(path.join(SPA_DIR, "index.html"));
 });
 
@@ -303,6 +309,12 @@ app.use(express.static("public"));
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", uptime: process.uptime() });
+});
+
+// SPA catch-all: path GET ที่ไม่ใช่ API/static/public (เช่น /stock, /asset)
+// → เสิร์ฟ index.html ให้ React Router จัดการเอง (ไม่ทับ /api/*)
+app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
+  res.sendFile(path.join(SPA_DIR, "index.html"));
 });
 
 // ========== CLEAR CACHE API ==========

@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
+  BarElement,
   Filler,
   Tooltip,
   Legend,
 } from 'chart.js';
 import Icon from '../components/ui/Icon.jsx';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Filler, Tooltip, Legend);
 
 const RANGES = [
   { days: 7, label: '7 วัน' },
@@ -50,7 +49,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-lg font-bold text-[var(--text)]">Dashboard</div>
           <div className="text-[12px] text-[var(--tmuted)]">ภาพรวมระบบ ณ วันนี้</div>
@@ -110,7 +109,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="h-[280px]">
-            <Line data={chart.data} options={chart.options} />
+            <Bar data={chart.data} options={chart.options} />
           </div>
         </div>
 
@@ -122,12 +121,12 @@ export default function Dashboard() {
           <RailRow icon="agriculture" label="ฟาร์มทั้งหมด" value={data?.totalFarms ?? 0} />
           <RailRow icon="precision_manufacturing" tone="teal" label="อุปกรณ์ในฟาร์ม" value={data?.totalFarmAssets ?? 0} />
           <RailRow icon="inventory_2" tone="violet" label="อุปกรณ์ในสต็อก" value={data?.totalStockAssets ?? 0} />
-          <div className="mt-4 rounded-xl bg-[var(--amber-l)] p-3.5 flex items-center gap-3">
+          <div className="mt-4 rounded-xl bg-[var(--amber-b)] p-3.5 flex items-center gap-3">
             <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--amber)] text-white">
               <Icon name="workspace_premium" size="sm" />
             </span>
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--amber)]">ฟาร์มติดตั้งมากสุด</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--amber-d)]">ฟาร์มติดตั้งมากสุด</div>
               <div className="text-[13px] font-bold text-[var(--text)]">{data?.topFarms?.[0] ? `${data.topFarms[0].name} (${data.topFarms[0].count})` : '—'}</div>
             </div>
           </div>
@@ -199,32 +198,24 @@ function buildChartData(chartData, days) {
         {
           label: 'เบิก',
           data: borrowData,
-          borderColor: '#1B6CA8',
-          backgroundColor: 'rgba(27,108,168,.14)',
-          fill: true,
-          tension: 0.45,
-          pointRadius: 3,
-          pointBackgroundColor: '#fff',
-          pointBorderColor: '#1B6CA8',
-          pointBorderWidth: 2,
-          borderWidth: 2.5,
-          borderCapStyle: 'round',
-          borderJoinStyle: 'round',
+          backgroundColor: 'rgba(27,108,168,.85)',
+          hoverBackgroundColor: '#1B6CA8',
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.7,
+          categoryPercentage: 0.55,
+          maxBarThickness: 18,
         },
         {
           label: 'คืน',
           data: returnData,
-          borderColor: '#00C896',
-          backgroundColor: 'rgba(0,200,150,.12)',
-          fill: true,
-          tension: 0.45,
-          pointRadius: 3,
-          pointBackgroundColor: '#fff',
-          pointBorderColor: '#00C896',
-          pointBorderWidth: 2,
-          borderWidth: 2.5,
-          borderCapStyle: 'round',
-          borderJoinStyle: 'round',
+          backgroundColor: 'rgba(0,200,150,.75)',
+          hoverBackgroundColor: '#00C896',
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.7,
+          categoryPercentage: 0.55,
+          maxBarThickness: 18,
         },
       ],
     },

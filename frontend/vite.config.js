@@ -3,10 +3,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
 // Build output goes into ./dist (separate from the backend's public/).
-// The SPA is safe to build anytime; Express will switch to serving it
-// from ./dist once the migration is ready — this keeps the original
-// static HTML pages untouched during incremental migration.
+// SPA ถูก mount ที่ root "/" — base จึงเป็น "/" (asset path = /assets/...)
 export default defineConfig({
+  base: '/',
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {

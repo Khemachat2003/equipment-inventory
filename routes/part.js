@@ -48,6 +48,42 @@ router.get("/api/part-catalog", requireLogin, async (req, res) => {
   }
 });
 
+// -------------------- GET CATEGORIES --------------------
+const CATEGORY_FALLBACK = [
+  ['Sensors & Weather', 'เซนเซอร์ & สภาพอากาศ', 'sensors'],
+  ['Controllers & Microcontrollers', 'คอนโทรลเลอร์ & ไมโครคอนโทรลเลอร์', 'memory'],
+  ['Networking & Comms', 'เครือข่าย & การสื่อสาร', 'router'],
+  ['Power Supplies', 'แหล่งจ่ายไฟ', 'power'],
+  ['Power Protection & Switching', 'อุปกรณ์ป้องกัน & สวิตชิ่ง', 'shield'],
+  ['Display & Peripherals', 'จอแสดงผล & อุปกรณ์ต่อพ่วง', 'monitor'],
+  ['IO & Automation Modules', 'โมดูล IO & ระบบอัตโนมัติ', 'settings_input_component'],
+];
+
+router.get("/api/categories", requireLogin, async (req, res) => {
+  const cacheKey = "assetCategories";
+  let cats = cache.get(cacheKey);
+  if (cats) return res.json(cats);
+  try {
+    const sheets = await getSheetsClient();
+    const catRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Categories!A2:C",
+    });
+    const rows = catRes.data.values || [];
+    cats = rows.filter((r) => r[0] && r[0].trim()).map((r) => ({
+      name: r[0].trim(),
+      label: (r[1] || r[0]).trim(),
+      icon: (r[2] || "devices_other").trim(),
+    }));
+    if (!cats.length) cats = CATEGORY_FALLBACK.map(([name, label, icon]) => ({ name, label, icon }));
+    cache.set(cacheKey, cats);
+    res.json(cats);
+  } catch (e) {
+    console.error("Categories error:", e);
+    res.json(CATEGORY_FALLBACK.map(([name, label, icon]) => ({ name, label, icon })));
+  }
+});
+
 // -------------------- ADD PART --------------------
 router.post("/api/add-part",
   requireLogin,
@@ -60,9 +96,6 @@ router.post("/api/add-part",
   ],
   validate,
   async (req, res) => {
-    if (req.session.user.role !== "admin") {
-      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
-    }
     try {
       const { partNumber, partName, category, description, unit } = req.body;
       const sheets = await getSheetsClient();

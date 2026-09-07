@@ -8,6 +8,29 @@ const { requireLogin, requireAdmin, validate } = require("../middleware/auth");
 
 const saltRounds = 10;
 
+// -------------------- LIST USERS --------------------
+router.get("/api/admin/users",
+  requireLogin,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const sheets = await getSheetsClient();
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Users!A2:C",
+      });
+      const data = (response.data.values || []).map((row, i) => ({
+        username: row[0] || "-",
+        role: row[2] || "user",
+      }));
+      res.json(data);
+    } catch (error) {
+      console.error("List users error:", error);
+      res.status(500).json({ error: "Failed to load users" });
+    }
+  }
+);
+
 // -------------------- UPDATE USER ROLE --------------------
 router.put("/api/admin/users/:username",
   requireLogin,

@@ -88,6 +88,7 @@ router.get("/api/check-auth", (req, res) => {
     loggedIn: true,
     username: req.session.user.username,
     role: req.session.user.role,
+    portal: !!req.session.user.portal,
   });
 });
 
@@ -101,7 +102,11 @@ router.post("/api/logout", (req, res) => {
 
 // -------------------- GET CURRENT USER --------------------
 router.get("/api/me", requireLogin, (req, res) => {
-  res.json({ username: req.session.user.username });
+  res.json({
+    username: req.session.user.username,
+    role: req.session.user.role,
+    portal: !!req.session.user.portal,
+  });
 });
 
 // -------------------- GET SPREADSHEET URL --------------------

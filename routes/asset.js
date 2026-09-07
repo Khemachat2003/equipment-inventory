@@ -676,9 +676,6 @@ router.post("/api/bulk-add-asset",
   ],
   validate,
   async (req, res) => {
-    if (req.session.user.role !== "admin") {
-      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
-    }
     try {
       const {
         partNumber,

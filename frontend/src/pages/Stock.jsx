@@ -49,7 +49,7 @@ export default function Stock() {
       const { data } = await axios.post('/api/transfer', { code, name, qty, type });
       if (data.error) alert(data.error);
       else {
-        notice(`✔ ${code} ${type} ${qty} ชิ้นแล้ว`);
+        flash(`${code} ${type} ${qty} ชิ้นแล้ว`);
         await load();
       }
     } catch (e) {
@@ -79,7 +79,7 @@ export default function Stock() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-lg font-bold text-[var(--text)]">Stock</div>
           <div className="text-[12px] text-[var(--tmuted)]">รายการอุปกรณ์ทั้งหมด</div>
@@ -97,7 +97,7 @@ export default function Stock() {
       {/* Panel */}
       <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-3 p-3.5 border-b border-[var(--g100)]">
+        <div className="flex flex-wrap items-center gap-2 p-3 sm:p-3.5 border-b border-[var(--g100)]">
           <div className="relative max-w-xs flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)]">
               <Icon name="search" size="sm" />
@@ -117,8 +117,8 @@ export default function Stock() {
           </button>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Table (จอใหญ่) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>
               <tr className="text-left text-[var(--tmuted)] border-b border-[var(--g100)] bg-[var(--surface2)]">
@@ -178,6 +178,59 @@ export default function Stock() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden divide-y divide-[var(--g100)]">
+          {paged.length === 0 && (
+            <div className="text-center py-12 text-[var(--tmuted)] text-[13px]">ไม่มีข้อมูล</div>
+          )}
+          {paged.map((item) => {
+            const oq = parseInt(item.office) || 0;
+            return (
+              <div key={item.code} className={`p-3.5 space-y-2.5 ${oq < 1 ? 'opacity-60' : ''}`}>
+                <div className="flex items-start gap-3">
+                  <img
+                    src={IMAGE_URL(item.code, item.ext || 'jpg')}
+                    width="48"
+                    height="48"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/image/noimage.jpg';
+                    }}
+                    className="rounded-lg border border-[var(--g200)] object-cover shrink-0"
+                    alt={item.name}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-[var(--text)] leading-snug">{item.name}</div>
+                    <div className="text-[12px] font-mono text-[var(--blue)] mt-0.5">{item.code}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-[12px]">
+                  <div className="rounded-lg bg-[var(--surface2)] border border-[var(--g100)] py-1.5">
+                    <div className="text-[var(--tmuted)]">ทั้งหมด</div>
+                    <div className="font-bold text-[var(--text)]">{item.total}</div>
+                  </div>
+                  <div className="rounded-lg bg-[var(--surface2)] border border-[var(--g100)] py-1.5">
+                    <div className="text-[var(--tmuted)]">Office</div>
+                    <div className="font-bold text-[var(--text)]">{oq < 1 ? <span className="text-[var(--red)]">หมด</span> : oq}</div>
+                  </div>
+                  <div className="rounded-lg bg-[var(--surface2)] border border-[var(--g100)] py-1.5">
+                    <div className="text-[var(--tmuted)]">Site</div>
+                    <div className="font-bold text-[var(--text)]">{item.site}</div>
+                  </div>
+                </div>
+                <RowActions
+                  code={item.code}
+                  name={item.name}
+                  total={item.total}
+                  onTransfer={submitTransfer}
+                  onEdit={editTotal}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {/* Pagination */}
