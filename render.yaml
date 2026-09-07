@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: equipment-inventory
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORTAL_MODE
+        value: "true"
+      - key: PORTAL_USERNAME
+        value: portal_user
+      - key: PORTAL_HOME_URL
+        sync: false
+      - key: SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_CREDENTIALS_ACCOUNT
+        sync: false
+      - key: GOOGLE_OAUTH
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: RATE_LIMIT_WINDOW_MS
+        sync: false
+      - key: RATE_LIMIT_MAX
+        sync: false
+      - key: CACHE_TTL
+        sync: false
+      - key: BACKUP_CRON
+        sync: false
