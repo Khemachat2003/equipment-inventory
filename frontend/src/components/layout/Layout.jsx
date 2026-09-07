@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Icon from '../ui/Icon.jsx';
@@ -39,6 +39,17 @@ export default function Layout() {
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const timeStr = now.toLocaleTimeString('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   async function handleLogout() {
     // อยู่ใน PORTAL_MODE (portal user หรือ admin ที่ล็อกอินต่อจาก portal):
@@ -160,7 +171,7 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <span className="text-[11px] text-[var(--tmuted)] hidden sm:block">09:00</span>
+            <span className="text-[11px] text-[var(--tmuted)] hidden sm:block tabular-nums">{timeStr}</span>
             <UserChip name={user?.username} role={user?.role} onLogout={handleLogout} />
           </div>
         </header>
