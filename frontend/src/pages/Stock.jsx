@@ -83,20 +83,6 @@ export default function Stock() {
     setCart({});
   }
 
-  async function submitTransfer(code, name, qty, type) {
-    if (!qty || qty <= 0) return alert('กรอกจำนวนให้ถูกต้อง');
-    try {
-      const { data } = await axios.post('/api/transfer', { code, name, qty, type });
-      if (data.error) alert(data.error);
-      else {
-        flash(`${code} ${type} ${qty} ชิ้นแล้ว`);
-        await load();
-      }
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด');
-    }
-  }
-
   async function confirmBorrowSubmit() {
     const carts = Object.entries(cart).map(([code, v]) => ({ code, qty: v.qty }));
     if (!carts.length) return;
@@ -296,11 +282,9 @@ export default function Stock() {
                     <td className="px-4 py-2.5">
                       <RowActions
                         code={item.code}
-                        name={item.name}
                         total={item.total}
                         officeQty={oq}
                         cartQty={cart[item.code]?.qty || 0}
-                        onTransfer={submitTransfer}
                         onEdit={editTotal}
                         onAddToCart={addToCart}
                         onAdjust={(d) => adjustCart(item.code, d)}
@@ -356,11 +340,9 @@ export default function Stock() {
                 </div>
                 <RowActions
                   code={item.code}
-                  name={item.name}
                   total={item.total}
                   officeQty={oq}
                   cartQty={cart[item.code]?.qty || 0}
-                  onTransfer={submitTransfer}
                   onEdit={editTotal}
                   onAddToCart={addToCart}
                   onAdjust={(d) => adjustCart(item.code, d)}
@@ -416,10 +398,7 @@ export default function Stock() {
   );
 }
 
-function RowActions({ code, name, total, officeQty, cartQty, onTransfer, onEdit, onAddToCart, onAdjust }) {
-  const [qty, setQty] = useState('');
-  const [type, setType] = useState('เบิก');
-
+function RowActions({ code, total, officeQty, cartQty, onEdit, onAddToCart, onAdjust }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {cartQty > 0 ? (
@@ -453,29 +432,6 @@ function RowActions({ code, name, total, officeQty, cartQty, onTransfer, onEdit,
           <Icon name="add" size="sm" /> เบิก
         </button>
       )}
-      <input
-        type="number"
-        min="1"
-        value={qty}
-        onChange={(e) => setQty(e.target.value)}
-        placeholder="จำนวน"
-        className="w-16 h-8 px-2 rounded border border-[var(--g300)] text-[12px] shrink-0"
-      />
-      <select
-        value={type}
-        onChange={(e) => setType(e.target.value)}
-        className="h-8 px-1.5 rounded border border-[var(--g300)] text-[12px] shrink-0"
-      >
-        <option value="เบิก">เบิก</option>
-        <option value="คืน">คืน</option>
-      </select>
-      <button
-        onClick={() => onTransfer(code, name, Number(qty), type)}
-        className="w-8 h-8 rounded-lg bg-[var(--blue)] text-white flex items-center justify-center hover:bg-[var(--blue-d)] shrink-0"
-        title="โอน"
-      >
-        <Icon name="check" size="sm" />
-      </button>
       <button
         onClick={() => onEdit(code, total)}
         className="w-8 h-8 rounded-lg border border-[var(--g300)] text-[var(--tsub)] flex items-center justify-center hover:bg-[var(--surface2)] shrink-0"
