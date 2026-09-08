@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Icon from '../ui/Icon.jsx';
-import ScanFlow from '../scan/ScanFlow.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { NAV_GROUPS, getRouteMeta } from '../../navigation.js';
 
@@ -145,7 +144,14 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <ScanFlow />
+            <button
+              onClick={() => navigate('/scan')}
+              title="สแกน Barcode / Serial"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[var(--emerald)] text-white text-[13px] font-semibold hover:bg-[var(--emerald-d)] transition-colors shrink-0"
+            >
+              <Icon name="document_scanner" size="sm" />
+              <span className="hidden min-[430px]:inline">สแกน</span>
+            </button>
             <span className="text-[11px] text-[var(--tmuted)] hidden sm:block tabular-nums">{timeStr}</span>
             <UserChip name={user?.username} role={user?.role} onLogout={handleLogout} />
           </div>
