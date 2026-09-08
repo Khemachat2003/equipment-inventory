@@ -418,11 +418,11 @@ function RowActions({ code, name, total, officeQty, onTransfer, onEdit, onAddToC
   const [type, setType] = useState('เบิก');
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       <button
         onClick={() => onAddToCart(code)}
         disabled={!officeQty || officeQty < 1}
-        className="h-8 px-2.5 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)] border border-[var(--emerald-b)] text-[12px] font-semibold hover:bg-[var(--emerald)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="h-8 px-2.5 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)] border border-[var(--emerald-b)] text-[12px] font-semibold hover:bg-[var(--emerald)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
         title="เพิ่มใส่ตะกร้าเบิก"
       >
         <Icon name="add" size="sm" /> เบิก
@@ -433,26 +433,26 @@ function RowActions({ code, name, total, officeQty, onTransfer, onEdit, onAddToC
         value={qty}
         onChange={(e) => setQty(e.target.value)}
         placeholder="จำนวน"
-        className="w-16 h-8 px-2 rounded border border-[var(--g300)] text-[12px]"
+        className="w-16 h-8 px-2 rounded border border-[var(--g300)] text-[12px] shrink-0"
       />
       <select
         value={type}
         onChange={(e) => setType(e.target.value)}
-        className="h-8 px-1.5 rounded border border-[var(--g300)] text-[12px]"
+        className="h-8 px-1.5 rounded border border-[var(--g300)] text-[12px] shrink-0"
       >
         <option value="เบิก">เบิก</option>
         <option value="คืน">คืน</option>
       </select>
       <button
         onClick={() => onTransfer(code, name, Number(qty), type)}
-        className="w-8 h-8 rounded-lg bg-[var(--blue)] text-white flex items-center justify-center hover:bg-[var(--blue-d)]"
+        className="w-8 h-8 rounded-lg bg-[var(--blue)] text-white flex items-center justify-center hover:bg-[var(--blue-d)] shrink-0"
         title="โอน"
       >
         <Icon name="check" size="sm" />
       </button>
       <button
         onClick={() => onEdit(code, total)}
-        className="w-8 h-8 rounded-lg border border-[var(--g300)] text-[var(--tsub)] flex items-center justify-center hover:bg-[var(--surface2)]"
+        className="w-8 h-8 rounded-lg border border-[var(--g300)] text-[var(--tsub)] flex items-center justify-center hover:bg-[var(--surface2)] shrink-0"
         title="แก้ไข"
       >
         <Icon name="edit" size="sm" />
