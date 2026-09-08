@@ -473,6 +473,106 @@ router.post("/api/return-selected-site",
   }
 );
 
+// -------------------- BORROW (BULK) SELECTED OFFICE ITEMS --------------------
+// เบิกหลายรายการพร้อมกัน (แบบตะกร้า) — ย้าย Office → Site ทีละรายการ
+// หลัก: เบิกได้เท่าที่ Office มีจริง, ของไม่พอ → เบิกเต็มเท่าที่มี + แจ้งยอดจริง
+router.post("/api/borrow-selected",
+  requireLogin,
+  [body("items").isArray({ min: 1 })],
+  validate,
+  async (req, res) => {
+    try {
+      const sheets = await getSheetsClient();
+      const items = req.body.items;
+      const user = req.session.user.username;
+      const officeRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Office!A2:C",
+      });
+      const siteRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Site!A2:C",
+      });
+      const officeData = officeRes.data.values || [];
+      const siteData = siteRes.data.values || [];
+
+      const updates = [];
+      const logs = [];
+      const borrowedItems = [];   // เบิกสำเร็จ
+      const shortItems = [];      // เบิกได้ไม่เต็ม (ของใน Office ไม่พอ)
+
+      for (const item of items) {
+        const code = item.code;
+        const requested = parseInt(item.qty);
+        if (!code || !requested || requested < 1) continue;
+        const officeIndex = officeData.findIndex((r) => r[0] === code);
+        const siteIndex = siteData.findIndex((r) => r[0] === code);
+        if (officeIndex === -1 || siteIndex === -1) continue;
+        let officeQty = parseInt(officeData[officeIndex][2] || 0);
+        let siteQty = parseInt(siteData[siteIndex][2] || 0);
+        if (officeQty < 1) continue; // ไม่มีของเลย → ข้าม
+        const actual = Math.min(requested, officeQty); // เบิกได้เท่าที่มี
+        officeQty -= actual;
+        siteQty += actual;
+        updates.push({
+          range: `Stock_Office!C${officeIndex + 2}`,
+          values: [[officeQty]],
+        });
+        updates.push({
+          range: `Stock_Site!C${siteIndex + 2}`,
+          values: [[siteQty]],
+        });
+        const name = officeData[officeIndex][1];
+        logs.push([
+          new Date().toLocaleString("th-TH"),
+          code,
+          name,
+          actual,
+          "เบิก",
+          "Office",
+          "Site",
+          user,
+        ]);
+        borrowedItems.push(`${code} (${name}) x${actual}`);
+        if (actual < requested) {
+          shortItems.push({ code, name, requested, actual });
+        }
+      }
+
+      if (updates.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: { valueInputOption: "RAW", data: updates },
+        });
+      }
+      if (logs.length > 0) {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: "Transfer_Log!A:H",
+          valueInputOption: "RAW",
+          requestBody: { values: logs },
+        });
+      }
+
+      clearStockCache();
+
+      // ✅ บันทึก Audit Log
+      await logAudit(
+        "เบิกอุปกรณ์ (หลายรายการ)",
+        "Stock",
+        `สำเร็จ ${borrowedItems.length} รายการ${shortItems.length ? `, ของไม่พอ ${shortItems.length} รายการ` : ""}: ${borrowedItems.join(", ")}`,
+        user,
+        req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      );
+
+      res.json({ success: true, borrowed: borrowedItems, short: shortItems });
+    } catch (err) {
+      console.error("borrow-selected error:", err);
+      res.status(500).json({ success: false });
+    }
+  }
+);
+
 // -------------------- ADD ITEM --------------------
 router.post("/api/add-item",
   requireLogin,

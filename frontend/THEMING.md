@@ -132,6 +132,7 @@ git push origin main
 | วันที่ | เวอร์ชัน | สิ่งที่แก้ |
 |---|---|---|
 | 2026-09-08 | — | สร้าง THEMING.md ฉบับแรก (คู่มือทีม design) |
+| 2026-09-08 | — | Stock: เพิ่มระบบตะกร้าเบิกหลายรายการ (ปุ่ม + เบิก → cart → ยืนยัน; ของไม่พอ เบิกเท่าที่มี + แจ้ง) |
 | 2026-09-08 | — | นาฬิกา topbar real-time (เดิมค้าง 09:00) |
 | 2026-09-08 | — | Silent chunk warning (limit 700 kB) |
 | 2026-09-08 | — | Fixed Icon import หายใน Dashboard (error Icon is not defined) |

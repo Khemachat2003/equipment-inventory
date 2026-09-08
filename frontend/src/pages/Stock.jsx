@@ -13,6 +13,9 @@ export default function Stock() {
   const [pageSize, setPageSize] = useState(20);
   const [returnOpen, setReturnOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [borrowOpen, setBorrowOpen] = useState(false);
+  const [confirmBorrow, setConfirmBorrow] = useState(null);
+  const [cart, setCart] = useState({});
   const [notice, setNotice] = useState('');
 
   const load = useCallback(async () => {
@@ -43,6 +46,40 @@ export default function Stock() {
     setPage(1);
   }, [search, pageSize]);
 
+  // ---------- ตะกร้าเบิก (bulk borrow) ----------
+  const itemName = useCallback(
+    (code) => (items.find((i) => i.code === code) || {}).name || code,
+    [items]
+  );
+  const cartCount = Object.keys(cart).length;
+  const cartTotalQty = Object.values(cart).reduce((a, v) => a + (v.qty || 0), 0);
+
+  function addToCart(code) {
+    setCart((prev) => {
+      const cur = prev[code]?.qty || 0;
+      return { ...prev, [code]: { qty: cur + 1 } };
+    });
+  }
+  function setCartQty(code, qty) {
+    const v = Math.max(0, parseInt(qty) || 0);
+    setCart((prev) => {
+      const next = { ...prev };
+      if (v === 0) delete next[code];
+      else next[code] = { qty: v };
+      return next;
+    });
+  }
+  function removeFromCart(code) {
+    setCart((prev) => {
+      const next = { ...prev };
+      delete next[code];
+      return next;
+    });
+  }
+  function clearCart() {
+    setCart({});
+  }
+
   async function submitTransfer(code, name, qty, type) {
     if (!qty || qty <= 0) return alert('กรอกจำนวนให้ถูกต้อง');
     try {
@@ -54,6 +91,28 @@ export default function Stock() {
       }
     } catch (e) {
       alert('เกิดข้อผิดพลาด');
+    }
+  }
+
+  async function confirmBorrowSubmit() {
+    const carts = Object.entries(cart).map(([code, v]) => ({ code, qty: v.qty }));
+    if (!carts.length) return;
+    setBorrowOpen(false);
+    try {
+      const { data } = await axios.post('/api/borrow-selected', { items: carts });
+      if (data.success) {
+        const ok = (data.borrowed || []).length;
+        const short = data.short || [];
+        if (ok) flash(`เบิกสำเร็จ ${ok} รายการ${short.length ? `, ไม่พอ ${short.length} รายการ` : ''}`);
+        else flash('ไม่มีรายการที่เบิกได้');
+        if (short.length) setConfirmBorrow({ items: short });
+        clearCart();
+        await load();
+      } else {
+        flash('เกิดข้อผิดพลาด');
+      }
+    } catch (e) {
+      flash('เกิดข้อผิดพลาด');
     }
   }
 
@@ -73,7 +132,7 @@ export default function Stock() {
 
   function flash(msg) {
     setNotice(msg);
-    setTimeout(() => setNotice(''), 3000);
+    setTimeout(() => setNotice(''), 4000);
   }
 
   return (
@@ -93,6 +152,77 @@ export default function Stock() {
       </div>
 
       {notice && <div className="px-4 py-2.5 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)] text-[13px]">{notice}</div>}
+
+      {/* ตะกร้าเบิก */}
+      {cartCount > 0 && (
+        <div className="rounded-2xl bg-white border border-[var(--emerald)] shadow-[var(--sh-sm)] overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--emerald-l)] border-b border-[var(--emerald-b)]">
+            <Icon name="add_shopping_cart" size="sm" />
+            <span className="text-[13px] font-semibold text-[var(--emerald-d)]">
+              ตะกร้าเบิก ({cartCount} รายการ, รวม {cartTotalQty} ชิ้น)
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={clearCart}
+                className="text-[12px] text-[var(--tmuted)] hover:text-[var(--red)]"
+              >
+                เคลียร์
+              </button>
+              <button
+                onClick={() => setBorrowOpen(true)}
+                disabled={cartCount === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--emerald)] text-white text-[13px] font-semibold hover:bg-[var(--emerald-d)] transition-colors disabled:opacity-50"
+              >
+                <Icon name="logout" size="sm" /> ยืนยันเบิกทั้งหมด
+              </button>
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto divide-y divide-[var(--g100)]">
+            {Object.entries(cart).map(([code, v]) => {
+              const oq = parseInt((items.find((i) => i.code === code) || {}).office) || 0;
+              return (
+                <div key={code} className="flex items-center gap-2 px-4 py-2 text-[13px]">
+                  <span className="font-mono font-semibold">{code}</span>
+                  <span className="flex-1 truncate text-[var(--tsub)]">{itemName(code)}</span>
+                  <span className="text-[12px] text-[var(--tmuted)]">Office: {oq}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={v.qty}
+                    onChange={(e) => setCartQty(code, e.target.value)}
+                    className="w-16 h-8 px-2 rounded border border-[var(--g300)] text-[12px]"
+                  />
+                  <button
+                    onClick={() => removeFromCart(code)}
+                    className="w-7 h-7 rounded flex items-center justify-center text-[var(--tmuted)] hover:text-[var(--red)] hover:bg-[var(--red-l)]"
+                    title="ลบ"
+                  >
+                    <Icon name="close" size="sm" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ยืนยันเบิก (หน้าสรุปเช็คก่อนยิง) */}
+      {borrowOpen && (
+        <BorrowConfirmModal
+          cart={cart}
+          itemName={itemName}
+          onClose={() => setBorrowOpen(false)}
+          onConfirm={confirmBorrowSubmit}
+        />
+      )}
+
+      {/* สรุปผลหลังเบิก (มีของไม่พอ) */}
+      {confirmBorrow && (
+        <BorrowSummaryModal
+          short={confirmBorrow.items || []}
+          onClose={() => setConfirmBorrow(false)}
+        />
+      )}
 
       {/* Panel */}
       <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
@@ -169,8 +299,10 @@ export default function Stock() {
                         code={item.code}
                         name={item.name}
                         total={item.total}
+                        officeQty={oq}
                         onTransfer={submitTransfer}
                         onEdit={editTotal}
+                        onAddToCart={addToCart}
                       />
                     </td>
                   </tr>
@@ -225,8 +357,10 @@ export default function Stock() {
                   code={item.code}
                   name={item.name}
                   total={item.total}
+                  officeQty={oq}
                   onTransfer={submitTransfer}
                   onEdit={editTotal}
+                  onAddToCart={addToCart}
                 />
               </div>
             );
@@ -279,12 +413,20 @@ export default function Stock() {
   );
 }
 
-function RowActions({ code, name, total, onTransfer, onEdit }) {
+function RowActions({ code, name, total, officeQty, onTransfer, onEdit, onAddToCart }) {
   const [qty, setQty] = useState('');
   const [type, setType] = useState('เบิก');
 
   return (
     <div className="flex items-center gap-1.5">
+      <button
+        onClick={() => onAddToCart(code)}
+        disabled={!officeQty || officeQty < 1}
+        className="h-8 px-2.5 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)] border border-[var(--emerald-b)] text-[12px] font-semibold hover:bg-[var(--emerald)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        title="เพิ่มใส่ตะกร้าเบิก"
+      >
+        <Icon name="add" size="sm" /> เบิก
+      </button>
       <input
         type="number"
         min="1"
@@ -454,6 +596,81 @@ function AddModal({ onClose, onDone }) {
           className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold disabled:opacity-60"
         >
           {busy ? 'กำลังเพิ่ม...' : 'เพิ่มอุปกรณ์'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function BorrowConfirmModal({ cart, itemName, onClose, onConfirm }) {
+  const entries = Object.entries(cart);
+  const [busy, setBusy] = useState(false);
+
+  async function handle() {
+    setBusy(true);
+    await onConfirm();
+  }
+
+  return (
+    <Modal title="ยืนยันเบิกทั้งหมด" onClose={onClose}>
+      <div className="mb-3 text-[12px] text-[var(--tmuted)]">
+        ตรวจสอบรายการเบิก {entries.length} รายการ ก่อนยืนยัน
+      </div>
+      <div className="max-h-72 overflow-y-auto space-y-2">
+        {entries.map(([code, v]) => (
+          <div
+            key={code}
+            className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-[var(--g100)]"
+          >
+            <div className="min-w-0">
+              <div className="text-[13px] font-medium">{itemName(code)}</div>
+              <div className="text-[11px] font-mono text-[var(--blue)]">{code}</div>
+            </div>
+            <div className="text-[13px] font-semibold text-[var(--emerald-d)]">{v.qty} ชิ้น</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 flex justify-end gap-2">
+        <button onClick={onClose} className="px-3 py-2 rounded-lg border border-[var(--g300)] text-[13px]">
+          ยกเลิก
+        </button>
+        <button
+          onClick={handle}
+          disabled={busy}
+          className="px-4 py-2 rounded-lg bg-[var(--emerald)] text-white text-[13px] font-semibold hover:bg-[var(--emerald-d)] disabled:opacity-60"
+        >
+          {busy ? 'กำลังเบิก...' : 'ยืนยันเบิก'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function BorrowSummaryModal({ short, onClose }) {
+  return (
+    <Modal title="แจ้งเตือน: เบิกได้ไม่เต็มจำนวน" onClose={onClose}>
+      <div className="mb-3 text-[13px] text-[var(--red)]">
+        {short.length} รายการ มีของใน Office ไม่เพียงพอตามจำนวนที่ขอ → เบิกได้เท่าที่มีจริง
+      </div>
+      <div className="max-h-72 overflow-y-auto space-y-2">
+        {short.map((s) => (
+          <div
+            key={s.code}
+            className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-[var(--red-b)] bg-[var(--red-l)]"
+          >
+            <div className="min-w-0">
+              <div className="text-[13px] font-medium">{s.name}</div>
+              <div className="text-[11px] font-mono text-[var(--tmuted)]">{s.code}</div>
+            </div>
+            <div className="text-[13px] text-[var(--red)] font-medium">
+              ขอ {s.requested} / ได้ {s.actual}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 flex justify-end gap-2">
+        <button onClick={onClose} className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold">
+          รับทราบ
         </button>
       </div>
     </Modal>
