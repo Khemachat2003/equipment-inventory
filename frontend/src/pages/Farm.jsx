@@ -129,10 +129,6 @@ export default function Farm() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-lg font-bold text-[var(--text)]">Farm Monitor</div>
-          <div className="text-[12px] text-[var(--tmuted)]">ภาพรวมอุปกรณ์และชุดอุปกรณ์ตามฟาร์ม</div>
-        </div>
         {isAdmin && (
           <div className="flex gap-2">
             <button onClick={() => setAddSiteOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]">

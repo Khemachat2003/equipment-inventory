@@ -163,10 +163,6 @@ export default function Bundle() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-lg font-bold text-[var(--text)]">Bundle</div>
-          <div className="text-[12px] text-[var(--tmuted)]">จัดการชุดอุปกรณ์</div>
-        </div>
         <div className="flex gap-2">
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]">
             <Icon name="download" size="sm" /> CSV

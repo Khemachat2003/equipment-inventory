@@ -43,11 +43,6 @@ export default function Report() {
 
   return (
     <div className="max-w-3xl space-y-4">
-      <div>
-        <div className="text-lg font-bold text-[var(--text)]">รายงาน</div>
-        <div className="text-[12px] text-[var(--tmuted)]">Export ข้อมูลเป็น PDF</div>
-      </div>
-
       <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="p-5 border-b border-[var(--g100)]">
           <div className="flex items-center gap-2 text-[15px] font-bold text-[var(--text)]">

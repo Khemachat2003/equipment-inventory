@@ -60,6 +60,9 @@ export default function Stock() {
       return { ...prev, [code]: { qty: cur + 1 } };
     });
   }
+  function adjustCart(code, delta) {
+    setCartQty(code, (cart[code]?.qty || 0) + delta);
+  }
   function setCartQty(code, qty) {
     const v = Math.max(0, parseInt(qty) || 0);
     setCart((prev) => {
@@ -139,10 +142,6 @@ export default function Stock() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-lg font-bold text-[var(--text)]">Stock</div>
-          <div className="text-[12px] text-[var(--tmuted)]">รายการอุปกรณ์ทั้งหมด</div>
-        </div>
         <button
           onClick={() => setAddOpen(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)] transition-colors"
@@ -300,9 +299,11 @@ export default function Stock() {
                         name={item.name}
                         total={item.total}
                         officeQty={oq}
+                        cartQty={cart[item.code]?.qty || 0}
                         onTransfer={submitTransfer}
                         onEdit={editTotal}
                         onAddToCart={addToCart}
+                        onAdjust={(d) => adjustCart(item.code, d)}
                       />
                     </td>
                   </tr>
@@ -358,9 +359,11 @@ export default function Stock() {
                   name={item.name}
                   total={item.total}
                   officeQty={oq}
+                  cartQty={cart[item.code]?.qty || 0}
                   onTransfer={submitTransfer}
                   onEdit={editTotal}
                   onAddToCart={addToCart}
+                  onAdjust={(d) => adjustCart(item.code, d)}
                 />
               </div>
             );
@@ -413,20 +416,43 @@ export default function Stock() {
   );
 }
 
-function RowActions({ code, name, total, officeQty, onTransfer, onEdit, onAddToCart }) {
+function RowActions({ code, name, total, officeQty, cartQty, onTransfer, onEdit, onAddToCart, onAdjust }) {
   const [qty, setQty] = useState('');
   const [type, setType] = useState('เบิก');
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <button
-        onClick={() => onAddToCart(code)}
-        disabled={!officeQty || officeQty < 1}
-        className="h-8 px-2.5 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)] border border-[var(--emerald-b)] text-[12px] font-semibold hover:bg-[var(--emerald)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
-        title="เพิ่มใส่ตะกร้าเบิก"
-      >
-        <Icon name="add" size="sm" /> เบิก
-      </button>
+      {cartQty > 0 ? (
+        <div className="flex items-center gap-1 h-8 shrink-0">
+          <button
+            onClick={() => onAdjust(-1)}
+            className="w-7 h-8 rounded-lg bg-[var(--emerald)] text-white flex items-center justify-center hover:bg-[var(--emerald-d)]"
+            title={cartQty === 1 ? 'นำออกจากตะกร้า' : 'ลดจำนวน'}
+          >
+            <Icon name="remove" size="sm" />
+          </button>
+          <span className="min-w-[2rem] px-1 text-center text-[13px] font-bold text-[var(--emerald-d)] tabular-nums">
+            {cartQty}
+          </span>
+          <button
+            onClick={() => onAdjust(1)}
+            disabled={!officeQty || officeQty < 1}
+            className="w-7 h-8 rounded-lg bg-[var(--emerald)] text-white flex items-center justify-center hover:bg-[var(--emerald-d)] disabled:opacity-40"
+            title="เพิ่มจำนวน"
+          >
+            <Icon name="add" size="sm" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => onAddToCart(code)}
+          disabled={!officeQty || officeQty < 1}
+          className="h-8 px-2.5 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)] border border-[var(--emerald-b)] text-[12px] font-semibold hover:bg-[var(--emerald)] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
+          title="เพิ่มใส่ตะกร้าเบิก"
+        >
+          <Icon name="add" size="sm" /> เบิก
+        </button>
+      )}
       <input
         type="number"
         min="1"

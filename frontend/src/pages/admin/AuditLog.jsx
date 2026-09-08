@@ -35,11 +35,7 @@ export default function AuditLog() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-lg font-bold text-[var(--text)]">Audit Log</div>
-          <div className="text-[12px] text-[var(--tmuted)]">บันทึกการใช้งานระบบ (Admin)</div>
-        </div>
+      <div className="flex items-center justify-end gap-2">
         <button
           onClick={load}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]"

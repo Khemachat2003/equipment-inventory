@@ -20,11 +20,6 @@ export default function Settings() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <div>
-        <div className="text-lg font-bold text-[var(--text)]">Settings</div>
-        <div className="text-[12px] text-[var(--tmuted)]">ข้อมูลระบบและผู้ใช้งาน</div>
-      </div>
-
       {/* บัญชีผู้ใช้ */}
       <Group label="บัญชีผู้ใช้">
         <div className="flex items-center gap-4 p-4 rounded-xl border border-[var(--g100)]">

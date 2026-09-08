@@ -49,13 +49,6 @@ export default function AdminTools() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-lg font-bold text-[var(--text)]">เครื่องมือผู้ดูแล</div>
-          <div className="text-[12px] text-[var(--tmuted)]">Backup / Cache / ระบบ</div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Full backup */}
         <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">

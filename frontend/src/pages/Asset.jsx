@@ -120,10 +120,6 @@ export default function Asset() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-lg font-bold text-[var(--text)]">Asset Tracking</div>
-          <div className="text-[12px] text-[var(--tmuted)]">ติดตามอุปกรณ์แยกตาม Part Number</div>
-        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setBulkOpen(true)}
