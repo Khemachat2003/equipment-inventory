@@ -1,42 +1,15 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Icon from '../ui/Icon.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-
-const NAV_GROUPS = [
-  {
-    label: 'หลัก',
-    items: [
-      { to: '/', label: 'Dashboard', icon: 'dashboard', end: true },
-      { to: '/stock', label: 'Stock', icon: 'inventory_2' },
-      { to: '/asset', label: 'Asset', icon: 'devices' },
-      { to: '/bundle', label: 'Bundle', icon: 'folder_open' },
-    ],
-  },
-  {
-    label: 'จัดการ',
-    items: [
-      { to: '/farm', label: 'ฟาร์ม', icon: 'agriculture' },
-      { to: '/history', label: 'ประวัติ', icon: 'history' },
-      { to: '/report', label: 'รายงาน', icon: 'bar_chart' },
-      { to: '/settings', label: 'ตั้งค่า', icon: 'settings', adminOnly: true },
-    ],
-  },
-  {
-    label: 'ผู้ดูแลระบบ',
-    adminOnly: true,
-    items: [
-      { to: '/admin-tools', label: 'Admin Tools', icon: 'admin_panel_settings' },
-      { to: '/audit', label: 'Audit Log', icon: 'fact_check' },
-      { to: '/users', label: 'ผู้ใช้', icon: 'group' },
-    ],
-  },
-];
+import { NAV_GROUPS, getRouteMeta } from '../../navigation.js';
 
 export default function Layout() {
   const { user, logout, portalHomeUrl, portalMode } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const meta = getRouteMeta(location.pathname);
   const isAdmin = user?.role === 'admin';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -166,8 +139,8 @@ export default function Layout() {
               <Icon name="menu" size="sm" />
             </button>
             <div className="min-w-0">
-              <div className="text-[15px] font-semibold text-[var(--text)] truncate">Dashboard</div>
-              <div className="text-[11px] text-[var(--tmuted)] hidden sm:block">ภาพรวมระบบ</div>
+              <div className="text-[15px] font-semibold text-[var(--text)] truncate">{meta.title}</div>
+              <div className="text-[11px] text-[var(--tmuted)] hidden sm:block">{meta.subtitle}</div>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">

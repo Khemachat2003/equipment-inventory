@@ -43,6 +43,7 @@ npm run dev      # dev server http://localhost:5173 (proxy /api ไป backend)
 | การ login/role | `src/context/AuthContext.jsx`, `src/pages/Login.jsx` |
 | หมวด + ไอคอนเริ่มต้น | `src/data/categories.js` |
 | จุดรวม router | `src/App.jsx` |
+| **เมนู sidebar + ชื่อหน้า (topbar)** | `src/navigation.js` ⭐ (เพิ่มหน้าใหม่ต้องลงทะเบียนที่นี่) |
 | config build | `vite.config.js` |
 
 ---
@@ -133,6 +134,7 @@ git push origin main
 |---|---|---|
 | 2026-09-08 | — | สร้าง THEMING.md ฉบับแรก (คู่มือทีม design) |
 | 2026-09-08 | — | Stock: เพิ่มระบบตะกร้าเบิกหลายรายการ (ปุ่ม + เบิก → cart → ยืนยัน; ของไม่พอ เบิกเท่าที่มี + แจ้ง) |
+| 2026-09-08 | — | Topbar แสดงชื่อหน้าตาม path จริง (ศูนย์กลางที่ navigation.js; เดิมค้าง "Dashboard" ทุกหน้า) |
 | 2026-09-08 | — | นาฬิกา topbar real-time (เดิมค้าง 09:00) |
 | 2026-09-08 | — | Silent chunk warning (limit 700 kB) |
 | 2026-09-08 | — | Fixed Icon import หายใน Dashboard (error Icon is not defined) |
