@@ -446,6 +446,7 @@ function RowActions({ code, total, officeQty, cartQty, onEdit, onAddToCart, onAd
 function ReturnModal({ onClose, onDone }) {
   const [items, setItems] = useState([]);
   const [selected, setSelected] = useState({});
+  const [qtys, setQtys] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -462,15 +463,35 @@ function ReturnModal({ onClose, onDone }) {
   }, []);
 
   function toggle(code) {
-    setSelected((s) => ({ ...s, [code]: !s[code] }));
+    setSelected((s) => {
+      const next = { ...s, [code]: !s[code] };
+      if (next[code]) {
+        const it = items.find((i) => i.code === code);
+        if (it) setQtys((q) => ({ ...q, [code]: parseInt(it.qty) }));
+      }
+      return next;
+    });
   }
   function allToggle() {
-    const all = items.every((i) => selected[i.code]);
-    setSelected(Object.fromEntries(items.map((i) => [i.code, !all])));
+    const all = items.length > 0 && items.every((i) => selected[i.code]);
+    const nextSel = Object.fromEntries(items.map((i) => [i.code, !all]));
+    setSelected(nextSel);
+    if (!all) {
+      setQtys(Object.fromEntries(items.map((i) => [i.code, parseInt(i.qty)])));
+    }
+  }
+  function setQty(code, val) {
+    const it = items.find((i) => i.code === code);
+    const max = it ? parseInt(it.qty) : 99999;
+    const v = Math.max(1, Math.min(parseInt(val) || 1, max));
+    setQtys((q) => ({ ...q, [code]: v }));
   }
 
   async function confirm() {
-    const toReturn = items.filter((i) => selected[i.code]).map((i) => ({ code: i.code, qty: parseInt(i.qty) }));
+    const toReturn = items
+      .filter((i) => selected[i.code])
+      .map((i) => ({ code: i.code, qty: parseInt(qtys[i.code]) || parseInt(i.qty) }))
+      .filter((r) => r.qty >= 1);
     if (!toReturn.length) return alert('กรุณาเลือกรายการ');
     try {
       const { data } = await axios.post('/api/return-selected-site', { items: toReturn });
@@ -482,6 +503,9 @@ function ReturnModal({ onClose, onDone }) {
   }
 
   const selectedCount = items.filter((i) => selected[i.code]).length;
+  const selectedTotal = items
+    .filter((i) => selected[i.code])
+    .reduce((a, i) => a + (parseInt(qtys[i.code]) || 0), 0);
 
   return (
     <Modal title="คืนจาก Site" onClose={onClose}>
@@ -489,7 +513,9 @@ function ReturnModal({ onClose, onDone }) {
         <button onClick={allToggle} className="text-[12px] text-[var(--blue)] font-medium">
           เลือกทั้งหมด / ยกเลิก
         </button>
-        <span className="text-[12px] text-[var(--tmuted)]">เลือก {selectedCount} รายการ</span>
+        <span className="text-[12px] text-[var(--tmuted)]">
+          เลือก {selectedCount} รายการ{selectedCount ? ` · คืน ${selectedTotal} ชิ้น` : ''}
+        </span>
       </div>
       <div className="max-h-72 overflow-y-auto space-y-2">
         {loading && <div className="text-center py-8 text-[var(--tmuted)]">กำลังโหลด...</div>}
@@ -497,16 +523,29 @@ function ReturnModal({ onClose, onDone }) {
           <div className="text-center py-8 text-[var(--tmuted)]">ไม่มีอุปกรณ์ใน Site</div>
         )}
         {items.map((i) => (
-          <label
+          <div
             key={i.code}
-            className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-[var(--g200)] hover:bg-[var(--surface2)] cursor-pointer"
+            className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border ${
+              selected[i.code] ? 'border-[var(--emerald-b)] bg-[var(--emerald-l)]' : 'border-[var(--g200)]'
+            }`}
           >
-            <div className="flex items-center gap-2.5">
+            <label className="flex items-center gap-2.5 cursor-pointer min-w-0">
               <input type="checkbox" checked={!!selected[i.code]} onChange={() => toggle(i.code)} />
-              <span className="text-[13px] font-medium">{i.name}</span>
+              <span className="text-[13px] font-medium truncate">{i.name}</span>
+            </label>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[12px] text-[var(--tmuted)]">มี {i.qty} ชิ้น</span>
+              <input
+                type="number"
+                min="1"
+                max={i.qty}
+                value={selected[i.code] ? (qtys[i.code] ?? i.qty) : i.qty}
+                onChange={(e) => setQty(i.code, e.target.value)}
+                disabled={!selected[i.code]}
+                className="w-16 h-8 px-2 rounded border border-[var(--g300)] text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
+              />
             </div>
-            <span className="text-[12px] text-[var(--tmuted)]">{i.qty} ชิ้น</span>
-          </label>
+          </div>
         ))}
       </div>
       <div className="mt-4 flex justify-end gap-2">
