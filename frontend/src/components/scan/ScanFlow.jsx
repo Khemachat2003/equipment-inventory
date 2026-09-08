@@ -6,6 +6,15 @@ import TransferModal from '../TransferModal.jsx';
 import ScanModal from './ScanModal.jsx';
 
 // ปุ่มสแกน global (topbar) + flow: สแกน → ระบุอุปกรณ์/ตำแหน่ง → ดูประวัติ / โอนย้าย
+function extractQuery(q) {
+  const t = (q || '').trim();
+  if (!t) return '';
+  try { const u = new URL(t); const s = u.searchParams.get('serial'); if (s) return s.trim(); } catch (e) {}
+  const m = t.match(/serial=([^&]+)/i);
+  if (m) return decodeURIComponent(m[1]).trim();
+  return t;
+}
+
 export default function ScanFlow() {
   const [scanOpen, setScanOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -16,7 +25,7 @@ export default function ScanFlow() {
   const [transfer, setTransfer] = useState(null);  // เปิด TransferModal
 
   async function resolve(q) {
-    const key = (q || '').trim();
+    const key = extractQuery(q);
     if (!key) return;
     setBusy(true);
     setHistory(null);

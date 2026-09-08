@@ -13,6 +13,24 @@ const FORMATS = [
   BarcodeFormat.CODABAR,
 ];
 
+// ZXing จะ console.warn "non-ReaderException" ทุกเฟรมที่ view ไม่มีบาร์โค้ด
+// (normal behavior) — ปิดเสียงเฉพาะช่วงสแกนเพื่อไม่ให้ console ท่วม
+let origWarn = null;
+function silenceZxing() {
+  if (origWarn) return;
+  origWarn = console.warn.bind(console);
+  console.warn = (...args) => {
+    const first = typeof args[0] === 'string' ? args[0] : '';
+    if (first.startsWith('MultiFormatReader')) return;
+    origWarn(...args);
+  };
+}
+function restoreConsole() {
+  if (!origWarn) return;
+  console.warn = origWarn;
+  origWarn = null;
+}
+
 export default function ScanModal({ onClose, onResult }) {
   const videoRef = useRef(null);
   const controlsRef = useRef(null);
@@ -24,6 +42,7 @@ export default function ScanModal({ onClose, onResult }) {
     try { controlsRef.current?.stop?.(); } catch (e) {}
     try { BrowserMultiFormatReader.releaseAllStreams(); } catch (e) {}
     controlsRef.current = null;
+    restoreConsole();
   }
 
   function handleFound(text) {
@@ -34,6 +53,7 @@ export default function ScanModal({ onClose, onResult }) {
   }
 
   async function start() {
+    silenceZxing();
     setStarting(true);
     setError('');
     try {
@@ -45,6 +65,7 @@ export default function ScanModal({ onClose, onResult }) {
       controlsRef.current = controls;
     } catch (e) {
       console.error('scan start error:', e);
+      restoreConsole();
       setError('เปิดกล้องไม่ได้ — ตรวจสิทธิ์กล้อง (หรือใช้ช่อง "พิมพ์ Serial" ด้านล่างแทน)');
     } finally {
       setStarting(false);
