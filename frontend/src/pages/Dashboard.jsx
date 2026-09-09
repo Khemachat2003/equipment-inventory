@@ -11,6 +11,7 @@ import {
   Legend,
 } from 'chart.js';
 import Icon from '../components/ui/Icon.jsx';
+import StatPill from '../components/ui/StatPill.jsx';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Filler, Tooltip, Legend);
 
@@ -19,6 +20,13 @@ const RANGES = [
   { days: 14, label: '14 วัน' },
   { days: 30, label: '30 วัน' },
 ];
+
+const STATUS_TONES = {
+  'ใช้งานได้': { tone: 'green', icon: 'check_circle' },
+  'สำรอง': { tone: 'blue', icon: 'inventory_2' },
+  'ส่งซ่อม': { tone: 'red', icon: 'build' },
+  'ชำรุด/สูญหาย': { tone: 'red', icon: 'report' },
+};
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -42,61 +50,84 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (loading && !data) return <div className="text-[var(--tmuted)]">กำลังโหลด...</div>;
+  if (loading && !data) {
+    return (
+      <div className="flex items-center justify-center py-24 text-[var(--tmuted)]">
+        กำลังโหลด...
+      </div>
+    );
+  }
 
   const chart = buildChartData(data?.chartData, range);
+  const totalAssets = data?.assets?.length ?? 0;
+  const statusEntries = Object.entries(data?.statusCount || {})
+    .map(([label, value]) => ({ label, value, ...(STATUS_TONES[label] || { tone: 'blue', icon: 'inventory_2' }) }))
+    .sort((a, b) => b.value - a.value);
+  const maxStatus = Math.max(1, ...statusEntries.map((s) => s.value));
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          onClick={fetchData}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] font-medium text-[var(--tsub)] hover:bg-[var(--surface2)] transition-colors"
-        >
-          <Icon name="refresh" size="sm" /> รีเฟรช
-        </button>
+      {/* ══ Hero — ภาพรวมตัวเลขหลัก ══ */}
+      <div className="relative overflow-hidden rounded-2xl bg-[var(--ink)] text-white shadow-[var(--sh-md)]">
+        {/* decorative glow */}
+        <div className="absolute -top-24 -right-16 w-72 h-72 rounded-full bg-[var(--blue)]/25 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-28 right-40 w-64 h-64 rounded-full bg-[var(--emerald)]/15 blur-3xl pointer-events-none" />
+
+        <div className="relative px-6 py-6 sm:px-8 sm:py-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-white/45">ภาพรวมระบบ</div>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-4xl sm:text-5xl font-bold tabular-nums">{data?.totalItems ?? 0}</span>
+                <span className="text-[13px] text-white/60">รายการอุปกรณ์ใน Stock Master</span>
+              </div>
+            </div>
+            <button
+              onClick={fetchData}
+              title="รีเฟรชข้อมูล"
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-white/10 border border-white/15 text-[13px] font-medium text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+            >
+              <Icon name="refresh" size="sm" /> รีเฟรช
+            </button>
+          </div>
+
+          {/* KPI sub-grid — ยอดวันนี้ + แยกคลัง */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
+            <HeroKpi icon="business_center" label="คงอยู่ Office" value={data?.totalOffice ?? 0} unit="ชิ้น" glow="rgba(27,108,168,.35)" />
+            <HeroKpi icon="factory" label="อยู่ที่ Site" value={data?.totalSite ?? 0} unit="ชิ้น" glow="rgba(255,149,0,.28)" />
+            <HeroKpi icon="trending_up" label="เบิกวันนี้" value={data?.todayBorrow ?? 0} unit="ครั้ง" glow="rgba(0,200,150,.28)" />
+            <HeroKpi icon="trending_down" label="คืนวันนี้" value={data?.todayReturn ?? 0} unit="ครั้ง" glow="rgba(224,49,49,.28)" />
+          </div>
+        </div>
       </div>
 
-      {/* Hero: primary metric + KPI + today */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Primary */}
-        <div className="rounded-2xl bg-[var(--ink)] text-white p-6 shadow-[var(--sh-md)]">
-          <div className="text-[11px] font-semibold tracking-widest uppercase text-white/40">ภาพรวมอุปกรณ์</div>
-          <div className="text-5xl font-bold mt-2">{data?.totalItems ?? 0}</div>
-          <div className="text-[12px] text-white/50 mt-1">ประเภทอุปกรณ์ทั้งหมดในระบบ</div>
-        </div>
-
-        {/* KPI */}
-        <div className="grid grid-cols-2 gap-4">
-          <StatCard icon="business_center" iconColor="text-[var(--blue)]" label="คงอยู่ Office (ชิ้น)" value={data?.totalOffice ?? 0} />
-          <StatCard icon="factory" iconColor="text-[var(--amber)]" label="อยู่ที่ Site (ชิ้น)" value={data?.totalSite ?? 0} />
-        </div>
-
-        {/* Today chips */}
-        <div className="grid grid-cols-2 gap-4">
-          <ChipCard label="เบิกวันนี้" value={data?.todayBorrow ?? 0} icon="trending_up" tone="up" />
-          <ChipCard label="คืนวันนี้" value={data?.todayReturn ?? 0} icon="trending_down" tone="dn" />
-        </div>
+      {/* ══ KPI cards — ขอบเขตอุปกรณ์/ฟาร์ม/สต็อก ══ */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <KpiCard icon="agriculture" tone="green" label="ฟาร์มทั้งหมด" value={data?.totalFarms ?? 0} desc="ตามตาราง Farm Sites" />
+        <KpiCard icon="precision_manufacturing" tone="blue" label="อุปกรณ์ติดตั้งที่ฟาร์ม" value={data?.totalFarmAssets ?? 0} desc={`แยกตาม ${data?.topFarms?.length || 0} อันดับฟาร์มสูงสุด`} />
+        <KpiCard icon="inventory_2" tone="amber" label="อุปกรณ์ในสต็อก" value={data?.totalStockAssets ?? 0} desc="ยังไม่ได้ติดตั้ง/อยู่ที่ Intranin" />
       </div>
 
-      {/* Main split: chart + inventory rail */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4">
+      {/* ══ Main split: chart + สถานะ/อันดับฟาร์ม ══ */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 items-start">
         {/* Chart */}
         <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)]">
-              <Icon name="monitoring" size="sm" /> สถิติการเบิก–คืน
+              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--blue-l)] text-[var(--blue)]">
+                <Icon name="monitoring" size="sm" />
+              </span>
+              สถิติการเบิก–คืน
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 rounded-lg bg-[var(--surface2)] border border-[var(--g100)] p-0.5">
               {RANGES.map((r) => (
                 <button
                   key={r.days}
                   onClick={() => setRange(r.days)}
                   className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                     range === r.days
-                      ? 'bg-[var(--blue)] text-white'
-                      : 'text-[var(--tsub)] hover:bg-[var(--surface2)]'
+                      ? 'bg-[var(--blue)] text-white shadow-[var(--sh-sm)]'
+                      : 'text-[var(--tsub)] hover:bg-white'
                   }`}
                 >
                   {r.label}
@@ -109,22 +140,68 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Inventory rail */}
-        <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
-          <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)] mb-4">
-            <Icon name="account_tree" size="sm" /> ขอบเขตระบบ
-          </div>
-          <RailRow icon="agriculture" label="ฟาร์มทั้งหมด" value={data?.totalFarms ?? 0} />
-          <RailRow icon="precision_manufacturing" tone="teal" label="อุปกรณ์ในฟาร์ม" value={data?.totalFarmAssets ?? 0} />
-          <RailRow icon="inventory_2" tone="violet" label="อุปกรณ์ในสต็อก" value={data?.totalStockAssets ?? 0} />
-          <div className="mt-4 rounded-xl bg-[var(--amber-b)] p-3.5 flex items-center gap-3">
-            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--amber)] text-white">
-              <Icon name="workspace_premium" size="sm" />
-            </span>
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--amber-d)]">ฟาร์มติดตั้งมากสุด</div>
-              <div className="text-[13px] font-bold text-[var(--text)]">{data?.topFarms?.[0] ? `${data.topFarms[0].name} (${data.topFarms[0].count})` : '—'}</div>
+        {/* Right rail — สถานะ + อันดับฟาร์ม */}
+        <div className="space-y-4">
+          {/* สถานะอุปกรณ์ */}
+          <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)] mb-4">
+              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)]">
+                <Icon name="fact_check" size="sm" />
+              </span>
+              สถานะอุปกรณ์
             </div>
+            {statusEntries.length === 0 && <div className="text-[12px] text-[var(--tmuted)]">ไม่มีข้อมูลสถานะ</div>}
+            {statusEntries.map((s) => (
+              <div key={s.label} className="mb-3 last:mb-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[12px] text-[var(--tsub)]">{s.label}</span>
+                  <span className="text-[13px] font-bold text-[var(--text)] tabular-nums">{s.value}</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-[var(--g100)]">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${(s.value / maxStatus) * 100}%`, background: varForTone(s.tone) }}
+                  />
+                </div>
+              </div>
+            ))}
+            <div className="mt-4 pt-3 border-t border-[var(--g100)] flex items-center justify-between text-[11px] text-[var(--tmuted)]">
+              <span>รวมอุปกรณ์ทั้งหมด</span>
+              <span className="font-bold text-[var(--text)] tabular-nums">{totalAssets} ชิ้น</span>
+            </div>
+          </div>
+
+          {/* อันดับฟาร์ม */}
+          <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)] mb-4">
+              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--amber-l)] text-[var(--amber-d)]">
+                <Icon name="workspace_premium" size="sm" />
+              </span>
+              อันดับฟาร์ม (ติดตั้งสูงสุด)
+            </div>
+            {(!data?.topFarms || data.topFarms.length === 0) && (
+              <div className="text-[12px] text-[var(--tmuted)]">ยังไม่มีฟาร์มที่ติดตั้งอุปกรณ์</div>
+            )}
+            {(data?.topFarms || []).map((f, i) => {
+              const max = Math.max(1, ...((data?.topFarms || []).map((x) => x.count)));
+              const bar = (f.count / max) * 100;
+              return (
+                <div key={f.name} className="flex items-center gap-3 py-2 border-b border-[var(--g100)] last:border-b-0">
+                  <span className={`flex items-center justify-center w-7 h-7 rounded-lg text-[11px] font-bold shrink-0 ${i === 0 ? 'bg-[var(--amber)] text-white' : 'bg-[var(--surface2)] text-[var(--tsub)] border border-[var(--g200)]'}`}>
+                    #{i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12px] font-medium text-[var(--text)] truncate">{f.name}</span>
+                      <span className="text-[12px] font-bold text-[var(--text)] tabular-nums shrink-0">{f.count}</span>
+                    </div>
+                    <div className="h-1 rounded-full bg-[var(--g100)] mt-1.5">
+                      <div className="h-full rounded-full" style={{ width: `${bar}%`, background: i === 0 ? 'var(--amber)' : 'var(--blue)' }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -132,51 +209,48 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon, iconColor, label, value }) {
+function varForTone(tone) {
+  return {
+    green: 'var(--emerald)',
+    blue: 'var(--blue)',
+    amber: 'var(--amber)',
+    red: 'var(--red)',
+  }[tone] || 'var(--blue)';
+}
+
+function HeroKpi({ icon, label, value, unit, glow }) {
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 flex flex-col justify-between">
-      <span className={`mb-2`}>
-        <Icon name={icon} size="md" color={iconColor} />
+    <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3.5 flex items-center gap-3 backdrop-blur-sm">
+      <span
+        className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.08] border border-white/10 text-white"
+        style={{ boxShadow: `inset 0 0 0 1px ${glow}, inset 0 0 20px ${glow}` }}
+      >
+        <Icon name={icon} size="md" />
       </span>
-      <div>
-        <div className="text-2xl font-bold text-[var(--text)]">{value}</div>
-        <div className="text-[11px] text-[var(--tmuted)]">{label}</div>
+      <div className="min-w-0">
+        <div className="text-[15px] font-bold text-white tabular-nums leading-tight">{value} <span className="text-[11px] font-medium text-white/50">{unit}</span></div>
+        <div className="text-[11px] text-white/55 truncate">{label}</div>
       </div>
     </div>
   );
 }
 
-function ChipCard({ label, value, icon, tone }) {
-  const toneStyle =
-    tone === 'up'
-      ? 'bg-[var(--emerald-l)] text-[var(--emerald-d)]'
-      : 'bg-[var(--red-l)] text-[var(--red)]';
+function KpiCard({ icon, tone, label, value, desc }) {
+  const cls = {
+    blue: 'bg-[var(--blue-l)] text-[var(--blue)]',
+    green: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]',
+    amber: 'bg-[var(--amber-l)] text-[var(--amber-d)]',
+    red: 'bg-[var(--red-l)] text-[var(--red)]',
+  }[tone] || 'bg-[var(--blue-l)] text-[var(--blue)]';
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
-      <div className={`flex items-center justify-center w-9 h-9 rounded-lg mb-2 ${toneStyle}`}>
-        <Icon name={icon} size="sm" />
-      </div>
-      <div className="text-2xl font-bold text-[var(--text)]">{value}</div>
-      <div className="text-[11px] text-[var(--tmuted)]">{label}</div>
-    </div>
-  );
-}
-
-function RailRow({ icon, label, value, tone }) {
-  const toneMap = {
-    teal: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]',
-    violet: 'bg-[var(--purple-l)] text-[var(--purple)]',
-    undefined: 'bg-[var(--blue-l)] text-[var(--blue)]',
-  };
-  const cls = toneMap[tone] ?? toneMap[undefined];
-  return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-[var(--g100)] last:border-b-0">
-      <span className={`flex items-center justify-center w-9 h-9 rounded-lg ${cls}`}>
-        <Icon name={icon} size="sm" />
+    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5 flex items-center gap-4">
+      <span className={`flex items-center justify-center w-11 h-11 rounded-xl shrink-0 ${cls}`}>
+        <Icon name={icon} size="md" />
       </span>
-      <div>
-        <div className="text-[11px] text-[var(--tmuted)]">{label}</div>
-        <div className="text-[15px] font-bold text-[var(--text)]">{value}</div>
+      <div className="min-w-0">
+        <div className="text-2xl font-bold text-[var(--text)] tabular-nums leading-tight">{value}</div>
+        <div className="text-[13px] font-medium text-[var(--tsub)] truncate">{label}</div>
+        <div className="text-[11px] text-[var(--tmuted)] truncate">{desc}</div>
       </div>
     </div>
   );
