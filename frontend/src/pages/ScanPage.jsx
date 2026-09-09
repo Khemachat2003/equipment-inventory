@@ -40,18 +40,92 @@ function extractSerial(q) {
   return t;
 }
 
+let capCtx = null, capCanvas = null;
+function captureFrame(vid) {
+  if (!capCanvas) {
+    capCanvas = document.createElement('canvas');
+    capCtx = capCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  capCanvas.width = vid.videoWidth || 320;
+  capCanvas.height = vid.videoHeight || 240;
+  capCtx.drawImage(vid, 0, 0, capCanvas.width, capCanvas.height);
+  return capCanvas;
+}
+
 export default function ScanPage() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const controlsRef = useRef(null);
+  const readerRef = useRef(null);
+  const pendingRef = useRef(false);
   const foundRef = useRef(false);
 
+  async function getCameraStream() {
+    const c = { video: { facingMode: 'environment', width: { ideal: 1280 } } };
+    return navigator.mediaDevices.getUserMedia(c);
+  }
+
+  async function startCam() {
+    setStarting(true);
+    setError('');
+    silenceZxing();
+    let stream = null;
+    try {
+      // 1) เปิด MediaStream เอง + attach กับ <video> ของเรา → control preview เต็มที่
+      stream = await getCameraStream();
+      streamRef.current = stream;
+      const vid = videoRef.current;
+      vid.srcObject = stream;
+      try { await vid.play(); } catch (e) {}
+
+      // 2) ส่ง stream ให้ ZXing decode (ไม่ให้ ZXing จัดการ video/Auto play)
+      const reader = new BrowserMultiFormatReader();
+      reader.possibleFormats = FORMATS;
+      readerRef.current = reader;
+
+      // ZXing decodeFromStream จะ attach video ใหม่ detached → เราเปลี่ยนมาใช้ video ของเราควบคุมเองไม่ได้
+      // ใช้ API ต่ำกว่า: reader.sharpens... แต่ decodeFromStream วาดลง video ตัวเดียวกับที่เราส่งไม่ได้
+      // => เราใช้ stream + video ของเราเอง และใช้ reader.decodeFromCanvas ต่อเฟรมจาก video ของเราเอง
+
+      const loop = async () => {
+        const vid2 = videoRef.current;
+        if (!vid2 || !streamRef.current) return;
+        if (vid2.readyState >= 2) {
+          try {
+            const result = reader.decodeFromCanvas(captureFrame(vid2));
+            if (result && result.getText && !foundRef.current) {
+              const text = result.getText().trim();
+              if (text) {
+                foundRef.current = true;
+                pauseCam();
+                resolve(text);
+                return;
+              }
+            }
+          } catch (e) { /* ไม่เจอบาร์โค้ดในเฟรมนี้ — ปล่อยผ่าน */ }
+        }
+        pendingRef.current = requestAnimationFrame(loop);
+      };
+      pendingRef.current = requestAnimationFrame(loop);
+      setStarting(false);
+    } catch (e) {
+      console.error('scan start error:', e);
+      restoreConsole();
+      setError('เปิดกล้องไม่ได้ | ตรวจสิทธิ์กล้องแล้วลองใหม่ หรือพิมพ์ Serial ด้านล่างแทน');
+      setStarting(false);
+    }
+  }
+
+  function pauseCam() {
+    // หยุด decode loop (แต่ยังค้าง preview ไว้ให้ user เห็นภาพนิ่ง)
+    if (pendingRef.current) { cancelAnimationFrame(pendingRef.current); pendingRef.current = null; }
+  }
+
   function stop() {
-    // ใช้แค่ controls.stop() — PATCHED: อย่าเรียก releaseAllStreams() เพราะมันลบ video.src
-    // ทำให้เปิดกล้องใหม่ครั้งต่อไป video ไม่ re-attach = ภาพไม่ preview
-    try { controlsRef.current?.stop?.(); } catch (e) {}
+    pauseCam();
+    try { readerRef.current = null; } catch (e) {}
     try { streamRef.current?.getTracks?.().forEach((t) => t.stop()); } catch (e) {}
-    controlsRef.current = null;
+    const vid = videoRef.current;
+    if (vid) { vid.srcObject = null; try { vid.load?.(); } catch (e) {} }
     streamRef.current = null;
     restoreConsole();
   }
@@ -74,35 +148,6 @@ export default function ScanPage() {
     setMulti(null);
     setMiss('');
     setHistory(null);
-  }
-
-  async function startCam() {
-    setStarting(true);
-    setError('');
-    silenceZxing();
-    try {
-      const reader = new BrowserMultiFormatReader();
-      reader.possibleFormats = FORMATS;
-      const controls = await reader.decodeFromVideoDevice(undefined, videoRef.current, (result) => {
-        if (foundRef.current) return;
-        const text = result && result.getText ? result.getText().trim() : '';
-        if (!text) return;
-        foundRef.current = true;
-        stop();
-        resolve(text);
-      });
-      controlsRef.current = controls;
-      // เก็บ stream ที่ ZXing attach ไว้ ณ ตอนนี้ (video.srcObject) เพื่อปิดได้ถูกต้องตอน toggle เปิด/ปิด
-      window.setTimeout(() => {
-        try { streamRef.current = videoRef.current?.srcObject; } catch (e) {}
-      }, 300);
-    } catch (e) {
-      console.error('scan start error:', e);
-      restoreConsole();
-      setError('เปิดกล้องไม่ได้ | ตรวจสิทธิ์กล้องแล้วลองใหม่ หรือพิมพ์ Serial ด้านล่างแทน');
-    } finally {
-      setStarting(false);
-    }
   }
 
   async function toggleCam() {
