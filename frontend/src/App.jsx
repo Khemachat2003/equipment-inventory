@@ -15,6 +15,7 @@ import Report from './pages/Report.jsx';
 import Settings from './pages/Settings.jsx';
 import AuditLog from './pages/admin/AuditLog.jsx';
 import AdminTools from './pages/admin/AdminTools.jsx';
+import BackupView from './pages/admin/BackupView.jsx';
 import UserManagement from './pages/admin/UserManagement.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 
@@ -106,6 +107,14 @@ export default function App() {
           element={
             <AdminRoute>
               <Settings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/backup"
+          element={
+            <AdminRoute>
+              <BackupView />
             </AdminRoute>
           }
         />

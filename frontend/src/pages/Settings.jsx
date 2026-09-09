@@ -69,7 +69,9 @@ export default function Settings() {
               : <span className="text-[12px] text-[var(--tmuted)]">เฉพาะ Admin</span>}
           </Action>
           <Action icon="visibility" tone="green" title="ดูข้อมูล Backup" desc="ดูและ Export เป็น CSV ได้จากหน้านั้น">
-            <a href="/backup-view.html" target="_blank" rel="noreferrer" className={ghostBtn}>เปิดหน้าดู</a>
+            {isAdmin
+              ? <button onClick={() => navigate('/backup')} className={ghostBtn}>เปิดหน้าดู</button>
+              : <span className="text-[12px] text-[var(--tmuted)]">เฉพาะ Admin</span>}
           </Action>
         </div>
       </Group>

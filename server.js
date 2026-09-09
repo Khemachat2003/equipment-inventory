@@ -277,7 +277,15 @@ app.get("/audit.html", (req, res) => {
   if (!req.session.user || req.session.user.role !== "admin") {
     return res.redirect("/");
   }
-  res.sendFile(path.join(__dirname, "public/audit.html"));
+  res.redirect("/audit");
+});
+
+// ลิงก์เก่า /backup-view.html → หน้า React /backup (Admin)
+app.get("/backup-view.html", (req, res) => {
+  if (!req.session.user || req.session.user.role !== "admin") {
+    return res.redirect("/");
+  }
+  res.redirect("/backup");
 });
 
 // ========== USE ROUTES ==========

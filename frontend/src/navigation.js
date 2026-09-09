@@ -29,6 +29,7 @@ export const NAV_GROUPS = [
     adminOnly: true,
     items: [
       { to: '/admin-tools', label: 'Admin Tools', icon: 'admin_panel_settings' },
+      { to: '/backup', label: 'ดูข้อมูล Backup', icon: 'analytics' },
       { to: '/audit', label: 'Audit Log', icon: 'fact_check' },
       { to: '/users', label: 'ผู้ใช้', icon: 'group' },
     ],
@@ -49,6 +50,7 @@ export const ROUTE_META = {
   '/settings': { title: 'Settings', subtitle: 'ข้อมูลระบบและผู้ใช้งาน' },
   '/admin-tools': { title: 'เครื่องมือผู้ดูแล', subtitle: 'Backup / Cache / ระบบ' },
   '/audit': { title: 'Audit Log', subtitle: 'บันทึกการใช้งานระบบ (Admin)' },
+  '/backup': { title: 'ข้อมูล Backup', subtitle: 'ดูข้อมูล PostgreSQL Backup และ Export CSV (Admin)' },
   '/users': { title: 'จัดการผู้ใช้', subtitle: 'ตั้งสิทธิ์ / รีเซ็ตรหัสผ่าน / ลบผู้ใช้' },
 };
 

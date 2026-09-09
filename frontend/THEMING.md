@@ -145,6 +145,9 @@ git push origin main
 | 2026-09-08 | — | Fixed Icon import หายใน Dashboard (error Icon is not defined) |
 | 2026-09-08 | — | Dashboard: Line chart → rounded Bar chart |
 | 2026-09-08 | — | Mobile card views: Stock/Asset/Farm/History + drawer sidebar |
+| 2026-09-08 | — | Scanner: แก้ missing error state (ReferenceError on render), missing controlsRef/foundRef, camera preview ไม่ขึ้นตอนเปิดใหม่ → ใช้ native getUserMedia + video element + rAF decode loop; ลบ legacy public/scan.html, Settings "เปิด Scanner" → navigate /scan |
 | 2026-09-09 | — | Trace: แปลงจาก legacy public/trace.html → หน้า React public /trace/:serial (ดูประวัติไม่ต้องล็อกอิน; ปุ่มโอนย้ายแสดงเมื่อล็อกอิน) + ลิงก์ Asset/Farm/Bundle ใช้ route ใหม่ + server redirect /trace.html → /trace/:serial |
 | 2026-09-09 | — | QR Label: แปลงจาก legacy public/qr.html → หน้า React /qr (ตารางเลือกอุปกรณ์, Label/A4, presets, ดีไซน์, templates, JsBarcode preview, PDF/พิมพ์) + dep jsbarcode ใน npm + redirect /qr.html → /qr |
 | 2026-09-09 | — | Mobile responsive: หน้าเลือกอุปกรณ์ /qr เปลี่ยนตารางเป็น Mobile Card List (ข้อมูลครบ ไม่ล้นจอ), Label preview/ตารางห่อ overflow ซ่อนบีบ; เพิ่มปุ่มลัด "ฉลาก" ใน TopBar ข้างปุ่มสแกน (เข้าหน้า /qr ได้ทันทีจากทุกหน้า ไม่ต้องผ่าน asset) |
+| 2026-09-09 | — | TopBar: ปุ่มลัด สแกน/ฉลาก เปลี่ยนเป็น Segmented Control (กล่องเดียว พื้น neutral เส้นแบ่ง 2 ช่อง) แทนปุ่มทึบสีเขียว+น้ำเงิน, แก้ .print-sheet selector (เติมจุด) — A4 preview/print ตำแหน่งถูกต้อง |
+| 2026-09-09 | — | Backup View: แปลง legacy public/backup-view.html → หน้า React /backup (Admin; เลือกตาราง/โหลด/Refresh/Export CSV) + redirect /backup-view.html; ลบ legacy index.html (dead) + audit.html (redirect /audit) + scripts/update-categories.js |
