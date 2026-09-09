@@ -565,13 +565,13 @@ export default function QrPage() {
         .qtoast.show{opacity:1;transform:translateX(-50%) translateY(0)}
         .qtoast.q-err{border:1px solid rgba(239,68,68,.5)}
         .qtoast.q-warn{border:1px solid rgba(245,158,11,.5)}
-        print-sheet{position:relative;background:#fff;overflow:hidden}
-        print-sheet .guide{position:absolute;border:1px dashed rgba(59,130,246,.35);pointer-events:none;box-sizing:border-box}
-        print-sheet .lcell{position:absolute;overflow:hidden;display:flex;flex-direction:column}
-        print-sheet .lcell .bc{display:flex;justify-content:center;align-items:flex-end}
-        print-sheet .lcell .lsep{height:1px;flex-shrink:0}
-        print-sheet .lcell .ltxt{display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
-        print-sheet .lcell .lbadge{display:flex;align-items:center;justify-content:center;text-transform:uppercase;letter-spacing:.5px;font-family:'Sarabun',sans-serif}
+        .print-sheet{position:relative;background:#fff;overflow:hidden}
+        .print-sheet .guide{position:absolute;border:1px dashed rgba(59,130,246,.35);pointer-events:none;box-sizing:border-box}
+        .print-sheet .lcell{position:absolute;overflow:hidden;display:flex;flex-direction:column}
+        .print-sheet .lcell .bc{display:flex;justify-content:center;align-items:flex-end}
+        .print-sheet .lcell .lsep{height:1px;flex-shrink:0}
+        .print-sheet .lcell .ltxt{display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+        .print-sheet .lcell .lbadge{display:flex;align-items:center;justify-content:center;text-transform:uppercase;letter-spacing:.5px;font-family:'Sarabun',sans-serif}
         #printroot{display:none}
         @media print{
           @page{size:A4;margin:0}
