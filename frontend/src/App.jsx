@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout.jsx';
 import ScanPage from './pages/ScanPage.jsx';
+import TracePage from './pages/TracePage.jsx';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Stock from './pages/Stock.jsx';
@@ -107,6 +108,10 @@ export default function App() {
           }
         />
       </Route>
+
+      {/* Public trace page — เปิดได้ไม่ต้องล็อกอิน (ประวัติอ้างอิงจาก QR sticker / ลิงก์ trace) */}
+      <Route path="/trace/:serial" element={<TracePage />} />
+      <Route path="/trace" element={<TracePage />} />
 
       {/* path เก่า/ไม่รู้จัก (เช่น /app/stock ที่ใช้ก่อน migrate) → เด้งหน้าแรก */}
       <Route path="*" element={<Navigate to="/" replace />} />

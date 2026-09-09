@@ -299,6 +299,13 @@ app.get("/a/:code", (req, res) => {
   res.sendFile(path.join(__dirname, "public/asset.html"));
 });
 
+// ลิงก์เก่า /trace.html?serial=X → หน้า React public /trace/:serial (QR sticker เก่ายังใช้ได้)
+app.get("/trace.html", (req, res) => {
+  const serial = req.query.serial ? String(req.query.serial) : "";
+  if (serial) return res.redirect(`/trace/${encodeURIComponent(serial)}`);
+  return res.redirect("/trace");
+});
+
 app.use("/assets", express.static(SPA_ASSETS, { maxAge: "1y", immutable: true }));
 app.use("/fonts", express.static(path.join(SPA_DIR, "fonts")));
 app.get("/", (req, res) => {

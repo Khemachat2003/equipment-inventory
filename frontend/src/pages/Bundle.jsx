@@ -368,7 +368,7 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
                 <div className="text-[12px] text-[var(--tsub)] truncate">{a.name} <span className="text-[var(--tmuted)]">· {a.assetId} · {a.code}</span></div>
               </div>
               <div className="flex items-center gap-1.5">
-                <a href={`/trace.html?serial=${encodeURIComponent(a.serial)}&from=bundle`} target="_blank" title="Trace" className="p-1.5 rounded-lg text-[var(--blue)]"><Icon name="description" size="sm" /></a>
+                <a href={`/trace/${encodeURIComponent(a.serial)}`} target="_blank" title="Trace" className="p-1.5 rounded-lg text-[var(--blue)]"><Icon name="description" size="sm" /></a>
                 <a href={`/qr.html?serial=${encodeURIComponent(a.serial)}`} target="_blank" title="QR" className="p-1.5 rounded-lg text-[var(--tsub)]"><Icon name="qr_code" size="sm" /></a>
                 <button onClick={() => onTransfer(a)} title="โอนย้าย" className="p-1.5 rounded-lg text-[var(--blue)]"><Icon name="local_shipping" size="sm" /></button>
                 <button onClick={() => onRemove(a.assetId)} title="ถอดออกจากชุด" className="p-1.5 rounded-lg text-[var(--red)]"><Icon name="close" size="sm" /></button>
