@@ -56,6 +56,7 @@ export default function ScanPage() {
 
   const [starting, setStarting] = useState(true);
   const [camOn, setCamOn] = useState(true);
+  const [error, setError] = useState('');
   const [manual, setManual] = useState('');
   const [status, setStatus] = useState('idle'); // idle | searching | found | multiple | notfound
   const [asset, setAsset] = useState(null);
