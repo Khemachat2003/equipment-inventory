@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout.jsx';
 import ScanPage from './pages/ScanPage.jsx';
 import TracePage from './pages/TracePage.jsx';
+import QrPage from './pages/QrPage.jsx';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Stock from './pages/Stock.jsx';
@@ -73,6 +74,7 @@ export default function App() {
         <Route path="/history" element={<History />} />
         <Route path="/report" element={<Report />} />
         <Route path="/scan" element={<ScanPage />} />
+        <Route path="/qr" element={<QrPage />} />
 
         {/* Admin-only pages */}
         <Route

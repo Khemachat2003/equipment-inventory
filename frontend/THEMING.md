@@ -146,3 +146,4 @@ git push origin main
 | 2026-09-08 | — | Dashboard: Line chart → rounded Bar chart |
 | 2026-09-08 | — | Mobile card views: Stock/Asset/Farm/History + drawer sidebar |
 | 2026-09-09 | — | Trace: แปลงจาก legacy public/trace.html → หน้า React public /trace/:serial (ดูประวัติไม่ต้องล็อกอิน; ปุ่มโอนย้ายแสดงเมื่อล็อกอิน) + ลิงก์ Asset/Farm/Bundle ใช้ route ใหม่ + server redirect /trace.html → /trace/:serial |
+| 2026-09-09 | — | QR Label: แปลงจาก legacy public/qr.html → หน้า React /qr (ตารางเลือกอุปกรณ์, Label/A4, presets, ดีไซน์, templates, JsBarcode preview, PDF/พิมพ์) + dep jsbarcode ใน npm + redirect /qr.html → /qr |

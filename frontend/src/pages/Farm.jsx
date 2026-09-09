@@ -267,7 +267,7 @@ export default function Farm() {
                       <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดู trace" className="text-[var(--blue)]"><Icon name="description" size="sm" /></a>
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <a href={`/qr.html?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="QR" className="text-[var(--tsub)]"><Icon name="qr_code" size="sm" /></a>
+                      <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="QR" className="text-[var(--tsub)]"><Icon name="qr_code" size="sm" /></a>
                     </td>
                     <td className="px-3 py-2 text-center">
                       <button onClick={() => setTransfer({
@@ -329,7 +329,7 @@ export default function Farm() {
                   <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
                     <Icon name="description" size="xs" /> Trace
                   </a>
-                  <a href={`/qr.html?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
+                  <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
                     <Icon name="qr_code" size="xs" /> QR
                   </a>
                   <button onClick={() => setTransfer({

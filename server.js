@@ -306,6 +306,12 @@ app.get("/trace.html", (req, res) => {
   return res.redirect("/trace");
 });
 
+// ลิงก์เก่า /qr.html?serial=X → หน้า React /qr (ต้องล็อกอิน; params serial ถูกใช้ auto-select ในหน้า)
+app.get("/qr.html", (req, res) => {
+  const q = req.query.serial ? `?serial=${encodeURIComponent(String(req.query.serial))}` : "";
+  return res.redirect(`/qr${q}`);
+});
+
 app.use("/assets", express.static(SPA_ASSETS, { maxAge: "1y", immutable: true }));
 app.use("/fonts", express.static(path.join(SPA_DIR, "fonts")));
 app.get("/", (req, res) => {

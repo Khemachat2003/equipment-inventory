@@ -18,6 +18,7 @@ export const NAV_GROUPS = [
     items: [
       { to: '/farm', label: 'ฟาร์ม', icon: 'agriculture' },
       { to: '/scan', label: 'สแกน', icon: 'document_scanner' },
+      { to: '/qr', label: 'ฉลาก QR', icon: 'qr_code_2' },
       { to: '/history', label: 'ประวัติ', icon: 'history' },
       { to: '/report', label: 'รายงาน', icon: 'bar_chart' },
       { to: '/settings', label: 'ตั้งค่า', icon: 'settings', adminOnly: true },
@@ -42,6 +43,7 @@ export const ROUTE_META = {
   '/bundle': { title: 'Bundle', subtitle: 'จัดการชุดอุปกรณ์' },
   '/farm': { title: 'Farm Monitor', subtitle: 'ภาพรวมอุปกรณ์และชุดอุปกรณ์ตามฟาร์ม' },
   '/scan': { title: 'สแกน', subtitle: 'สแกน Barcode / Serial เพื่อระบุตำแหน่งหรือโอนย้าย' },
+  '/qr': { title: 'ฉลาก QR', subtitle: 'สร้างฉลาก Barcode ตัวเดียวหรือ A4 หลายดวง' },
   '/history': { title: 'ประวัติการเบิก–คืน', subtitle: 'ดูประวัติการโอนย้ายทั้งหมดในระบบ' },
   '/report': { title: 'รายงาน', subtitle: 'Export ข้อมูลเป็น PDF' },
   '/settings': { title: 'Settings', subtitle: 'ข้อมูลระบบและผู้ใช้งาน' },
