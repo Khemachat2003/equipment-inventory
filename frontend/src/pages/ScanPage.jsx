@@ -43,6 +43,8 @@ function extractSerial(q) {
 export default function ScanPage() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const controlsRef = useRef(null);
+  const foundRef = useRef(false);
 
   function stop() {
     // ใช้แค่ controls.stop() — PATCHED: อย่าเรียก releaseAllStreams() เพราะมันลบ video.src
