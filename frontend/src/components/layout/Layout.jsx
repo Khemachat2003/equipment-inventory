@@ -152,6 +152,14 @@ export default function Layout() {
               <Icon name="document_scanner" size="sm" />
               <span className="hidden min-[430px]:inline">สแกน</span>
             </button>
+            <button
+              onClick={() => navigate('/qr')}
+              title="พิมพ์ฉลาก QR / Barcode"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)] transition-colors shrink-0"
+            >
+              <Icon name="qr_code_2" size="sm" />
+              <span className="hidden min-[430px]:inline">ฉลาก</span>
+            </button>
             <span className="text-[11px] text-[var(--tmuted)] hidden sm:block tabular-nums">{timeStr}</span>
             <UserChip name={user?.username} role={user?.role} onLogout={handleLogout} />
           </div>

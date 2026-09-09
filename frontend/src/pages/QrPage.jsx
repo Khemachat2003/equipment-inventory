@@ -286,7 +286,7 @@ export default function QrPage() {
               ))}
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-[var(--g100)]">
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-[var(--g100)]">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--tmuted)] border-b border-[var(--g100)]">
@@ -329,6 +329,31 @@ export default function QrPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="md:hidden rounded-xl border border-[var(--g100)] divide-y divide-[var(--g100)]">
+              {!loaded ? (
+                <div className="px-4 py-10 text-center text-[var(--tmuted)]">⏳ กำลังโหลด...</div>
+              ) : filtered.length === 0 ? (
+                <div className="px-4 py-10 text-center text-[var(--tmuted)]">ไม่พบข้อมูล</div>
+              ) : filtered.map((a) => {
+                const st = STATUS_MAP[a.status] || FALLBACK_STATUS;
+                const isSel = selected.has(a.serial);
+                return (
+                  <div key={a.serial} onClick={() => toggleSn(a.serial)} className={`flex items-center gap-3 px-3.5 py-3 cursor-pointer active:bg-[var(--surface2)] ${isSel ? 'bg-[var(--blue-l)]/40' : ''}`}>
+                    <input type="checkbox" checked={isSel} onChange={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} className="accent-[var(--blue)] shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-mono text-[13px] font-semibold text-[var(--text)] leading-tight break-all">{a.serial}</div>
+                      <div className="text-[12px] text-[var(--tsub)] leading-snug mt-0.5 line-clamp-2">{a.name}</div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--surface2)] border border-[var(--g200)] shrink-0">
+                      <span className="w-2 h-2 rounded-full" style={{ background: st.dotColor }} />
+                      {st.label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex items-center justify-between text-[11.5px] text-[var(--tmuted)]">
@@ -664,8 +689,8 @@ function LabelPreview({ serial, name, status, lw, lh, lm, bg, showBadge }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="rounded-xl bg-[var(--surface2)] p-5 flex items-center justify-center w-full">
-        <div style={{ width: pxW, height: pxH, borderRadius: 4, background: bg, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,.12)' }}>
+      <div className="rounded-xl bg-[var(--surface2)] p-3 sm:p-5 flex items-center justify-center w-full overflow-x-auto">
+        <div style={{ width: pxW, height: pxH, borderRadius: 4, background: bg, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,.12)', flexShrink: 0 }}>
           <div style={{ height: bcZoneH + mPx, minHeight: bcZoneH + mPx, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', background: isLight ? bg : '#ffffff', padding: `${Math.round(mPx * 0.4)}px ${Math.round(mPx)}px 0` }}>
             <svg ref={svgRef} />
           </div>
