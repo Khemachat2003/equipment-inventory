@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
+import StatPill from '../components/ui/StatPill.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -179,10 +180,10 @@ export default function Farm() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-1.5 text-[14px] font-bold text-[var(--text)]">{currentFarm === 'ALL' ? <><Icon name="public" size="sm" /> ทุกฟาร์ม</> : <><Icon name="grass" size="sm" /> {currentFarm}</>}</div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatChip tone="total">รวม {scopeTotal} ชิ้น</StatChip>
-                <StatChip tone="ok"><Icon name="check_circle" size="xs" /> ใช้งาน {ok}</StatChip>
-                {rep > 0 && <StatChip tone="rep"><Icon name="build" size="xs" /> ซ่อม {rep}</StatChip>}
-                {shownBundles.length > 0 && <StatChip tone="total"><Icon name="folder_open" size="xs" /> Bundle {shownBundles.length} ชุด</StatChip>}
+                <StatPill label="ทั้งหมด" value={`${scopeTotal} ชิ้น`} icon="inventory_2" tone="blue" />
+                <StatPill label="ใช้งาน" value={ok} icon="check_circle" tone="green" />
+                {rep > 0 && <StatPill label="ซ่อม" value={rep} icon="build" tone="red" />}
+                {shownBundles.length > 0 && <StatPill label="Bundle" value={`${shownBundles.length} ชุด`} icon="folder_open" tone="amber" />}
               </div>
             </div>
             {/* Mobile farm selector */}
@@ -373,10 +374,7 @@ function FarmItem({ icon, label, count, active, onClick, bundle }) {
   );
 }
 
-function StatChip({ tone, children }) {
-  const tones = { ok: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]', rep: 'bg-[var(--red-l)] text-[var(--red)]', total: 'bg-[var(--blue-l)] text-[var(--blue)]' };
-  return <span className={`px-3 py-1.5 rounded-full text-[12px] font-semibold ${tones[tone]}`}>{children}</span>;
-}
+
 
 // ---- Add Farm Site / House (admin) ----
 function AddFarmSiteModal({ isAdmin, onClose, onDone }) {

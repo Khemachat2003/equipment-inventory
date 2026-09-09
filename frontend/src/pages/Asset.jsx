@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
+import StatPill from '../components/ui/StatPill.jsx';
 import Pagination from '../components/ui/Pagination.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import { CATEGORY_FALLBACK, categoryIcon, categoryLabel } from '../data/categories.js';
@@ -141,9 +142,9 @@ export default function Asset() {
 
       {/* Stats */}
       <div className="flex flex-wrap gap-2">
-        <StatChip label="รวม" value={stats.total} tone="blue" />
-        <StatChip label="ใช้งาน" value={stats.usable} tone="green" />
-        {stats.repair > 0 && <StatChip label="ซ่อม" value={stats.repair} tone="red" />}
+        <StatPill label="รวม" value={stats.total} icon="inventory_2" tone="blue" />
+        <StatPill label="ใช้งาน" value={stats.usable} icon="check_circle" tone="green" />
+        {stats.repair > 0 && <StatPill label="ซ่อม" value={stats.repair} icon="build" tone="red" />}
         {currentPartName && <div className="px-3 py-1.5 rounded-full bg-[var(--g100)] text-[12px] text-[var(--tsub)]"><Icon name="inventory_2" size="xs" /> {currentPartName}</div>}
       </div>
 
@@ -351,20 +352,6 @@ function PartItem({ icon, label, sub, count, active, onClick }) {
       </span>
       <span className={`text-[11px] font-bold ${active ? 'text-[var(--blue)]' : 'text-[var(--tmuted)]'}`}>{count}</span>
     </button>
-  );
-}
-
-function StatChip({ label, value, tone }) {
-  const tones = {
-    blue: 'bg-[var(--blue-l)] text-[var(--blue)]',
-    green: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]',
-    red: 'bg-[var(--red-l)] text-[var(--red)]',
-  };
-  return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${tones[tone]}`}>
-      <span className="text-[11px] font-medium">{label}</span>
-      <span className="text-[13px] font-bold">{value}</span>
-    </div>
   );
 }
 
