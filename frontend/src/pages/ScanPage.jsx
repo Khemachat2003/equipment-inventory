@@ -42,9 +42,18 @@ function extractSerial(q) {
 
 export default function ScanPage() {
   const videoRef = useRef(null);
-  const controlsRef = useRef(null);
-  const foundRef = useRef(false);
-  const [error, setError] = useState('');
+  const streamRef = useRef(null);
+
+  function stop() {
+    // ใช้แค่ controls.stop() — PATCHED: อย่าเรียก releaseAllStreams() เพราะมันลบ video.src
+    // ทำให้เปิดกล้องใหม่ครั้งต่อไป video ไม่ re-attach = ภาพไม่ preview
+    try { controlsRef.current?.stop?.(); } catch (e) {}
+    try { streamRef.current?.getTracks?.().forEach((t) => t.stop()); } catch (e) {}
+    controlsRef.current = null;
+    streamRef.current = null;
+    restoreConsole();
+  }
+
   const [starting, setStarting] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [manual, setManual] = useState('');
@@ -54,13 +63,6 @@ export default function ScanPage() {
   const [miss, setMiss] = useState('');
   const [history, setHistory] = useState(null);
   const [transfer, setTransfer] = useState(null);
-
-  function stop() {
-    try { controlsRef.current?.stop?.(); } catch (e) {}
-    try { BrowserMultiFormatReader.releaseAllStreams(); } catch (e) {}
-    controlsRef.current = null;
-    restoreConsole();
-  }
 
   function reset() {
     foundRef.current = false;
@@ -87,6 +89,10 @@ export default function ScanPage() {
         resolve(text);
       });
       controlsRef.current = controls;
+      // เก็บ stream ที่ ZXing attach ไว้ ณ ตอนนี้ (video.srcObject) เพื่อปิดได้ถูกต้องตอน toggle เปิด/ปิด
+      window.setTimeout(() => {
+        try { streamRef.current = videoRef.current?.srcObject; } catch (e) {}
+      }, 300);
     } catch (e) {
       console.error('scan start error:', e);
       restoreConsole();
