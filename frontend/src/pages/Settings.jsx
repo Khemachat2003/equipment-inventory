@@ -55,8 +55,8 @@ export default function Settings() {
           <Action icon="grid_on" tone="blue" title="Open Database" desc="เปิดดู Google Sheets ของระบบ">
             <a href={sheetsUrl || 'https://docs.google.com/spreadsheets/d/1CheIF--yOt2mRxubU1000TmIIjKpuzIExH-9O0RS7FA'} target="_blank" rel="noreferrer" className={ghostBtn}>เปิด</a>
           </Action>
-          <Action icon="qr_code_scanner" tone="teal" title="Quick Scan" desc="เปิดหน้าสแกน QR Code">
-            <a href="/scan.html" target="_blank" rel="noreferrer" className={ghostBtn}>เปิด Scanner</a>
+          <Action icon="qr_code_scanner" tone="teal" title="Quick Scan" desc="เปิดหน้าสแกน QR / Barcode และระบุตำแหน่ง">
+            <button onClick={() => navigate('/scan')} className={ghostBtn}>เปิด Scanner</button>
           </Action>
           <Action icon="fact_check" tone="amber" title="Audit Log" desc="ดูประวัติการกระทำทั้งหมดในระบบ (เฉพาะ Admin)">
             {isAdmin
