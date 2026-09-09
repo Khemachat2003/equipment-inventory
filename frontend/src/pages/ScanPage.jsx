@@ -46,6 +46,7 @@ export default function ScanPage() {
   const foundRef = useRef(false);
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(true);
+  const [camOn, setCamOn] = useState(true);
   const [manual, setManual] = useState('');
   const [status, setStatus] = useState('idle'); // idle | searching | found | multiple | notfound
   const [asset, setAsset] = useState(null);
@@ -95,6 +96,17 @@ export default function ScanPage() {
     }
   }
 
+  async function toggleCam() {
+    if (camOn) {
+      stop();
+      setCamOn(false);
+      setError('');
+    } else {
+      setCamOn(true);
+      await startCam();
+    }
+  }
+
   useEffect(() => {
     startCam();
     return stop;
@@ -135,11 +147,19 @@ export default function ScanPage() {
     <div className="max-w-2xl mx-auto space-y-4">
       {/* กล้องสแกน */}
       <div className="relative rounded-2xl overflow-hidden bg-black shadow-[var(--sh-md)]">
-        <video ref={videoRef} className="w-full h-72 sm:h-80 object-cover" muted playsInline />
+        {camOn ? (
+          <video ref={videoRef} className="w-full h-72 sm:h-80 object-cover" muted playsInline />
+        ) : (
+          <div className="w-full h-72 sm:h-80 flex flex-col items-center justify-center gap-3 text-white/70">
+            <Icon name="videocam_off" size="2xl" />
+            <div className="text-[14px] font-medium">กล้องปิดอยู่</div>
+            <div className="text-[12px] text-white/50 text-center px-8">ใช้ช่อง "พิมพ์ Serial" ด้านล่างกับเครื่องยิงบาร์โค้ด (USB Scanner) ได้เลย</div>
+          </div>
+        )}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div className="w-4/5 h-40 border-2 border-white/70 rounded-xl" />
+          <div className={`w-4/5 h-40 border-2 border-white/70 rounded-xl ${camOn ? '' : 'hidden'}`} />
         </div>
-        {starting && (
+        {starting && camOn && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white text-[13px] bg-black/50">
             <Icon name="hourglass_top" className="animate-spin" />
             กำลังเปิดกล้อง...
@@ -148,14 +168,22 @@ export default function ScanPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
+        <button
+          onClick={toggleCam}
+          className={`flex items-center gap-2 h-10 px-5 rounded-xl font-semibold transition-colors ${
+            camOn
+              ? 'bg-[var(--red-l)] text-[var(--red)] border border-[var(--red-b)] hover:bg-[var(--red)] hover:text-white'
+              : 'bg-[var(--emerald)] text-white border border-[var(--emerald-d)] hover:bg-[var(--emerald-d)]'
+          }`}
+        >
+          <Icon name={camOn ? 'videocam_off' : 'videocam'} size="sm" />
+          {camOn ? 'ปิดกล้อง' : 'เปิดกล้อง'}
+        </button>
         {status === 'idle' && (
           <button onClick={reset} className="flex items-center gap-2 h-10 px-5 rounded-xl bg-[var(--emerald)] text-white text-[14px] font-semibold hover:bg-[var(--emerald-d)]">
             <Icon name="document_scanner" size="sm" /> พร้อมสแกน — วางบาร์โค้ดในกรอบ
           </button>
         )}
-        <button onClick={() => { reset(); startCam(); }} className="flex items-center gap-1.5 h-10 px-4 rounded-xl border border-[var(--g300)] text-[13px] text-[var(--tsub)] hover:bg-[var(--surface2)]">
-          <Icon name="refresh" size="sm" /> เปิดกล้องใหม่
-        </button>
       </div>
 
       {error && (
