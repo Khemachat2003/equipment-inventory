@@ -144,22 +144,25 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button
-              onClick={() => navigate('/scan')}
-              title="สแกน Barcode / Serial"
-              className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[var(--emerald)] text-white text-[13px] font-semibold hover:bg-[var(--emerald-d)] transition-colors shrink-0"
-            >
-              <Icon name="document_scanner" size="sm" />
-              <span className="hidden min-[430px]:inline">สแกน</span>
-            </button>
-            <button
-              onClick={() => navigate('/qr')}
-              title="พิมพ์ฉลาก QR / Barcode"
-              className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)] transition-colors shrink-0"
-            >
-              <Icon name="qr_code_2" size="sm" />
-              <span className="hidden min-[430px]:inline">ฉลาก</span>
-            </button>
+            <div className="flex items-center rounded-xl bg-[var(--surface2)] border border-[var(--g200)] p-0.5 gap-0.5">
+              <button
+                onClick={() => navigate('/scan')}
+                title="สแกน Barcode / Serial"
+                className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-[10px] text-[var(--tsub)] text-[13px] font-medium hover:bg-[var(--blue-l)] hover:text-[var(--blue)] transition-colors shrink-0"
+              >
+                <Icon name="document_scanner" size="sm" />
+                <span className="hidden min-[430px]:inline">สแกน</span>
+              </button>
+              <span className="w-px h-5 bg-[var(--g200)]" />
+              <button
+                onClick={() => navigate('/qr')}
+                title="พิมพ์ฉลาก QR / Barcode"
+                className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-[10px] text-[var(--tsub)] text-[13px] font-medium hover:bg-[var(--blue-l)] hover:text-[var(--blue)] transition-colors shrink-0"
+              >
+                <Icon name="qr_code_2" size="sm" />
+                <span className="hidden min-[430px]:inline">ฉลาก</span>
+              </button>
+            </div>
             <span className="text-[11px] text-[var(--tmuted)] hidden sm:block tabular-nums">{timeStr}</span>
             <UserChip name={user?.username} role={user?.role} onLogout={handleLogout} />
           </div>
