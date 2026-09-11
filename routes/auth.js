@@ -76,7 +76,8 @@ router.post("/api/login",
 
     } catch (err) {
       console.error("LOGIN ERROR:", err);
-      res.status(500).json({ error: "Server error", message: err.message });
+      // ไม่ส่ง err.message กลับ client (กัน leak รายละเอียดภายใน)
+      res.status(500).json({ error: "Server error" });
     }
   }
 );

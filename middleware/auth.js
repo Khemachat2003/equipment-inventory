@@ -2,8 +2,9 @@
 const { validationResult } = require("express-validator");
 
 // Middleware: ตรวจสอบว่าผู้ใช้ล็อกอินแล้ว
+// (optional chaining กันกรณี req.session ยังไม่ถูกสร้าง → ต้อง 401 ไม่ใช่ TypeError 500)
 function requireLogin(req, res, next) {
-  if (!req.session.user) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();
@@ -11,7 +12,7 @@ function requireLogin(req, res, next) {
 
 // Middleware: ตรวจสอบว่าเป็น Admin
 function requireAdmin(req, res, next) {
-  if (!req.session.user || req.session.user.role !== "admin") {
+  if (!req.session?.user || req.session.user.role !== "admin") {
     return res.status(403).json({ error: "Unauthorized: Admin only" });
   }
   next();

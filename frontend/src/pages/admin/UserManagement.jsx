@@ -66,6 +66,7 @@ export default function UserManagement() {
       </div>
 
       <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead>
             <tr className="text-left text-[var(--tmuted)] bg-[var(--surface2)] border-b border-[var(--g100)]">
@@ -112,6 +113,7 @@ export default function UserManagement() {
               ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

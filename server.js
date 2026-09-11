@@ -44,6 +44,16 @@ const limiter = rateLimit({
   message: { error: "Too many requests, please try again later." },
 });
 
+// Login limiter: แยกและเข้มกว่า general — กัน brute force รหัสผ่าน
+// (เดิมใช้ limiter รวม 500 req/15 นาที → ยิง /api/login ได้ 500 ครั้ง/15 นาที/IP)
+const loginLimiter = rateLimit({
+  windowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX) || 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "พยายามล็อกอินมากเกินไป กรุณารอ 15 นาทีแล้วลองใหม่อีกครั้ง" },
+});
+
 // ========== GOOGLE OAUTH ==========
 let credentials = null;
 if (process.env.GOOGLE_OAUTH) {
@@ -82,10 +92,41 @@ app.use(helmet({
 app.use(compression());
 app.use(morgan("combined"));
 
+// ========== CORS ==========
+// ปิดช่องโหว่เดิม (origin: true = สะท้อนทุก origin + credentials → เท่ากับปิด CORS ทั้งระบบ)
+// เปลี่ยนเป็น whitelist:
+//  1) same-origin (ไม่มี Origin หรือ Origin ตรงกับ Host ของ request)
+//  2) PORTAL_HOME_URL (ระบบ portal ที่ฝัง/โยงมาที่แอปนี้)
+//  3) ALLOWED_ORIGINS (env, คั่นด้วย comma) — สำหรับเพิ่มโดเมนเอง เช่น custom domain
+//  4) Vite dev server (localhost:5173) เฉพาะตอน dev
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+try {
+  if (process.env.PORTAL_HOME_URL) {
+    allowedOrigins.push(new URL(process.env.PORTAL_HOME_URL).origin);
+  }
+} catch (e) {
+  // PORTAL_HOME_URL เป็น relative path → ไม่ใช่ cross-origin ข้ามไป
+}
+if (process.env.NODE_ENV !== "production") {
+  allowedOrigins.push("http://localhost:5173", "http://127.0.0.1:5173");
+}
+
 app.use(
-  cors({
-    origin: true,
-    credentials: true,
+  cors((req, callback) => {
+    const origin = req.headers.origin;
+    let ok = !origin; // ไม่มี Origin = same-origin navigation / non-browser client (curl, healthcheck)
+    if (origin) {
+      try {
+        // same-origin เสมอ (ไม่ว่าจะเข้าผ่าน Render URL หรือ custom domain)
+        ok = new URL(origin).host === req.headers.host || allowedOrigins.includes(origin);
+      } catch (e) {
+        ok = false;
+      }
+    }
+    callback(null, { origin: ok, credentials: true });
   })
 );
 
@@ -95,7 +136,9 @@ app.use(
 const DATABASE_URL = process.env.DATABASE_URL;
 const sessionConfig = {
   name: "borrow-session",
-  secret: process.env.SESSION_SECRET || "default-insecure-secret-change-me",
+  // SESSION_SECRET ถูก validate ตั้งแต่ startup (ดู ENV VALIDATION) → ไม่ต้องมี fallback
+  // (เดิม fallback เป็น string ที่อ่านได้จาก source = ปลอดภัยเท่าไม่มี secret)
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -152,6 +195,8 @@ app.use((req, res, next) => {
 app.use("/image", express.static(path.join(__dirname, "image")));
 
 // ========== RATE LIMIT ==========
+// Login limiter ต้องมาก่อน general limiter และก่อน mount routes
+app.use("/api/login", loginLimiter);
 app.use("/api", limiter);
 
 // ========== PORTAL MODE (auto-login regular users, optional via env) ==========
@@ -249,7 +294,13 @@ app.get('/api/backup-data', requireLogin, requireAdmin, async (req, res) => {
 
   try {
     await client.connect();
-    const result = await client.query(`SELECT * FROM ${table} ORDER BY backup_date DESC LIMIT 1000`);
+    // versioned backup: แสดงเฉพาะแถวของ run ล่าสุด (กันข้อมูลซ้ำจากหลาย run)
+    // (table ผ่าน whitelist BACKUP_TABLES แล้ว → ปลอดภัยต่อ SQL injection)
+    const result = await client.query(
+      `SELECT * FROM ${table}
+       WHERE backup_run_id = (SELECT max(backup_run_id) FROM ${table})
+       ORDER BY backup_date DESC LIMIT 1000`
+    );
     await client.end();
     res.json({ success: true, rows: result.rows });
   } catch (err) {
@@ -350,7 +401,8 @@ app.post("/api/clear-cache", requireLogin, async (req, res) => {
 // ========== ERROR HANDLER (ท้ายสุด) ==========
 app.use((err, req, res, next) => {
   console.error("❌ Unhandled error:", err);
-  res.status(500).json({ error: "Internal server error", message: err.message });
+  // ไม่ส่ง err.message กลับ client (กัน leak path/รายละเอียดภายใน) — log ไว้ฝั่ง server พอ
+  res.status(500).json({ error: "Internal server error" });
 });
 
 // ========== START SERVER ==========
@@ -410,7 +462,10 @@ async function hasNewAuditSinceLastBackup() {
 
     let backupRows = 0;
     try {
-      const res = await client.query('SELECT count(*) AS cnt FROM backup_audit_log');
+      // versioned backup: 1 ตารางมีหลาย run → เทียบกับจำนวนแถวของ run ล่าสุดเท่านั้น
+      const res = await client.query(
+        'SELECT count(*) AS cnt FROM backup_audit_log WHERE backup_run_id = (SELECT max(backup_run_id) FROM backup_audit_log)'
+      );
       backupRows = parseInt(res.rows[0].cnt, 10) || 0;
     } catch (e) {
       // ตาราง backup ยังไม่เคยถูกสร้าง → ถือว่าต้อง backup

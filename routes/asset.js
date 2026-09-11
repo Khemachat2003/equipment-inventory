@@ -15,45 +15,75 @@ const { requireLogin, validate } = require("../middleware/auth");
 const { logAudit } = require("../services/audit");
 
 // -------------------- SYNC ASSET HISTORY --------------------
+// แบบ batch: สร้างแถวที่ต้อง sync ทั้งหมดก่อนแล้ว append เป็นก้อน
+// (เดิม append ทีละแถว → N asset = N API calls เสีย quota + บล็อก request แรกของ /api/assets)
+const SHEETS_APPEND_BATCH = parseInt(process.env.SHEETS_APPEND_BATCH, 10) || 500;
 let syncDone = false;
+let syncInFlight = null; // กัน race: หลาย request เรียกพร้อมกัน → sync ครั้งเดียว
 
 async function syncInitialAssetHistory() {
   if (syncDone) return;
-  try {
-    const sheets = await getSheetsClient();
-    const assetResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Asset_List!A2:M",
-    });
-    const assetRows = assetResponse.data.values || [];
+  if (syncInFlight) return syncInFlight;
+  syncInFlight = (async () => {
+    try {
+      const sheets = await getSheetsClient();
+      const assetResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_List!A2:M",
+      });
+      const assetRows = assetResponse.data.values || [];
 
-    const historyResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Asset_History!A2:B",
-    });
-    const historyRows = historyResponse.data.values || [];
-    const loggedSerials = new Set(
-      historyRows.map((row) => (row[1] ? row[1].trim() : ""))
-    );
+      const historyResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_History!A2:B",
+      });
+      const historyRows = historyResponse.data.values || [];
+      const loggedSerials = new Set(
+        historyRows.map((row) => (row[1] ? row[1].trim() : ""))
+      );
 
-    for (const row of assetRows) {
-      const serial = row[4] ? row[4].trim() : "";
-      if (serial && !loggedSerials.has(serial)) {
-        await saveAssetHistory(
-          serial,
-          "ลงทะเบียนอุปกรณ์ใหม่",
-          "-",
-          `${row[7] || "-"} (${row[6] || "-"})`,
-          row[8] || "System (Auto Sync)",
-          `บันทึกประวัติเริ่มต้นจริงเข้าระบบสำหรับอุปกรณ์: ${row[2] || "-"}`
-        );
+      // เก็บแถวใหม่ลง array ก่อน (เงื่อนไข/รูปแบบข้อมูลเหมือนเดิมทุกอย่าง แค่ยังไม่เขียน)
+      const newRows = [];
+      for (const row of assetRows) {
+        const serial = row[4] ? row[4].trim() : "";
+        if (serial && !loggedSerials.has(serial)) {
+          newRows.push([
+            new Date().toLocaleString("th-TH"),
+            serial,
+            "ลงทะเบียนอุปกรณ์ใหม่",
+            "-",
+            `${row[7] || "-"} (${row[6] || "-"})`,
+            row[8] || "System (Auto Sync)",
+            `บันทึกประวัติเริ่มต้นจริงเข้าระบบสำหรับอุปกรณ์: ${row[2] || "-"}`,
+          ]);
+        }
       }
+
+      // append ทีละก้อน (ค่าเริ่มต้น 500 แถว/call) → API calls จาก N ลดเหลือ ceil(N/500)
+      for (let i = 0; i < newRows.length; i += SHEETS_APPEND_BATCH) {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: "Asset_History!A:G",
+          valueInputOption: "USER_ENTERED",
+          insertDataOption: "INSERT_ROWS",
+          requestBody: { values: newRows.slice(i, i + SHEETS_APPEND_BATCH) },
+        });
+      }
+
+      syncDone = true;
+      console.log(
+        newRows.length
+          ? `✅ Asset history sync completed (${newRows.length} rows, batch size ${SHEETS_APPEND_BATCH})`
+          : "✅ Asset history sync completed (no new rows)"
+      );
+    } catch (err) {
+      console.error("❌ Sync asset history error:", err);
+      // syncDone ยังเป็น false → ครั้งถัดไปจะ retry (พฤติกรรมเดิม)
+    } finally {
+      syncInFlight = null;
     }
-    syncDone = true;
-    console.log("✅ Asset history sync completed");
-  } catch (err) {
-    console.error("❌ Sync asset history error:", err);
-  }
+  })();
+  return syncInFlight;
 }
 
 // -------------------- GET ASSETS --------------------

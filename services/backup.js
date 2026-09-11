@@ -3,6 +3,26 @@ const { getSheetsClient, SPREADSHEET_ID } = require('./sheets');
 const format = require('pg-format');
 const { createClient } = require('./pg');
 
+// ============================================================
+// VERSIONED BACKUP CONFIG
+// เก็บ backup ล่าสุด N run ต่อตาราง (run เก่าถูก prune "หลัง" insert สำเร็จเท่านั้น
+// → ถ้า backup ล้มกลางทาง ข้อมูล run เก่ายังครบ ไม่หายเหมือนระบบ DROP/CREATE เดิม)
+// ============================================================
+const BACKUP_KEEP_RUNS = parseInt(process.env.BACKUP_KEEP_RUNS, 10) || 3;
+
+// run id รูปแบบ YYYYMMDDHHmmss (เรียงเวลาได้ + เทียบ max() ได้ตรงๆ)
+function buildRunId(date = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return (
+    date.getFullYear() +
+    p(date.getMonth() + 1) +
+    p(date.getDate()) +
+    p(date.getHours()) +
+    p(date.getMinutes()) +
+    p(date.getSeconds())
+  );
+}
+
 const DATABASE_URL = process.env.DATABASE_URL;
 
 // ============================================================
@@ -13,7 +33,7 @@ async function backupToPostgres() {
 }
 
 // ============================================================
-// 2. FULL SYSTEM BACKUP (แก้ไขแล้ว)
+// 2. FULL SYSTEM BACKUP (versioned)
 // ============================================================
 async function fullSystemBackup() {
   if (!process.env.DATABASE_URL) {
@@ -127,42 +147,38 @@ async function fullSystemBackup() {
 
     let totalRows = 0;
     const results = {};
+    const runId = buildRunId();
 
     for (const config of sheetsConfig) {
       try {
-        // ลบตารางเก่า
-        await client.query(`DROP TABLE IF EXISTS ${config.table}`);
-        console.log(`🗑️ Dropped old table: ${config.table}`);
-
-        // สร้างตารางใหม่
-        const dbColumns = config.columns.map(col => {
-          return columnMap[col] || col;
-        });
-
+        // 1) สร้างตารางถ้ายังไม่มี + เติมคอลัมน์ backup_run_id ให้ตารางเก่า (schema ก่อน versioned)
+        //    ห้าม DROP เหมือนเดิม — เดิม backup ล้มกลางทางข้อมูล backup เก่าหายหมด
+        const dbColumns = config.columns.map(col => columnMap[col] || col);
         const createSQL = format(`
-          CREATE TABLE %I (
+          CREATE TABLE IF NOT EXISTS %I (
             id SERIAL PRIMARY KEY,
             %s,
+            backup_run_id TEXT,
             backup_date TIMESTAMP DEFAULT NOW()
           )
         `, config.table, dbColumns.map(col => `${col} TEXT`).join(', '));
-
         await client.query(createSQL);
-        console.log(`✅ Created table: ${config.table}`);
+        await client.query(format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS backup_run_id TEXT', config.table));
 
-        // ✅ ดึงข้อมูลจาก Google Sheets (ใช้ range ที่มีชื่อ Sheet)
+        // 2) ดึงข้อมูลจาก Google Sheets
         const res = await sheets.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
-          range: config.range,  // ✅ ตอนนี้มีชื่อ Sheet แล้ว
+          range: config.range,
         });
         const rows = res.data.values || [];
 
-        // Insert ข้อมูล (batch ทีละ 500 แถว — เร็วกว่า insert ทีละแถวมาก)
+        // 3) Insert แถวของ run นี้ (batch ทีละ 500 แถว — เร็วกว่า insert ทีละแถวมาก)
         let inserted = 0;
         if (rows.length > 0) {
-          const columnNames = config.columns.map(col => columnMap[col] || col);
+          const columnNames = [...config.columns.map(col => columnMap[col] || col), 'backup_run_id'];
           const validRows = rows.filter(r => r[0]);
           const BATCH = 500;
+          const COLS = config.columns.length;
 
           for (let i = 0; i < validRows.length; i += BATCH) {
             const chunk = validRows.slice(i, i + BATCH);
@@ -170,10 +186,13 @@ async function fullSystemBackup() {
             const rowGroups = [];
             chunk.forEach((row, ridx) => {
               const rowPh = [];
-              config.columns.forEach((col, cidx) => {
-                values.push(row[cidx] || '');
-                rowPh.push(`$${ridx * config.columns.length + cidx + 1}`);
-              });
+              for (let c = 0; c < COLS; c++) {
+                values.push(row[c] || '');
+                rowPh.push(`$${ridx * (COLS + 1) + c + 1}`);
+              }
+              // backup_run_id เป็นพารามิเตอร์ตัวสุดท้าย + NOW() inline สำหรับ backup_date
+              values.push(runId);
+              rowPh.push(`$${ridx * (COLS + 1) + COLS + 1}, NOW()`);
               rowGroups.push('(' + rowPh.join(', ') + ')');
             });
 
@@ -191,9 +210,25 @@ async function fullSystemBackup() {
           }
         }
 
+        // 4) ลบแถว legacy (schema เก่าก่อน versioned ไม่มี backup_run_id) แล้ว prune run เก่า
+        //    เก็บไว้แค่ BACKUP_KEEP_RUNS run ล่าสุด — ทำ "หลัง" insert สำเร็จเท่านั้น
+        await client.query(format('DELETE FROM %I WHERE backup_run_id IS NULL', config.table));
+        const pruneRes = await client.query(format(
+          `DELETE FROM %I WHERE backup_run_id IN (
+             SELECT DISTINCT backup_run_id FROM %I WHERE backup_run_id IS NOT NULL
+             ORDER BY backup_run_id DESC
+             OFFSET $1
+           )`,
+          config.table, config.table
+        ), [BACKUP_KEEP_RUNS]);
+
         totalRows += inserted;
-        results[config.name] = { inserted, table: config.table };
-        console.log(`✅ ${config.name}: ${inserted} แถว`);
+        results[config.name] = {
+          inserted,
+          prunedOldRuns: pruneRes.rowCount > 0,
+          table: config.table,
+        };
+        console.log(`✅ ${config.name}: +${inserted} แถว (run ${runId})`);
 
       } catch (err) {
         console.error(`❌ Error backing up ${config.name}:`, err.message);
@@ -212,4 +247,4 @@ async function fullSystemBackup() {
   }
 }
 
-module.exports = { backupToPostgres, fullSystemBackup };
+module.exports = { backupToPostgres, fullSystemBackup, buildRunId, BACKUP_KEEP_RUNS };

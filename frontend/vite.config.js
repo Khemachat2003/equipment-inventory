@@ -7,6 +7,11 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   base: '/',
   plugins: [react(), tailwindcss()],
+  // Vitest (จัดการโดย npm run test) — ใช้ jsdom สำหรับ render component
+  test: {
+    environment: 'jsdom',
+    globals: true,
+  },
   server: {
     proxy: {
       '/api': {

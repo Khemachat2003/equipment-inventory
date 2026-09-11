@@ -33,3 +33,5 @@ services:
         sync: false
       - key: BACKUP_CRON
         sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
