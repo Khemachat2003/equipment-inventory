@@ -9,6 +9,15 @@ function fakeClient(regResult) {
   return {
     queries,
     async query(sql, params) {
+      // ตรวจ placeholder แบบ node-postgres: ถ้าส่ง params ต้องมี $1..$n ใน SQL
+      // (กัน bug หลัง $L จาก pg-format หลุดมาใน client.query → bind error 500)
+      if (params && params.length) {
+        for (let i = 1; i <= params.length; i++) {
+          if (!sql.includes(`$${i}`)) {
+            throw new Error(`pg placeholder $${i} missing in query: ${sql}`);
+          }
+        }
+      }
       queries.push({ sql, params });
       // จำลอง to_regclass(): คืนชื่อตารางถ้า "มีอยู่" / null ถ้าไม่มี
       return { rows: [{ reg: regResult }], rowCount: 1 };

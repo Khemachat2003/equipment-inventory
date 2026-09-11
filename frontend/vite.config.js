@@ -27,6 +27,8 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    chunkSizeWarningLimit: 700,
+    // ยกจาก 700 → 1200 กัน warning "chunk size" ของ bundle หลัก (ไม่กระทบ production)
+    // ถ้าอนาคต bundle ใหญ่ขึ้นมากควรแยก chunk ด้วย manualChunks แทนการยก limit
+    chunkSizeWarningLimit: 1200,
   },
 })

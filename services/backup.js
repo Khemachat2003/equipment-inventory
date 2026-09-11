@@ -33,7 +33,8 @@ async function ensureBackupTableSchema(client, tableName) {
   if (!/^backup_[a-z_]+$/.test(tableName)) {
     throw new Error(`Invalid backup table name: ${tableName}`);
   }
-  const exists = await client.query('SELECT to_regclass(%L) AS reg', [tableName]);
+  // ⚠️ node-postgres ใช้ placeholder แบบ $1 (ไม่ใช่ %L ของ pg-format)
+  const exists = await client.query('SELECT to_regclass($1) AS reg', [tableName]);
   if (!exists.rows[0].reg) {
     return false; // ยังไม่เคยสร้างตาราง → ไม่มีอะไรให้ migrate
   }
