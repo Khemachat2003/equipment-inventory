@@ -23,6 +23,26 @@ function buildRunId(date = new Date()) {
   );
 }
 
+// ── Self-heal schema ของตาราง backup ──
+// ตารางที่สร้างก่อนระบบ versioned จะไม่มีคอลัมน์ backup_run_id → ทำให้
+// /api/backup-data query แล้ว 500 ("column backup_run_id does not exist")
+// ฟังก์ชันนี้เติมคอลัมน์ให้แบบ idempotent (ADD COLUMN IF NOT EXISTS)
+// คืนค่า true = ตารางมีอยู่และ schema พร้อม / false = ยังไม่มีตารางนี้เลย (ยังไม่เคย backup)
+// ⚠️ caller ต้อง whitelist ชื่อตารางมาก่อน (server.js: BACKUP_TABLES) — ที่นี่กันซ้ำอีกชั้น
+async function ensureBackupTableSchema(client, tableName) {
+  if (!/^backup_[a-z_]+$/.test(tableName)) {
+    throw new Error(`Invalid backup table name: ${tableName}`);
+  }
+  const exists = await client.query('SELECT to_regclass(%L) AS reg', [tableName]);
+  if (!exists.rows[0].reg) {
+    return false; // ยังไม่เคยสร้างตาราง → ไม่มีอะไรให้ migrate
+  }
+  await client.query(
+    format('ALTER TABLE %I ADD COLUMN IF NOT EXISTS backup_run_id TEXT', tableName)
+  );
+  return true;
+}
+
 const DATABASE_URL = process.env.DATABASE_URL;
 
 // ============================================================
@@ -247,4 +267,4 @@ async function fullSystemBackup() {
   }
 }
 
-module.exports = { backupToPostgres, fullSystemBackup, buildRunId, BACKUP_KEEP_RUNS };
+module.exports = { backupToPostgres, fullSystemBackup, buildRunId, BACKUP_KEEP_RUNS, ensureBackupTableSchema };

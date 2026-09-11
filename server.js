@@ -11,7 +11,7 @@ const morgan = require("morgan");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const fs = require("fs");
-const { fullSystemBackup } = require('./services/backup');
+const { fullSystemBackup, ensureBackupTableSchema } = require('./services/backup');
 // ========== IMPORT ROUTES ==========
 const routes = require("./routes");
 // ดึง asset router เพื่อเรียก sync (module cache จะใช้ตัวเดียวกัน)
@@ -294,11 +294,21 @@ app.get('/api/backup-data', requireLogin, requireAdmin, async (req, res) => {
 
   try {
     await client.connect();
+    // Self-heal: ตารางที่สร้างก่อนระบบ versioned อาจยังไม่มีคอลัมน์ backup_run_id
+    // → เติมให้ก่อน query ทุกครั้ง (idempotent — เรียกซ้ำได้ ไม่มีผลข้างเคียง)
+    const tableExists = await ensureBackupTableSchema(client, table);
+    if (!tableExists) {
+      // ยังไม่เคย backup เลย → ยังไม่มีตาราง คืน rows ว่าง (ไม่ใช่ error)
+      await client.end();
+      return res.json({ success: true, rows: [] });
+    }
     // versioned backup: แสดงเฉพาะแถวของ run ล่าสุด (กันข้อมูลซ้ำจากหลาย run)
+    // fallback: ถ้าตารางยังไม่มี run เลย (แถว legacy จากระบบเก่า) → แสดงทั้งหมด
     // (table ผ่าน whitelist BACKUP_TABLES แล้ว → ปลอดภัยต่อ SQL injection)
     const result = await client.query(
       `SELECT * FROM ${table}
-       WHERE backup_run_id = (SELECT max(backup_run_id) FROM ${table})
+       WHERE (SELECT max(backup_run_id) FROM ${table}) IS NULL
+          OR backup_run_id = (SELECT max(backup_run_id) FROM ${table})
        ORDER BY backup_date DESC LIMIT 1000`
     );
     await client.end();
