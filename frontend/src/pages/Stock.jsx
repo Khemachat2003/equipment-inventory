@@ -256,14 +256,19 @@ export default function Stock() {
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-[var(--tmuted)]">กำลังโหลด...</td>
+                </tr>
+              ) : paged.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-[var(--tmuted)]">
                     ไม่มีข้อมูล
                   </td>
                 </tr>
-              )}
-              {paged.map((item) => {
+              ) : null}
+              {!loading &&
+                paged.map((item) => {
                 const oq = parseInt(item.office) || 0;
                 return (
                   <tr key={item.code} className={`border-b border-[var(--g100)] ${oq < 1 ? 'opacity-60' : ''}`}>
@@ -308,10 +313,13 @@ export default function Stock() {
 
         {/* Mobile card list */}
         <div className="md:hidden divide-y divide-[var(--g100)]">
-          {paged.length === 0 && (
+          {loading ? (
+            <div className="text-center py-12 text-[var(--tmuted)] text-[13px]">กำลังโหลด...</div>
+          ) : paged.length === 0 ? (
             <div className="text-center py-12 text-[var(--tmuted)] text-[13px]">ไม่มีข้อมูล</div>
-          )}
-          {paged.map((item) => {
+          ) : null}
+          {!loading &&
+            paged.map((item) => {
             const oq = parseInt(item.office) || 0;
             return (
               <div key={item.code} className={`p-3.5 space-y-2.5 ${oq < 1 ? 'opacity-60' : ''}`}>
