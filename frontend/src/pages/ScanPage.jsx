@@ -108,9 +108,20 @@ export default function ScanPage() {
       pendingRef.current = requestAnimationFrame(loop);
       setStarting(false);
     } catch (e) {
-      console.error('scan start error:', e);
+      // NotAllowedError = เบราว์เซอร์ไม่อนุญาตให้ใช้กล้อง (ผู้ใช้กดปฏิเสธ/บล็อกไว้ หรือ
+      // แอปถูกฝังใน iframe ของระบบ Portal ที่ไม่มี allow="camera") — ไม่ใช่บั๊กของแอป
+      // มีช่องพิมพ์ Serial สำรองอยู่แล้ว แค่ log ระดับ info ไว้ ไม่ต้องแตกตื่น
+      const kind = (e && e.name) || '';
+      const expected = kind === 'NotAllowedError' || kind === 'NotFoundError' || kind === 'OverconstrainedError';
+      (expected ? console.info : console.error)('scan start error:', kind ? `${kind}: ${e.message || e}` : e);
       restoreConsole();
-      setError('เปิดกล้องไม่ได้ | ตรวจสิทธิ์กล้องแล้วลองใหม่ หรือพิมพ์ Serial ด้านล่างแทน');
+      if (kind === 'NotAllowedError') {
+        setError('เบราว์เซอร์ไม่อนุญาตให้ใช้กล้อง — กดไอคอนกล้อง/แม่กุญแจที่แถบ address bar แล้วเปิดสิทธิ์ Camera (ถ้าเปิดผ่านระบบ Portal ให้ผู้ดูแลเพิ่ม allow="camera" ใน iframe) หรือพิมพ์ Serial ด้านล่างแทน');
+      } else if (kind === 'NotFoundError' || kind === 'OverconstrainedError') {
+        setError('ไม่พบกล้องในอุปกรณ์นี้ — ใช้ช่อง "พิมพ์ Serial" ด้านล่าง หรือเครื่องยิงบาร์โค้ด (USB Scanner) แทนได้เลย');
+      } else {
+        setError('เปิดกล้องไม่ได้ | ตรวจสิทธิ์กล้องแล้วลองใหม่ หรือพิมพ์ Serial ด้านล่างแทน');
+      }
       setStarting(false);
     }
   }
