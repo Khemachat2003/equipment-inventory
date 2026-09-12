@@ -20,6 +20,9 @@ export default function Icon({
 
   const px = sizeMap[size] ?? 24;
   const cp = ICON_CODEPOINTS[name];
+  if (import.meta.env.DEV && cp === undefined) {
+    console.warn(`[Icon] ไม่มี codepoint สำหรับ "${name}" — รัน scripts/make_icon_subset.py เพื่อ regen subset`);
+  }
 
   return (
     <span
