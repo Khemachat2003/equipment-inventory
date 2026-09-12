@@ -40,6 +40,7 @@ router.get("/api/stock", requireLogin, async (req, res) => {
         total: parseInt(row[5] || 0),
         office: officeRow ? parseInt(officeRow[2] || 0) : 0,
         site: siteRow ? parseInt(siteRow[2] || 0) : 0,
+        ext: row[8] || "",
       };
     });
     cache.set(cacheKey, result);
@@ -580,6 +581,8 @@ router.post("/api/add-item",
     body("code").trim().notEmpty(),
     body("name").trim().notEmpty(),
     body("total").isInt({ min: 0 }),
+    body("office").optional().isInt({ min: 0 }),
+    body("site").optional().isInt({ min: 0 }),
     body("ext").optional().isString(),
   ],
   validate,
@@ -590,22 +593,66 @@ router.post("/api/add-item",
     const { code, name, total, ext } = req.body;
     try {
       const sheets = await getSheetsClient();
+
+      // 🔒 กันรหัสซ้ำ — รหัสเดียวกันต้องไม่เพิ่มซ้ำ (กันรูป/ข้อมูลทับกัน)
+      const masterRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Master!A2:A",
+      });
+      const exists = (masterRes.data.values || []).some((r) => String(r[0]).trim() === code);
+      if (exists) {
+        return res.status(400).json({ success: false, error: `รหัส ${code} มีอยู่แล้วใน Stock แล้ว` });
+      }
+
+      // จำนวนใน Office/Site:
+      //  - ถ้ากรอก Office และ/หรือ Site → ใช้ตามนั้น, Total = Office + Site
+      //  - ถ้าไม่กรอก (เพิ่มแบบเดิม) → ของใหม่ทั้งหมดเริ่มที่ Office, Site = 0
+      let officeQty = req.body.office != null ? parseInt(req.body.office) : null;
+      let siteQty = req.body.site != null ? parseInt(req.body.site) : null;
+      if (officeQty == null && siteQty == null) {
+        officeQty = parseInt(total);
+        siteQty = 0;
+      } else {
+        officeQty = officeQty || 0;
+        siteQty = siteQty || 0;
+      }
+      const effectiveTotal = officeQty + siteQty;
+
       const imageUrl = `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image/images/${code}.${ext}`;
+
+      // 1) Stock_Master (A:I) — เก็บ ext ไว้ที่คอลัมน์ I ให้หน้าเว็บรู้จักไฟล์รูป
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
-        range: "Stock_Master!A:F",
+        range: "Stock_Master!A:I",
         valueInputOption: "USER_ENTERED",
         requestBody: {
-          values: [[code, name, `=IMAGE("${imageUrl}")`, "", "", total]],
+          values: [[code, name, `=IMAGE("${imageUrl}")`, "", "", effectiveTotal, "", "", ext]],
         },
       });
+
+      // 2) Stock_Office (A:C) — เพิ่มรายการใหม่ทันที พร้อมจำนวนที่กรอก
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Office!A:C",
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [[code, name, officeQty]] },
+      });
+
+      // 3) Stock_Site (A:C) — เพิ่มรายการใหม่ทันที พร้อมจำนวนที่กรอก
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Site!A:C",
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [[code, name, siteQty]] },
+      });
+
       clearStockCache();
 
 // ✅ บันทึก Audit Log
 await logAudit(
   "เพิ่มอุปกรณ์ Stock",
   "Stock",
-  `รหัส: ${code}, ชื่อ: ${name}, จำนวน: ${total}`,
+  `รหัส: ${code}, ชื่อ: ${name}, Office: ${officeQty}, Site: ${siteQty}, รวม: ${effectiveTotal}`,
   req.session.user.username,
   req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
 );
@@ -628,33 +675,54 @@ router.post("/upload-image",
   ],
   validate,
   async (req, res) => {
+    if (!process.env.GITHUB_TOKEN) {
+      console.error("upload-image: GITHUB_TOKEN is not set");
+      return res.status(500).json({ success: false, error: "ยังไม่ได้ตั้งค่า GITHUB_TOKEN ฝั่งเซิร์ฟเวอร์" });
+    }
     const { Octokit } = require("@octokit/rest");
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    const owner = process.env.GITHUB_USERNAME || "Khemachat2003";
+    const repo = process.env.GITHUB_REPO || "stock-image";
     const { fileName, base64 } = req.body;
     const content = base64.replace(/^data:image\/\w+;base64,/, "");
     const filePath = `images/${fileName}`;
     try {
       let sha = null;
+      // 🔒 กันชื่อไฟล์รูปซ้ำ — ถ้ามีไฟล์ชื่อนี้ใน repo แล้ว (และไม่ส่ง overwrite) → ปฏิเสธ
+      // (ถ้าต้องการอัปเดตรูปเดิม ให้ส่ง overwrite:true)
+      let exists = false;
       try {
-        const existingFile = await octokit.repos.getContent({
-          owner: "Khemachat2003",
-          repo: "stock-image",
-          path: filePath,
-        });
+        const existingFile = await octokit.repos.getContent({ owner, repo, path: filePath });
+        exists = true;
         sha = existingFile.data.sha;
       } catch (err) {}
-      await octokit.repos.createOrUpdateFileContents({
-        owner: "Khemachat2003",
-        repo: "stock-image",
+      if (exists && !req.body.overwrite) {
+        return res.status(400).json({
+          success: false,
+          error: `ชื่อไฟล์รูปนี้มีอยู่แล้ว (${fileName}) กรุณาเปลี่ยนรหัสหรือเปิดตัวเลือกอัปเดตรูปเดิม`,
+        });
+      }
+
+      const params = {
+        owner,
+        repo,
         path: filePath,
-        message: "upload image",
+        message: `upload image ${fileName}`,
         content: content,
-        sha: sha,
-      });
+      };
+      // ส่ง sha เฉพาะตอนอัปเดตไฟล์เดิม — สร้างไฟล์ใหม่ต้องไม่ส่ง sha (null ทำให้ GitHub ตอบ 422)
+      if (sha) params.sha = sha;
+
+      await octokit.repos.createOrUpdateFileContents(params);
       res.json({ success: true });
     } catch (error) {
-      console.log("GitHub error:", error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error("GitHub upload error:", error.status || "", error.message);
+      const status = error.status === 401 ? 401 : 500;
+      const detail =
+        error.status === 401
+          ? "GitHub Token หมดอายุหรือไม่ถูกต้อง กรุณาตั้งค่า GITHUB_TOKEN ใหม่"
+          : error.message;
+      res.status(status).json({ success: false, error: detail });
     }
   }
 );

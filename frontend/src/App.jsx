@@ -1,23 +1,25 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout.jsx';
-import ScanPage from './pages/ScanPage.jsx';
-import TracePage from './pages/TracePage.jsx';
-import QrPage from './pages/QrPage.jsx';
-import Login from './pages/Login.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import Stock from './pages/Stock.jsx';
-import Asset from './pages/Asset.jsx';
-import Bundle from './pages/Bundle.jsx';
-import Farm from './pages/Farm.jsx';
-import History from './pages/History.jsx';
-import Report from './pages/Report.jsx';
-import Settings from './pages/Settings.jsx';
-import AuditLog from './pages/admin/AuditLog.jsx';
-import AdminTools from './pages/admin/AdminTools.jsx';
-import BackupView from './pages/admin/BackupView.jsx';
-import UserManagement from './pages/admin/UserManagement.jsx';
 import { useAuth } from './context/AuthContext.jsx';
+
+// Lazy load หน้าต่างๆ — แต่ละหน้าเป็น chunk แยก โหลดเฉพาะที่เข้า (ลด bundle หลัก / แก้ warning chunk size)
+const ScanPage = lazy(() => import('./pages/ScanPage.jsx'));
+const TracePage = lazy(() => import('./pages/TracePage.jsx'));
+const QrPage = lazy(() => import('./pages/QrPage.jsx'));
+const Login = lazy(() => import('./pages/Login.jsx'));
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const Stock = lazy(() => import('./pages/Stock.jsx'));
+const Asset = lazy(() => import('./pages/Asset.jsx'));
+const Bundle = lazy(() => import('./pages/Bundle.jsx'));
+const Farm = lazy(() => import('./pages/Farm.jsx'));
+const History = lazy(() => import('./pages/History.jsx'));
+const Report = lazy(() => import('./pages/Report.jsx'));
+const Settings = lazy(() => import('./pages/Settings.jsx'));
+const AuditLog = lazy(() => import('./pages/admin/AuditLog.jsx'));
+const AdminTools = lazy(() => import('./pages/admin/AdminTools.jsx'));
+const BackupView = lazy(() => import('./pages/admin/BackupView.jsx'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement.jsx'));
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -53,12 +55,13 @@ export default function App() {
   if (loading) return <FullLoader />;
 
   return (
-    <Routes>
-      {/* portal user (role:user) ยังเปิดหน้า login ได้ เพื่อให้ admin login แยก */}
-      <Route
-        path="/login"
-        element={user && user.role === 'admin' ? <Navigate to="/" replace /> : <Login />}
-      />
+    <Suspense fallback={<FullLoader />}>
+      <Routes>
+        {/* portal user (role:user) ยังเปิดหน้า login ได้ เพื่อให้ admin login แยก */}
+        <Route
+          path="/login"
+          element={user && user.role === 'admin' ? <Navigate to="/" replace /> : <Login />}
+        />
 
       <Route
         element={
@@ -127,5 +130,6 @@ export default function App() {
       {/* path เก่า/ไม่รู้จัก (เช่น /app/stock ที่ใช้ก่อน migrate) → เด้งหน้าแรก */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }

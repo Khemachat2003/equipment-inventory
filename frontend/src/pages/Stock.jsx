@@ -4,7 +4,7 @@ import Icon from '../components/ui/Icon.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
 const IMAGE_URL = (code, ext) =>
-  `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext}?v=3`;
+  `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext}?v=4`;
 const PAGE_SIZES = [20, 50, 100];
 
 export default function Stock() {
@@ -586,13 +586,23 @@ function AddModal({ onClose, onDone }) {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [qty, setQty] = useState('');
+  const [office, setOffice] = useState('');
+  const [site, setSite] = useState('');
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  // ถ้ากรอก Office/Site → รวม = Office+Site, ไม่กรอก → รวม = จำนวนทั้งหมด (ของอยู่ Office ทั้งหมด)
+  const officeN = office === '' || office == null ? null : parseInt(office);
+  const siteN = site === '' || site == null ? null : parseInt(site);
+  const liveTotal =
+    officeN == null && siteN == null ? parseInt(qty) || 0 : (officeN || 0) + (siteN || 0);
+
   async function submit() {
-    if (!code || !name || !qty || !file) return alert('กรอกข้อมูลและเลือกรูปให้ครบ');
+    if (!code || !name || !file) return alert('กรอกข้อมูลและเลือกรูปให้ครบ');
     const ext = file.name.split('.').pop().toLowerCase();
     if (!['jpg', 'jpeg', 'png'].includes(ext)) return alert('รองรับ JPG/PNG เท่านั้น');
+    if (officeN == null && siteN == null && (qty === '' || parseInt(qty) < 0))
+      return alert('กรอกจำนวนให้ถูกต้อง');
     setBusy(true);
     try {
       const reader = new FileReader();
@@ -603,10 +613,24 @@ function AddModal({ onClose, onDone }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fileName: code + '.' + ext, base64: e.target.result }),
           })).json();
-          if (!up.success) return alert('อัปโหลดรูปไม่สำเร็จ');
-          await axios.post('/api/add-item', { code, name, total: parseInt(qty), office: 0, site: 0, ext });
-          alert('เพิ่มอุปกรณ์สำเร็จ');
-          onDone();
+          if (!up.success) return alert('อัปโหลดรูปไม่สำเร็จ: ' + (up.error || 'ไม่ทราบสาเหตุ'));
+          const off = officeN == null && siteN == null ? parseInt(qty) || 0 : officeN || 0;
+          const sit = siteN == null ? 0 : siteN || 0;
+          try {
+            const { data } = await axios.post('/api/add-item', {
+              code,
+              name,
+              total: off + sit,
+              office: off,
+              site: sit,
+              ext,
+            });
+            if (!data.success) return alert(data.error || 'เพิ่มอุปกรณ์ไม่สำเร็จ');
+            alert('เพิ่มอุปกรณ์สำเร็จ');
+            onDone();
+          } catch (err) {
+            alert(err?.response?.data?.error || 'เกิดข้อผิดพลาด');
+          }
         } catch (e) {
           alert('เกิดข้อผิดพลาด');
         } finally {
@@ -624,7 +648,17 @@ function AddModal({ onClose, onDone }) {
     <Modal title="เพิ่มอุปกรณ์" onClose={onClose}>
       <Field label="รหัสอุปกรณ์" value={code} onChange={setCode} placeholder="เช่น AC-001" />
       <Field label="ชื่ออุปกรณ์" value={name} onChange={setName} />
-      <Field label="จำนวน" type="number" value={qty} onChange={setQty} />
+      <Field label="จำนวนทั้งหมด" type="number" value={qty} onChange={setQty} placeholder="0" />
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="จำนวน Office (ทางเลือก)" type="number" value={office} onChange={setOffice} placeholder="ใส่ก็ได้ หากมีที่ Office" />
+        <Field label="จำนวน Site (ทางเลือก)" type="number" value={site} onChange={setSite} placeholder="ใส่ก็ได้ หากมีที่ Site" />
+      </div>
+      <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--surface2)] border border-[var(--g100)] text-[12px] text-[var(--tsub)]">
+        รวมทั้งหมด: <span className="font-bold text-[var(--blue)]">{liveTotal}</span> ชิ้น
+        <div className="mt-1 text-[11px] text-[var(--tmuted)]">
+          ไม่กรอก Office/Site → ของใหม่ทั้งหมดเริ่มอยู่ที่ Office (Site = 0); ถ้ากรอก จำนวนรวมจะเท่า Office + Site
+        </div>
+      </div>
       <div className="mb-3">
         <label className="block text-[12px] font-medium text-[var(--tsub)] mb-1">รูปอุปกรณ์ (JPG/PNG)</label>
         <input type="file" accept=".jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files[0])} className="text-[12px]" />

@@ -68,17 +68,18 @@ async function addItem() {
         body: JSON.stringify({ fileName: code + "." + ext, base64: e.target.result })
       })).json();
       if (up.success) {
-        await fetch("/api/add-item", {
+        const a = await (await fetch("/api/add-item", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, name, total: qty, office: 0, site: 0, ext })
-        });
+          body: JSON.stringify({ code, name, total: qty, ext })
+        })).json();
+        if (a && a.error) { alert(a.error); return; }
         closeModal("addStockModal");
         ["newCode", "newName", "newQty"].forEach(id => document.getElementById(id).value = "");
         await loadStock();
         await loadDashboard();
         alert("เพิ่มอุปกรณ์สำเร็จ");
-      } else alert("อัปโหลดรูปไม่สำเร็จ");
+      } else alert("อัปโหลดรูปไม่สำเร็จ: " + (up.error || ""));
     } catch (e) { alert("เกิดข้อผิดพลาด"); }
   };
   reader.readAsDataURL(file);
