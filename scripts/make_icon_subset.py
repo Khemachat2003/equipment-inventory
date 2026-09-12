@@ -34,10 +34,10 @@ PATTERNS = [
     re.compile(r'''\bicon="([a-z_0-9]+)"'''),
 ]
 
-# dynamic name เช่น <Icon name={on ? 'videocam_off' : 'videocam'} />
-# → เก็บทุก string literal รูป icon ที่อยู่ใน name={...} มาด้วย
-DYN_NAME_RE = re.compile(r'''\bname=\{([^}]*)\}''')
-ICON_LITERAL_RE = re.compile(r'''['"`]([a-z0-9_]{2,})['"`]''')
+# dynamic name เช่น <Icon name={on ? 'videocam_off' : 'videocam'} /> หรือ map ค่า icon
+# เช่น const TYPE_ICONS = { 'อื่นๆ': 'category' } → render ผ่าน name={TYPE_ICONS[x]}
+# → เก็บทุก string literal รูป icon (a-z0-9_) ในโค้ด แล้วคัดเฉพาะที่ตรง glyph จริงตอน main()
+GLOBAL_LITERAL_RE = re.compile(r'''['"`]([a-z_0-9]{2,})['"`]''')
 
 
 def collect_icon_names() -> set:
@@ -47,8 +47,7 @@ def collect_icon_names() -> set:
         text = f.read_text(encoding="utf-8", errors="ignore")
         for pat in PATTERNS:
             names.update(pat.findall(text))
-        for block in DYN_NAME_RE.findall(text):
-            names.update(ICON_LITERAL_RE.findall(block))
+        names.update(GLOBAL_LITERAL_RE.findall(text))
     return names
 
 
