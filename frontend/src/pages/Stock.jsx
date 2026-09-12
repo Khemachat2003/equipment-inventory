@@ -9,6 +9,7 @@ const PAGE_SIZES = [20, 50, 100];
 
 export default function Stock() {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -21,11 +22,14 @@ export default function Stock() {
   const busyBorrow = useBusy();
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const { data } = await axios.get('/api/stock');
       setItems(data);
     } catch (e) {
       console.error('load stock', e);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
