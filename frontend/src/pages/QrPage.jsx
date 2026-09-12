@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import JsBarcode from 'jsbarcode';
 import Icon from '../components/ui/Icon.jsx';
+import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
 // QrPage — สร้างฉลาก QR/Barcode สำหรับอุปกรณ์ (แปลงจาก public/qr.html เป็น React)
 // ฟีเจอร์ครบ: เลือกอุปกรณ์ + presets ขนาด + A4 layout + ดีไซน์ + templates + live preview + PDF/พิมพ์
@@ -69,6 +70,7 @@ export default function QrPage() {
   const [templates, setTemplates] = useState([]);
   const [tmplName, setTmplName] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const busy = useBusy();
 
   const nameOf = useMemo(() => {
     const m = new Map();
@@ -221,17 +223,19 @@ export default function QrPage() {
       showBadge,
       theme: 'light',
     };
-    try {
-      const r = await axios.post('/api/label/a4pdf', payload, { responseType: 'blob' });
-      const url = URL.createObjectURL(r.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'labels_a4.pdf';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    } catch {
-      toast('เกิดข้อผิดพลาดในการสร้าง PDF', 'err');
-    }
+    await busy.run('กำลังสร้างไฟล์ PDF...', async () => {
+      try {
+        const r = await axios.post('/api/label/a4pdf', payload, { responseType: 'blob' });
+        const url = URL.createObjectURL(r.data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'labels_a4.pdf';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } catch {
+        toast('เกิดข้อผิดพลาดในการสร้าง PDF', 'err');
+      }
+    });
   }
 
   function toast(msg, type = 'ok') {
@@ -248,6 +252,8 @@ export default function QrPage() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <span className="text-[12px] text-[var(--tmuted)]">สร้างฉลาก Barcode สำหรับอุปกรณ์ — รองรับทั้งพิมพ์เดี่ยวและ A4 หลายดวงต่อแผ่น</span>
       </div>
+
+      <BusyOverlay label={busy.busyLabel} />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4 items-start">
         {/* ── LEFT / เลือกอุปกรณ์ ── */}

@@ -34,12 +34,15 @@ router.get("/api/stock", requireLogin, async (req, res) => {
       const code = row[0];
       const officeRow = officeData.find((r) => r[0] === code);
       const siteRow = siteData.find((r) => r[0] === code);
+      const officeQty = officeRow ? parseInt(officeRow[2] || 0) : 0;
+      const siteQty = siteRow ? parseInt(siteRow[2] || 0) : 0;
       return {
         code,
         name: row[1],
-        total: parseInt(row[5] || 0),
-        office: officeRow ? parseInt(officeRow[2] || 0) : 0,
-        site: siteRow ? parseInt(siteRow[2] || 0) : 0,
+        // Total เป็นค่า derived = Office + Site เสมอ (กันข้อมูลใน Master F เพี้ยน)
+        total: officeQty + siteQty,
+        office: officeQty,
+        site: siteQty,
         ext: row[8] || "",
       };
     });
@@ -66,18 +69,47 @@ router.post("/api/update-total",
     try {
       const { code, newTotal } = req.body;
       const sheets = await getSheetsClient();
+
       const masterRes = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: "Stock_Master!A2:I",
       });
       const masterData = masterRes.data.values || [];
       const index = masterData.findIndex((r) => r[0] === code);
-      if (index === -1) return res.json({ error: "ไม่พบสินค้า" });
+      if (index === -1) return res.status(404).json({ error: "ไม่พบสินค้า" });
+
+      // อ่าน Site ปัจจุบัน → Office = newTotal - Site (กัน Total เพี้ยนจาก Office+Site)
+      const siteRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Site!A2:C",
+      });
+      const siteData = siteRes.data.values || [];
+      const sIndex = siteData.findIndex((r) => r[0] === code);
+      const siteQty = sIndex !== -1 ? parseInt(siteData[sIndex][2] || 0) : 0;
+      const officeQty = parseInt(newTotal) - siteQty;
+      if (officeQty < 0) {
+        return res.status(400).json({ error: `จำนวนทั้งหมดต้องไม่น้อยกว่า Site (${siteQty})` });
+      }
+
+      const officeRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Office!A2:C",
+      });
+      const officeData = officeRes.data.values || [];
+      const oIndex = officeData.findIndex((r) => r[0] === code);
+      if (oIndex === -1) return res.status(404).json({ error: "ไม่พบสินค้าใน Stock_Office" });
+
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `Stock_Master!F${index + 2}`,
         valueInputOption: "RAW",
         requestBody: { values: [[parseInt(newTotal)]] },
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Stock_Office!C${oIndex + 2}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [[officeQty]] },
       });
     clearStockCache();
 
@@ -86,7 +118,7 @@ const currentUser = req.session.user.username;
 await logAudit(
   "แก้ไขจำนวน Stock",
   "Stock",
-  `รหัส: ${code}, จำนวนใหม่: ${newTotal}`,
+  `รหัส: ${code}, จำนวนใหม่: ${newTotal}, Office: ${officeQty}, Site: ${siteQty}`,
   currentUser,
   req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
 );
@@ -122,13 +154,38 @@ router.post("/api/add-stock",
       const masterData = masterRes.data.values || [];
       const index = masterData.findIndex((r) => r[0] === code);
       if (index === -1) return res.json({ error: "ไม่พบสินค้า" });
-      let currentTotal = parseInt(masterData[index][5] || 0);
-      let newTotal = currentTotal + addQty;
+
+      // จำนวนใหม่บวกเข้าที่ Office (Total = Office + Site เสมอ)
+      const officeRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Office!A2:C",
+      });
+      const officeData = officeRes.data.values || [];
+      const oIndex = officeData.findIndex((r) => r[0] === code);
+      if (oIndex === -1) return res.json({ error: "ไม่พบสินค้าใน Stock_Office" });
+
+      const siteRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Site!A2:C",
+      });
+      const siteData = siteRes.data.values || [];
+      const sIndex = siteData.findIndex((r) => r[0] === code);
+      const siteQty = sIndex !== -1 ? parseInt(siteData[sIndex][2] || 0) : 0;
+
+      const officeQty = parseInt(officeData[oIndex][2] || 0) + addQty;
+      const newTotal = officeQty + siteQty;
+
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `Stock_Master!F${index + 2}`,
         valueInputOption: "RAW",
         requestBody: { values: [[newTotal]] },
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Stock_Office!C${oIndex + 2}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [[officeQty]] },
       });
       clearStockCache();
 
@@ -136,7 +193,7 @@ router.post("/api/add-stock",
 await logAudit(
   "เพิ่ม Stock",
   "Stock",
-  `รหัส: ${code}, เพิ่มจำนวน: ${addQty}, จำนวนใหม่: ${newTotal}`,
+  `รหัส: ${code}, เพิ่มจำนวน: ${addQty}, Office ใหม่: ${officeQty}, จำนวนใหม่: ${newTotal}`,
   req.session.user.username,
   req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
 );
@@ -145,6 +202,165 @@ res.json({ success: true });
     } catch (err) {
       console.error("Add stock error:", err);
       res.status(500).json({ error: "Add stock error" });
+    }
+  }
+);
+
+// -------------------- ADD QUANTITY (เพิ่มจำนวน → บวกเข้า Office) --------------------
+// หลัก: ไม่ใช่การตั้งค่าจำนวนใหม่ แต่เป็นการ + เพิ่ม — ของใหม่เข้าที่ Office เสมอ
+// และ Total จะถูกคำนวณใหม่เป็น Office + Site (แก้ค่าเก่าที่ไม่ตรงกันให้กลับมาเท่ากัน)
+router.post("/api/add-total",
+  requireLogin,
+  [
+    body("code").trim().notEmpty(),
+    body("addQty").isInt({ min: 1 }),
+  ],
+  validate,
+  async (req, res) => {
+    if (req.session.user.role !== "admin") {
+      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
+    }
+    try {
+      const { code, addQty } = req.body;
+      const sheets = await getSheetsClient();
+
+      const masterRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Master!A2:I",
+      });
+      const masterData = masterRes.data.values || [];
+      const mIndex = masterData.findIndex((r) => r[0] === code);
+      if (mIndex === -1) return res.status(404).json({ error: "ไม่พบสินค้า" });
+
+      const officeRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Office!A2:C",
+      });
+      const officeData = officeRes.data.values || [];
+      const oIndex = officeData.findIndex((r) => r[0] === code);
+      if (oIndex === -1) return res.status(404).json({ error: "ไม่พบสินค้าใน Stock_Office" });
+
+      const siteRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Site!A2:C",
+      });
+      const siteData = siteRes.data.values || [];
+      const sIndex = siteData.findIndex((r) => r[0] === code);
+      const siteQty = sIndex !== -1 ? parseInt(siteData[sIndex][2] || 0) : 0;
+
+      const officeQty = parseInt(officeData[oIndex][2] || 0) + addQty;
+      const newTotal = officeQty + siteQty;
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Stock_Master!F${mIndex + 2}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [[newTotal]] },
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Stock_Office!C${oIndex + 2}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [[officeQty]] },
+      });
+      clearStockCache();
+
+// ✅ บันทึก Audit Log
+await logAudit(
+  "เพิ่มจำนวน Stock",
+  "Stock",
+  `รหัส: ${code}, เพิ่ม: ${addQty}, Office ใหม่: ${officeQty}, Site: ${siteQty}, รวม: ${newTotal}`,
+  req.session.user.username,
+  req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+);
+
+res.json({ success: true, office: officeQty, site: siteQty, total: newTotal });
+    } catch (err) {
+      console.error("Add total error:", err);
+      res.status(500).json({ error: "Add total error" });
+    }
+  }
+);
+
+// -------------------- SET QUANTITIES (แก้ไข Office + Site โดยตรง) --------------------
+// ปุ่ม "แก้ไข" ในหน้าเว็บ — กรอก Office และ Site ได้เต็มๆ Total = Office + Site อัตโนมัติ
+router.post("/api/set-quantities",
+  requireLogin,
+  [
+    body("code").trim().notEmpty(),
+    body("office").isInt({ min: 0 }),
+    body("site").isInt({ min: 0 }),
+  ],
+  validate,
+  async (req, res) => {
+    if (req.session.user.role !== "admin") {
+      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
+    }
+    try {
+      const { code, office, site } = req.body;
+      const officeQty = parseInt(office);
+      const siteQty = parseInt(site);
+      const sheets = await getSheetsClient();
+
+      const masterRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Master!A2:I",
+      });
+      const masterData = masterRes.data.values || [];
+      const mIndex = masterData.findIndex((r) => r[0] === code);
+      if (mIndex === -1) return res.status(404).json({ error: "ไม่พบสินค้า" });
+
+      const officeRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Office!A2:C",
+      });
+      const officeData = officeRes.data.values || [];
+      const oIndex = officeData.findIndex((r) => r[0] === code);
+      if (oIndex === -1) return res.status(404).json({ error: "ไม่พบสินค้าใน Stock_Office" });
+
+      const siteRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Stock_Site!A2:C",
+      });
+      const siteData = siteRes.data.values || [];
+      const sIndex = siteData.findIndex((r) => r[0] === code);
+      if (sIndex === -1) return res.status(404).json({ error: "ไม่พบสินค้าใน Stock_Site" });
+
+      const newTotal = officeQty + siteQty;
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Stock_Master!F${mIndex + 2}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [[newTotal]] },
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Stock_Office!C${oIndex + 2}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [[officeQty]] },
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Stock_Site!C${sIndex + 2}`,
+        valueInputOption: "RAW",
+        requestBody: { values: [[siteQty]] },
+      });
+      clearStockCache();
+
+// ✅ บันทึก Audit Log
+await logAudit(
+  "แก้ไขจำนวน (Office/Site)",
+  "Stock",
+  `รหัส: ${code}, Office: ${officeQty}, Site: ${siteQty}, รวม: ${newTotal}`,
+  req.session.user.username,
+  req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+);
+
+res.json({ success: true, office: officeQty, site: siteQty, total: newTotal });
+    } catch (err) {
+      console.error("Set quantities error:", err);
+      res.status(500).json({ error: "Set quantities error" });
     }
   }
 );
@@ -621,12 +837,17 @@ router.post("/api/add-item",
       const imageUrl = `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image/images/${code}.${ext}`;
 
       // 1) Stock_Master (A:I) — เก็บ ext ไว้ที่คอลัมน์ I ให้หน้าเว็บรู้จักไฟล์รูป
-      await sheets.spreadsheets.values.append({
+      // ⚠️ ห้ามใช้ values.append ช่วง "A:I" — Google เจอคอลัมน์ว่าง (C, E, H) + คอลัมน์ I เต็มเฉพาะบางแถว
+      //    → ตี "table" ผิด เริ่มเขียนแถวใหม่ที่คอลัมน์ I (ลากไป Q) ทำให้ระบบอ่านไม่เจอ (อ่าน code จาก A)
+      //    จึงเขียนแบบกำหนดแถวชัดเจน: แถวถัดจากแถวสุดท้ายของคอลัมน์ A ใน Stock_Master
+      const masterCodes = (masterRes.data.values || []).map((r) => r[0]);
+      const nextMasterRow = masterCodes.length + 2;
+      await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
-        range: "Stock_Master!A:I",
+        range: `Stock_Master!A${nextMasterRow}:I${nextMasterRow}`,
         valueInputOption: "USER_ENTERED",
         requestBody: {
-          values: [[code, name, `=IMAGE("${imageUrl}")`, "", "", effectiveTotal, "", "", ext]],
+          values: [[code, name, ext ? `=IMAGE("${imageUrl}")` : "", "", "", effectiveTotal, effectiveTotal, "", ext]],
         },
       });
 

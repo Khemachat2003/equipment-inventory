@@ -19,6 +19,8 @@ export default function Stock() {
   const [confirmBorrow, setConfirmBorrow] = useState(null);
   const [cart, setCart] = useState({});
   const [notice, setNotice] = useState('');
+  const [addPrompt, setAddPrompt] = useState(null);
+  const [editPrompt, setEditPrompt] = useState(null);
   const busyBorrow = useBusy();
 
   const load = useCallback(async () => {
@@ -115,21 +117,14 @@ export default function Stock() {
     });
   }
 
-  async function editTotal(code, current) {
-    const n = prompt('แก้ไขจำนวนทั้งหมด:', current);
-    if (n === null) return;
-    await busyBorrow.run('กำลังบันทึกจำนวน...', async () => {
-      try {
-        const { data } = await axios.post('/api/update-total', { code, newTotal: parseInt(n) });
-        if (data.error) alert(data.error);
-        else {
-          await load();
-          flash('บันทึกจำนวนเรียบร้อย');
-        }
-      } catch (e) {
-        alert('เกิดข้อผิดพลาด');
-      }
-    });
+  // ปุ่ม "แก้ไข" — เปิด modal กรอก Office + Site (prompt() โดนบล็อกใน iframe จึงใช้ modal)
+  function editTotal(code, office, site) {
+    setEditPrompt({ code, office, site });
+  }
+
+  // ปุ่ม "+" — เปิด modal กรอกจำนวนที่จะเพิ่ม (บวกเข้ากับของเดิมที่ Office)
+  function addQty(code, total) {
+    setAddPrompt({ code, total });
   }
 
   function flash(msg) {
@@ -302,8 +297,10 @@ export default function Stock() {
                         code={item.code}
                         total={item.total}
                         officeQty={oq}
+                        siteQty={item.site}
                         cartQty={cart[item.code]?.qty || 0}
                         onEdit={editTotal}
+                        onAddQty={addQty}
                         onAddToCart={addToCart}
                         onAdjust={(d) => adjustCart(item.code, d)}
                       />
@@ -363,8 +360,10 @@ export default function Stock() {
                   code={item.code}
                   total={item.total}
                   officeQty={oq}
+                  siteQty={item.site}
                   cartQty={cart[item.code]?.qty || 0}
                   onEdit={editTotal}
+                  onAddQty={addQty}
                   onAddToCart={addToCart}
                   onAdjust={(d) => adjustCart(item.code, d)}
                 />
@@ -415,12 +414,39 @@ export default function Stock() {
 
       {returnOpen && <ReturnModal onClose={() => setReturnOpen(false)} onDone={() => { load(); setReturnOpen(false); }} />}
       {addOpen && <AddModal onClose={() => setAddOpen(false)} onDone={() => { load(); setAddOpen(false); }} />}
+      {addPrompt && (
+        <AddQtyModal
+          code={addPrompt.code}
+          total={addPrompt.total}
+          onClose={() => setAddPrompt(null)}
+          onDone={async (a, res) => {
+            setAddPrompt(null);
+            await load();
+            flash(`เพิ่ม ${a} ชิ้น → Office ${res.office} | Site ${res.site} | รวม ${res.total}`);
+          }}
+          onError={(msg) => alert(msg)}
+        />
+      )}
+      {editPrompt && (
+        <EditQtyModal
+          code={editPrompt.code}
+          initialOffice={editPrompt.office}
+          initialSite={editPrompt.site}
+          onClose={() => setEditPrompt(null)}
+          onDone={async (res) => {
+            setEditPrompt(null);
+            await load();
+            flash(`บันทึกแล้ว → Office ${res.office} | Site ${res.site} | รวม ${res.total}`);
+          }}
+          onError={(msg) => alert(msg)}
+        />
+      )}
       <BusyOverlay label={busyBorrow.busyLabel} />
     </div>
   );
 }
 
-function RowActions({ code, total, officeQty, cartQty, onEdit, onAddToCart, onAdjust }) {
+function RowActions({ code, total, officeQty, siteQty, cartQty, onEdit, onAddQty, onAddToCart, onAdjust }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {cartQty > 0 ? (
@@ -455,9 +481,16 @@ function RowActions({ code, total, officeQty, cartQty, onEdit, onAddToCart, onAd
         </button>
       )}
       <button
-        onClick={() => onEdit(code, total)}
+        onClick={() => onAddQty(code, total)}
+        className="w-8 h-8 rounded-lg border border-[var(--emerald-b)] bg-[var(--emerald-l)] text-[var(--emerald-d)] flex items-center justify-center hover:bg-[var(--emerald)] hover:text-white shrink-0"
+        title="เพิ่มจำนวน (บวกเข้ากับของเดิมที่ Office)"
+      >
+        <Icon name="add" size="sm" />
+      </button>
+      <button
+        onClick={() => onEdit(code, officeQty, siteQty || 0)}
         className="w-8 h-8 rounded-lg border border-[var(--g300)] text-[var(--tsub)] flex items-center justify-center hover:bg-[var(--surface2)] shrink-0"
-        title="แก้ไข"
+        title="แก้ไข (ตั้งค่า Office และ Site)"
       >
         <Icon name="edit" size="sm" />
       </button>
@@ -589,7 +622,7 @@ function AddModal({ onClose, onDone }) {
   const [office, setOffice] = useState('');
   const [site, setSite] = useState('');
   const [file, setFile] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const busy = useBusy();
 
   // ถ้ากรอก Office/Site → รวม = Office+Site, ไม่กรอก → รวม = จำนวนทั้งหมด (ของอยู่ Office ทั้งหมด)
   const officeN = office === '' || office == null ? null : parseInt(office);
@@ -603,49 +636,44 @@ function AddModal({ onClose, onDone }) {
     if (!['jpg', 'jpeg', 'png'].includes(ext)) return alert('รองรับ JPG/PNG เท่านั้น');
     if (officeN == null && siteN == null && (qty === '' || parseInt(qty) < 0))
       return alert('กรอกจำนวนให้ถูกต้อง');
-    setBusy(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
+    await busy.run('กำลังเพิ่มอุปกรณ์...', async () => {
+      try {
+        const base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+        const up = await (await fetch('/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: code + '.' + ext, base64 }),
+        })).json();
+        if (!up.success) return alert('อัปโหลดรูปไม่สำเร็จ: ' + (up.error || 'ไม่ทราบสาเหตุ'));
+        const off = officeN == null && siteN == null ? parseInt(qty) || 0 : officeN || 0;
+        const sit = siteN == null ? 0 : siteN || 0;
         try {
-          const up = await (await fetch('/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileName: code + '.' + ext, base64: e.target.result }),
-          })).json();
-          if (!up.success) return alert('อัปโหลดรูปไม่สำเร็จ: ' + (up.error || 'ไม่ทราบสาเหตุ'));
-          const off = officeN == null && siteN == null ? parseInt(qty) || 0 : officeN || 0;
-          const sit = siteN == null ? 0 : siteN || 0;
-          try {
-            const { data } = await axios.post('/api/add-item', {
-              code,
-              name,
-              total: off + sit,
-              office: off,
-              site: sit,
-              ext,
-            });
-            if (!data.success) return alert(data.error || 'เพิ่มอุปกรณ์ไม่สำเร็จ');
-            alert('เพิ่มอุปกรณ์สำเร็จ');
-            onDone();
-          } catch (err) {
-            alert(err?.response?.data?.error || 'เกิดข้อผิดพลาด');
-          }
-        } catch (e) {
-          alert('เกิดข้อผิดพลาด');
-        } finally {
-          setBusy(false);
+          const { data } = await axios.post('/api/add-item', {
+            code,
+            name,
+            total: off + sit,
+            office: off,
+            site: sit,
+            ext,
+          });
+          if (!data.success) return alert(data.error || 'เพิ่มอุปกรณ์ไม่สำเร็จ');
+          alert('เพิ่มอุปกรณ์สำเร็จ');
+          onDone();
+        } catch (err) {
+          alert(err?.response?.data?.error || 'เกิดข้อผิดพลาด');
         }
-      };
-      reader.readAsDataURL(file);
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด');
-      setBusy(false);
-    }
+      } catch (e) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   return (
-    <Modal title="เพิ่มอุปกรณ์" onClose={onClose}>
+    <Modal title="เพิ่มอุปกรณ์" onClose={onClose} busyLabel={busy.busyLabel}>
       <Field label="รหัสอุปกรณ์" value={code} onChange={setCode} placeholder="เช่น AC-001" />
       <Field label="ชื่ออุปกรณ์" value={name} onChange={setName} />
       <Field label="จำนวนทั้งหมด" type="number" value={qty} onChange={setQty} placeholder="0" />
@@ -669,10 +697,107 @@ function AddModal({ onClose, onDone }) {
         </button>
         <button
           onClick={submit}
-          disabled={busy}
+          disabled={busy.busy}
           className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold disabled:opacity-60"
         >
-          {busy ? 'กำลังเพิ่ม...' : 'เพิ่มอุปกรณ์'}
+          {busy.busy ? 'กำลังเพิ่ม...' : 'เพิ่มอุปกรณ์'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function AddQtyModal({ code, total, onClose, onDone, onError }) {
+  const [addNum, setAddNum] = useState('');
+  const busy = useBusy();
+
+  async function confirm() {
+    const a = parseInt(addNum);
+    if (!a || a < 1) return onError('กรอกจำนวนที่จะเพิ่มอย่างน้อย 1');
+    await busy.run('กำลังเพิ่มจำนวน...', async () => {
+      try {
+        const { data } = await axios.post('/api/add-total', { code, addQty: a });
+        if (data.error) onError(data.error);
+        else onDone(a, data);
+      } catch (e) {
+        onError(e?.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
+  }
+
+  return (
+    <Modal title={`เพิ่มจำนวน ${code}`} onClose={onClose} busyLabel={busy.busyLabel}>
+      <div className="mb-3 text-[12px] text-[var(--tsub)]">
+        จำนวนปัจจุบัน: <b>{total}</b> ชิ้น — จำนวนที่เพิ่มจะบวกเข้ากับของเดิมที่ Office (Site คงเดิม)
+      </div>
+      <input
+        type="number"
+        min="1"
+        value={addNum}
+        onChange={(e) => setAddNum(e.target.value)}
+        placeholder="จำนวนที่จะเพิ่ม"
+        autoFocus
+        className="w-full h-9 px-3 rounded-lg border border-[var(--g200)] text-[13px] focus:outline-none focus:border-[var(--blue)]"
+        onKeyDown={(e) => e.key === 'Enter' && !busy.busy && confirm()}
+      />
+      <div className="flex justify-end gap-2 mt-4">
+        <button onClick={onClose} className="px-3 py-2 rounded-lg border border-[var(--g300)] text-[13px]">
+          ยกเลิก
+        </button>
+        <button
+          onClick={confirm}
+          disabled={busy.busy}
+          className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold disabled:opacity-60"
+        >
+          {busy.busy ? 'กำลังเพิ่ม...' : 'เพิ่มจำนวน'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function EditQtyModal({ code, initialOffice, initialSite, onClose, onDone, onError }) {
+  const [office, setOffice] = useState(String(initialOffice ?? 0));
+  const [site, setSite] = useState(String(initialSite ?? 0));
+  const busy = useBusy();
+
+  const officeN = office === '' ? 0 : parseInt(office);
+  const siteN = site === '' ? 0 : parseInt(site);
+  const liveTotal = (isNaN(officeN) ? 0 : officeN) + (isNaN(siteN) ? 0 : siteN);
+
+  async function confirm() {
+    const off = office.replace(/\D/g, '') === '' ? 0 : parseInt(office);
+    const sit = site.replace(/\D/g, '') === '' ? 0 : parseInt(site);
+    await busy.run('กำลังบันทึก...', async () => {
+      try {
+        const { data } = await axios.post('/api/set-quantities', { code, office: off, site: sit });
+        if (data.error) onError(data.error);
+        else onDone(data);
+      } catch (e) {
+        onError(e?.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
+  }
+
+  return (
+    <Modal title={`แก้ไขจำนวน ${code}`} onClose={onClose} busyLabel={busy.busyLabel}>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Office" type="number" value={office} onChange={setOffice} placeholder="0" />
+        <Field label="Site" type="number" value={site} onChange={setSite} placeholder="0" />
+      </div>
+      <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--surface2)] border border-[var(--g100)] text-[12px] text-[var(--tsub)]">
+        รวมทั้งหมด: <span className="font-bold text-[var(--blue)]">{liveTotal}</span> ชิ้น (คำนวณจาก Office + Site อัตโนมัติ)
+      </div>
+      <div className="flex justify-end gap-2 mt-4">
+        <button onClick={onClose} className="px-3 py-2 rounded-lg border border-[var(--g300)] text-[13px]">
+          ยกเลิก
+        </button>
+        <button
+          onClick={confirm}
+          disabled={busy.busy}
+          className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold disabled:opacity-60"
+        >
+          {busy.busy ? 'กำลังบันทึก...' : 'บันทึก'}
         </button>
       </div>
     </Modal>
@@ -769,7 +894,7 @@ function Field({ label, value, onChange, placeholder, type = 'text' }) {
   );
 }
 
-function Modal({ title, onClose, children }) {
+function Modal({ title, onClose, children, busyLabel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-[var(--sh-lg)]">
@@ -781,6 +906,7 @@ function Modal({ title, onClose, children }) {
         </div>
         <div className="p-5">{children}</div>
       </div>
+      <BusyOverlay label={busyLabel} />
     </div>
   );
 }

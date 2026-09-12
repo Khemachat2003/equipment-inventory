@@ -5,6 +5,7 @@ import { BarcodeFormat } from '@zxing/library';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
 const FORMATS = [
   BarcodeFormat.QR_CODE,
@@ -151,6 +152,7 @@ export default function ScanPage() {
   const [miss, setMiss] = useState('');
   const [history, setHistory] = useState(null);
   const [transfer, setTransfer] = useState(null);
+  const busy = useBusy();
 
   function reset() {
     foundRef.current = false;
@@ -200,10 +202,12 @@ export default function ScanPage() {
 
   async function openHistory(serial) {
     if (history && history.serial === serial) return setHistory(null);
-    try {
-      const { data } = await axios.get(`/api/asset-history/${encodeURIComponent(serial)}`);
-      setHistory({ serial, logs: data || [] });
-    } catch (e) { alert('โหลดประวัติไม่ได้'); }
+    await busy.run('กำลังโหลดประวัติ...', async () => {
+      try {
+        const { data } = await axios.get(`/api/asset-history/${encodeURIComponent(serial)}`);
+        setHistory({ serial, logs: data || [] });
+      } catch (e) { alert('โหลดประวัติไม่ได้'); }
+    });
   }
 
   function refresh() { if (asset) resolve(asset.serialNumber); }
@@ -341,6 +345,8 @@ export default function ScanPage() {
           current={{ status: transfer.status, location: transfer.location, siteName: transfer.siteName, user: transfer.user }}
         />
       )}
+
+      <BusyOverlay label={busy.busyLabel} />
     </div>
   );
 }

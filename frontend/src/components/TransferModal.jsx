@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Icon from './ui/Icon.jsx';
+import { useBusy, BusyOverlay } from './ui/Busy.jsx';
 
 // Shared Transfer Modal — จำลอง openTransferModal จากระบบเดิม
 // ใช้ได้ทั้งหน้า Asset / Bundle / Farm Monitor
@@ -29,7 +30,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
   const [location, setLocation] = useState('');
   const [user, setUser] = useState('');
   const [remark, setRemark] = useState('');
-  const [saving, setSaving] = useState(false);
+  const busy = useBusy();
 
   const cur = current || {};
   const showFarm =
@@ -96,20 +97,19 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
       houseName: houseId ? (houses.find((h) => h.houseId === houseId)?.houseName || houseFree) : houseFree || '-',
     };
 
-    setSaving(true);
-    try {
-      const { data } = await axios.post('/api/transfer-asset', body);
-      if (data.success) {
-        onSuccess && onSuccess();
-        onClose();
-      } else {
-        alert(data.error || 'เกิดข้อผิดพลาด');
+    await busy.run('กำลังโอนย้าย...', async () => {
+      try {
+        const { data } = await axios.post('/api/transfer-asset', body);
+        if (data.success) {
+          onSuccess && onSuccess();
+          onClose();
+        } else {
+          alert(data.error || 'เกิดข้อผิดพลาด');
+        }
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
       }
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    } finally {
-      setSaving(false);
-    }
+    });
   }
 
   if (!open) return null;
@@ -204,13 +204,14 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
           <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[var(--g300)] text-[13px] text-[var(--tsub)] hover:bg-white">ยกเลิก</button>
           <button
             onClick={submit}
-            disabled={saving}
+            disabled={busy.busy}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)] disabled:opacity-60"
           >
-            <Icon name="check" size="sm" /> {saving ? 'กำลังโอนย้าย...' : 'ยืนยันโอนย้าย'}
+            <Icon name="check" size="sm" /> {busy.busy ? 'กำลังโอนย้าย...' : 'ยืนยันโอนย้าย'}
           </button>
         </div>
       </div>
+      <BusyOverlay label={busy.busyLabel} />
     </div>
   );
 }

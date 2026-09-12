@@ -1,50 +1,46 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Icon from '../../components/ui/Icon.jsx';
+import { useBusy, BusyOverlay } from '../../components/ui/Busy.jsx';
 
 export default function AdminTools() {
-  const [backupBusy, setBackupBusy] = useState(false);
   const [backupResult, setBackupResult] = useState('');
-  const [fullBackupBusy, setFullBackupBusy] = useState(false);
   const [fullBackupResult, setFullBackupResult] = useState('');
-  const [cacheBusy, setCacheBusy] = useState(false);
+  const busy = useBusy();
 
   async function doFullBackup() {
-    setFullBackupBusy(true);
     setFullBackupResult('');
-    try {
-      const { data } = await axios.post('/api/full-backup');
-      setFullBackupResult(data.message || 'Backup สำเร็จ');
-    } catch (e) {
-      setFullBackupResult('ไม่สำเร็จ: ' + (e.response?.data?.error || 'Backup ล้มเหลว'));
-    } finally {
-      setFullBackupBusy(false);
-    }
+    await busy.run('กำลังทำ Full Backup...', async () => {
+      try {
+        const { data } = await axios.post('/api/full-backup');
+        setFullBackupResult(data.message || 'Backup สำเร็จ');
+      } catch (e) {
+        setFullBackupResult('ไม่สำเร็จ: ' + (e.response?.data?.error || 'Backup ล้มเหลว'));
+      }
+    });
   }
 
   async function doBackup() {
-    setBackupBusy(true);
     setBackupResult('');
-    try {
-      const { data } = await axios.post('/api/backup');
-      setBackupResult(data.message || 'Backup สำเร็จ');
-    } catch (e) {
-      setBackupResult('ไม่สำเร็จ: ' + (e.response?.data?.error || 'Backup ล้มเหลว'));
-    } finally {
-      setBackupBusy(false);
-    }
+    await busy.run('กำลังทำ Quick Backup...', async () => {
+      try {
+        const { data } = await axios.post('/api/backup');
+        setBackupResult(data.message || 'Backup สำเร็จ');
+      } catch (e) {
+        setBackupResult('ไม่สำเร็จ: ' + (e.response?.data?.error || 'Backup ล้มเหลว'));
+      }
+    });
   }
 
   async function clearCache() {
-    setCacheBusy(true);
-    try {
-      await axios.post('/api/clear-cache');
-      alert('Cache ถูกเคลียร์แล้ว');
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด');
-    } finally {
-      setCacheBusy(false);
-    }
+    await busy.run('กำลังล้าง Cache...', async () => {
+      try {
+        await axios.post('/api/clear-cache');
+        alert('Cache ถูกเคลียร์แล้ว');
+      } catch (e) {
+        alert('เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   return (
@@ -63,10 +59,10 @@ export default function AdminTools() {
           </div>
           <button
             onClick={doFullBackup}
-            disabled={fullBackupBusy}
+            disabled={busy.busy}
             className="mt-3 px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)] disabled:opacity-60"
           >
-            {fullBackupBusy ? 'กำลัง Backup...' : 'Start Full Backup'}
+            {busy.busy ? 'กำลัง Backup...' : 'Start Full Backup'}
           </button>
           {fullBackupResult && <div className="mt-3 text-[12px] text-[var(--tsub)]">{fullBackupResult}</div>}
         </div>
@@ -84,10 +80,10 @@ export default function AdminTools() {
           </div>
           <button
             onClick={doBackup}
-            disabled={backupBusy}
+            disabled={busy.busy}
             className="mt-3 px-4 py-2 rounded-lg bg-[var(--amber)] text-white text-[13px] font-semibold hover:bg-[var(--amber)] dark disabled:opacity-60"
           >
-            {backupBusy ? 'กำลัง Backup...' : 'Start Backup'}
+            {busy.busy ? 'กำลัง Backup...' : 'Start Backup'}
           </button>
           {backupResult && <div className="mt-3 text-[12px] text-[var(--tsub)]">{backupResult}</div>}
         </div>
@@ -105,13 +101,15 @@ export default function AdminTools() {
           </div>
           <button
             onClick={clearCache}
-            disabled={cacheBusy}
+            disabled={busy.busy}
             className="mt-3 px-4 py-2 rounded-lg bg-[var(--red)] text-white text-[13px] font-semibold hover:bg-[var(--red-b)] disabled:opacity-60"
           >
             <Icon name="refresh" size="sm" /> Clear Cache
           </button>
         </div>
       </div>
+
+      <BusyOverlay label={busy.busyLabel} />
     </div>
   );
 }

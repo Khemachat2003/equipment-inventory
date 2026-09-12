@@ -5,6 +5,7 @@ import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import StatPill from '../components/ui/StatPill.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const TYPE_ICONS = { 'สัตว์ปีก': 'egg', 'สัตว์บก': 'pets', 'สุกร': 'agriculture', 'อื่นๆ': 'category', 'ไม่ระบุ': 'help' };
@@ -384,25 +385,24 @@ function AddFarmSiteModal({ isAdmin, onClose, onDone }) {
   const [province, setProvince] = useState('');
   const [manager, setManager] = useState('');
   const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
+  const busy = useBusy();
 
   async function submit() {
     if (!siteId || !siteName) return alert('กรุณากรอกรหัสและชื่อฟาร์ม');
     if (!isAdmin) return alert('ไม่มีสิทธิ์');
-    setSaving(true);
-    try {
-      const { data } = await axios.post('/api/add-farm-site', { siteId, siteName, farmType, province, manager, note });
-      if (data.success) { alert('เพิ่มฟาร์มสำเร็จ'); onDone && onDone(); onClose(); }
-      else alert('เกิดข้อผิดพลาด: ' + (data.error || 'เพิ่มฟาร์มไม่สำเร็จ'));
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || 'ไม่สามารถเชื่อมต่อได้'));
-    } finally {
-      setSaving(false);
-    }
+    await busy.run('กำลังเพิ่มฟาร์ม...', async () => {
+      try {
+        const { data } = await axios.post('/api/add-farm-site', { siteId, siteName, farmType, province, manager, note });
+        if (data.success) { alert('เพิ่มฟาร์มสำเร็จ'); onDone && onDone(); onClose(); }
+        else alert('เกิดข้อผิดพลาด: ' + (data.error || 'เพิ่มฟาร์มไม่สำเร็จ'));
+      } catch (e) {
+        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || 'ไม่สามารถเชื่อมต่อได้'));
+      }
+    });
   }
 
   return (
-    <Modal onClose={onClose} title="เพิ่มฟาร์ม" submitLabel="บันทึกฟาร์ม" onSubmit={submit} saving={saving}>
+    <Modal onClose={onClose} title="เพิ่มฟาร์ม" submitLabel="บันทึกฟาร์ม" onSubmit={submit} saving={busy.busy} busyLabel={busy.busyLabel}>
       <F2 label="รหัสฟาร์ม (Site ID) *"><input value={siteId} onChange={(e) => setSiteId(e.target.value.toUpperCase())} className={inp} /></F2>
       <F2 label="ชื่อฟาร์ม *"><input value={siteName} onChange={(e) => setSiteName(e.target.value)} className={inp} /></F2>
       <F2 label="ประเภทฟาร์ม"><select value={farmType} onChange={(e) => setFarmType(e.target.value)} className={inp}>{FARM_TYPES.map((t) => <option key={t}>{t}</option>)}</select></F2>
@@ -421,7 +421,7 @@ function AddFarmHouseModal({ isAdmin, onClose, onDone }) {
   const [houseType, setHouseType] = useState('');
   const [capacity, setCapacity] = useState('');
   const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
+  const busy = useBusy();
 
   useEffect(() => {
     axios.get('/api/farm-sites').then(({ data }) => setSites(data || [])).catch(() => {});
@@ -430,20 +430,19 @@ function AddFarmHouseModal({ isAdmin, onClose, onDone }) {
   async function submit() {
     if (!houseId || !siteId || !houseName) return alert('กรุณากรอกข้อมูลให้ครบ');
     if (!isAdmin) return alert('ไม่มีสิทธิ์');
-    setSaving(true);
-    try {
-      const { data } = await axios.post('/api/add-farm-house', { houseId, siteId, houseName, houseType, capacity, note });
-      if (data.success) { alert('เพิ่มโรงเรือนสำเร็จ'); onDone && onDone(); onClose(); }
-      else alert('เกิดข้อผิดพลาด: ' + (data.error || 'เพิ่มโรงเรือนไม่สำเร็จ'));
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || 'ไม่สามารถเชื่อมต่อได้'));
-    } finally {
-      setSaving(false);
-    }
+    await busy.run('กำลังเพิ่มโรงเรือน...', async () => {
+      try {
+        const { data } = await axios.post('/api/add-farm-house', { houseId, siteId, houseName, houseType, capacity, note });
+        if (data.success) { alert('เพิ่มโรงเรือนสำเร็จ'); onDone && onDone(); onClose(); }
+        else alert('เกิดข้อผิดพลาด: ' + (data.error || 'เพิ่มโรงเรือนไม่สำเร็จ'));
+      } catch (e) {
+        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || 'ไม่สามารถเชื่อมต่อได้'));
+      }
+    });
   }
 
   return (
-    <Modal onClose={onClose} title="เพิ่มโรงเรือน" submitLabel="บันทึกโรงเรือน" onSubmit={submit} saving={saving}>
+    <Modal onClose={onClose} title="เพิ่มโรงเรือน" submitLabel="บันทึกโรงเรือน" onSubmit={submit} saving={busy.busy} busyLabel={busy.busyLabel}>
       <F2 label="รหัสโรงเรือน *"><input value={houseId} onChange={(e) => setHouseId(e.target.value.toUpperCase())} className={inp} /></F2>
       <F2 label="ฟาร์ม *">
         <select value={siteId} onChange={(e) => setSiteId(e.target.value)} className={inp}>
@@ -459,7 +458,7 @@ function AddFarmHouseModal({ isAdmin, onClose, onDone }) {
   );
 }
 
-function Modal({ onClose, title, submitLabel, onSubmit, saving, children }) {
+function Modal({ onClose, title, submitLabel, onSubmit, saving, busyLabel, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
@@ -473,6 +472,7 @@ function Modal({ onClose, title, submitLabel, onSubmit, saving, children }) {
           <button onClick={onSubmit} disabled={saving} className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold disabled:opacity-60">{saving ? 'กำลังบันทึก...' : '✓ ' + submitLabel}</button>
         </div>
       </div>
+      <BusyOverlay label={busyLabel} />
     </div>
   );
 }

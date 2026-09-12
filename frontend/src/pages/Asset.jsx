@@ -5,6 +5,7 @@ import StatusBadge from '../components/ui/StatusBadge.jsx';
 import StatPill from '../components/ui/StatPill.jsx';
 import Pagination from '../components/ui/Pagination.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { CATEGORY_FALLBACK, categoryIcon, categoryLabel } from '../data/categories.js';
 
 export default function Asset() {
@@ -23,6 +24,7 @@ export default function Asset() {
   const [addOpen, setAddOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const busy = useBusy();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,12 +97,14 @@ export default function Asset() {
   }, [filtered]);
 
   async function openHistory(serial) {
-    try {
-      const { data } = await axios.get(`/api/asset-history/${encodeURIComponent(serial)}`);
-      setHistory({ serial, logs: data || [] });
-    } catch (e) {
-      alert('โหลดประวัติไม่ได้');
-    }
+    await busy.run('กำลังโหลดประวัติ...', async () => {
+      try {
+        const { data } = await axios.get(`/api/asset-history/${encodeURIComponent(serial)}`);
+        setHistory({ serial, logs: data || [] });
+      } catch (e) {
+        alert('โหลดประวัติไม่ได้');
+      }
+    });
   }
 
   function doTransfer(a) {
@@ -331,6 +335,8 @@ export default function Asset() {
       {/* Add Asset / Bulk Add */}
       {addOpen && <AddAssetModal assets={assets} parts={parts} categoryList={categoryList} onClose={() => setAddOpen(false)} onDone={() => { setAddOpen(false); load(); }} />}
       {bulkOpen && <BulkAddModal parts={parts} categoryList={categoryList} onClose={() => setBulkOpen(false)} onDone={() => { setBulkOpen(false); load(); }} />}
+
+      <BusyOverlay label={busy.busyLabel} />
     </div>
   );
 }
@@ -422,7 +428,7 @@ function AddAssetModal({ assets, parts, categoryList = CATEGORY_FALLBACK, onClos
   const [siteName, setSiteName] = useState('Intranin');
   const [user, setUser] = useState('');
   const [sites, setSites] = useState([]);
-  const [busy, setBusy] = useState(false);
+  const busy = useBusy();
 
   useEffect(() => {
     axios.get('/api/farm-sites').then(({ data }) => setSites(data || [])).catch(() => {});
@@ -454,36 +460,35 @@ function AddAssetModal({ assets, parts, categoryList = CATEGORY_FALLBACK, onClos
     const pn = partNumber.trim().toUpperCase();
     if (!pn || !partName.trim()) return alert('กรุณากรอก Part Number และชื่ออุปกรณ์');
     const exists = parts.some((p) => p.partNumber === pn);
-    setBusy(true);
-    try {
-      if (!exists) {
-        const r = await axios.post('/api/add-part', { partNumber: pn, partName: partName.trim(), category, description, unit });
-        if (r.data && r.data.error) { alert('ไม่สำเร็จ: ' + r.data.error); return; }
+    await busy.run('กำลังเพิ่ม Part + Asset...', async () => {
+      try {
+        if (!exists) {
+          const r = await axios.post('/api/add-part', { partNumber: pn, partName: partName.trim(), category, description, unit });
+          if (r.data && r.data.error) { alert('ไม่สำเร็จ: ' + r.data.error); return; }
+        }
+        const r = await axios.post('/api/add-asset', {
+          assetId,
+          name: partName.trim(),
+          code: pn,
+          partNumber: pn,
+          serialNumber: serialPreview,
+          status,
+          location: location.trim() || '-',
+          siteName,
+          user: user.trim() || '',
+        });
+        if (r.data.success) {
+          alert(`เพิ่ม Part + Asset สำเร็จ\nAsset ID: ${assetId}\nSerial: ${serialPreview}`);
+          onDone();
+        } else alert('ไม่สำเร็จ: ' + (r.data.error || 'เพิ่ม Asset ไม่สำเร็จ'));
+      } catch (e) {
+        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message));
       }
-      const r = await axios.post('/api/add-asset', {
-        assetId,
-        name: partName.trim(),
-        code: pn,
-        partNumber: pn,
-        serialNumber: serialPreview,
-        status,
-        location: location.trim() || '-',
-        siteName,
-        user: user.trim() || '',
-      });
-      if (r.data.success) {
-        alert(`เพิ่ม Part + Asset สำเร็จ\nAsset ID: ${assetId}\nSerial: ${serialPreview}`);
-        onDone();
-      } else alert('ไม่สำเร็จ: ' + (r.data.error || 'เพิ่ม Asset ไม่สำเร็จ'));
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message));
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   return (
-    <AssetModal title="เพิ่ม Part + Asset ใหม่" submitLabel="เพิ่ม Part + Asset" onSubmit={submit} busy={busy} onClose={onClose}>
+    <AssetModal title="เพิ่ม Part + Asset ใหม่" submitLabel="เพิ่ม Part + Asset" onSubmit={submit} busy={busy.busy} busyLabel={busy.busyLabel} onClose={onClose}>
       <p className="text-[11px] text-[var(--tmuted)] -mt-1">สร้าง Part ใหม่ในคลังและเพิ่ม Asset 1 ชิ้น — Asset ID/Serial รันอัตโนมัติ</p>
       <AField label="Part Number *"><input value={partNumber} onChange={(e) => setPartNumber(e.target.value.toUpperCase())} placeholder="เช่น SEN.TEMP-RS485" className={ain} /></AField>
       <AField label="ชื่ออุปกรณ์ *"><input value={partName} onChange={(e) => setPartName(e.target.value)} className={ain} /></AField>
@@ -532,7 +537,7 @@ function BulkAddModal({ parts, categoryList = CATEGORY_FALLBACK, onClose, onDone
   const [location, setLocation] = useState('Stock');
   const [user, setUser] = useState('');
   const [sites, setSites] = useState([]);
-  const [busy, setBusy] = useState(false);
+  const busy = useBusy();
 
   useEffect(() => {
     axios.get('/api/farm-sites').then(({ data }) => setSites(data || [])).catch(() => {});
@@ -556,30 +561,29 @@ function BulkAddModal({ parts, categoryList = CATEGORY_FALLBACK, onClose, onDone
   async function submit() {
     const n = parseInt(qty);
     if (!partNumber.trim() || !partName.trim() || !n) return alert('กรอกข้อมูลให้ครบ');
-    setBusy(true);
-    try {
-      const { data } = await axios.post('/api/bulk-add-asset', {
-        partNumber: partNumber.trim().toUpperCase(),
-        partName: partName.trim(),
-        qty: n,
-        status,
-        siteName,
-        location: location.trim(),
-        user: user.trim(),
-      });
-      if (data.success) {
-        alert(`เพิ่ม ${data.added} ชิ้นสำเร็จ\nSerial: ${data.firstSerial} ~ ${data.lastSerial}`);
-        onDone();
-      } else alert('เกิดข้อผิดพลาด: ' + (data.error || ''));
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message));
-    } finally {
-      setBusy(false);
-    }
+    await busy.run('กำลังเพิ่ม Asset หลายชิ้น...', async () => {
+      try {
+        const { data } = await axios.post('/api/bulk-add-asset', {
+          partNumber: partNumber.trim().toUpperCase(),
+          partName: partName.trim(),
+          qty: n,
+          status,
+          siteName,
+          location: location.trim(),
+          user: user.trim(),
+        });
+        if (data.success) {
+          alert(`เพิ่ม ${data.added} ชิ้นสำเร็จ\nSerial: ${data.firstSerial} ~ ${data.lastSerial}`);
+          onDone();
+        } else alert('เกิดข้อผิดพลาด: ' + (data.error || ''));
+      } catch (e) {
+        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message));
+      }
+    });
   }
 
   return (
-    <AssetModal title="เพิ่ม Asset หลายชิ้น" submitLabel="เพิ่ม Asset" onSubmit={submit} busy={busy} onClose={onClose}>
+    <AssetModal title="เพิ่ม Asset หลายชิ้น" submitLabel="เพิ่ม Asset" onSubmit={submit} busy={busy.busy} busyLabel={busy.busyLabel} onClose={onClose}>
       <p className="text-[11px] text-[var(--tmuted)] -mt-1">สร้าง Asset หลายชิ้นพร้อมกันภายใต้ Part เดียว — Serial รันอัตโนมัติ</p>
       <AField label="เลือก Part (จากคลัง)">
         <select value={partNumber} onChange={(e) => selectPart(e.target.value)} className={ain}>
@@ -625,7 +629,7 @@ function BulkAddModal({ parts, categoryList = CATEGORY_FALLBACK, onClose, onDone
   );
 }
 
-function AssetModal({ title, submitLabel, onSubmit, busy, onClose, children }) {
+function AssetModal({ title, submitLabel, onSubmit, busy, busyLabel, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
@@ -641,6 +645,7 @@ function AssetModal({ title, submitLabel, onSubmit, busy, onClose, children }) {
           </button>
         </div>
       </div>
+      <BusyOverlay label={busyLabel} />
     </div>
   );
 }

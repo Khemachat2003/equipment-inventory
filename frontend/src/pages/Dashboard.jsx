@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import Icon from '../components/ui/Icon.jsx';
 import StatPill from '../components/ui/StatPill.jsx';
+import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Filler, Tooltip, Legend);
 
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [range, setRange] = useState(30);
   const [loading, setLoading] = useState(true);
+  const busy = useBusy();
 
   async function fetchData() {
     setLoading(true);
@@ -67,6 +69,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
+      <BusyOverlay label={busy.busyLabel} />
+
       {/* ══ Hero — ภาพรวมตัวเลขหลัก ══ */}
       <div className="relative overflow-hidden rounded-2xl bg-[var(--ink)] text-white shadow-[var(--sh-md)]">
         {/* decorative glow */}
@@ -83,7 +87,7 @@ export default function Dashboard() {
               </div>
             </div>
             <button
-              onClick={fetchData}
+              onClick={() => busy.run('กำลังโหลดข้อมูล...', fetchData)}
               title="รีเฟรชข้อมูล"
               className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-white/10 border border-white/15 text-[13px] font-medium text-white/80 hover:bg-white/20 hover:text-white transition-colors"
             >

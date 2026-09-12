@@ -6,6 +6,7 @@ import { useBusy, BusyOverlay } from '../../components/ui/Busy.jsx';
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [resetTarget, setResetTarget] = useState(null);
   const busy = useBusy();
 
   const load = useCallback(async () => {
@@ -37,17 +38,7 @@ export default function UserManagement() {
   }
 
   async function resetPassword(username) {
-    const newPassword = prompt(`ตั้งรหัสผ่านใหม่สำหรับ ${username}`);
-    if (!newPassword) return;
-    if (newPassword.length < 4) return alert('รหัสผ่านสั้นเกินไป (ขั้นต่ำ 4)');
-    await busy.run('กำลังรีเซ็ตรหัสผ่าน...', async () => {
-      try {
-        await axios.post(`/api/admin/users/${encodeURIComponent(username)}/reset-password`, { newPassword });
-        alert('เปลี่ยนรหัสผ่านสำเร็จ');
-      } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-      }
-    });
+    setResetTarget(username);
   }
 
   async function deleteUser(username) {
@@ -124,6 +115,70 @@ export default function UserManagement() {
         </div>
       </div>
       <BusyOverlay label={busy.busyLabel} />
+      {resetTarget && (
+        <PasswordResetModal
+          username={resetTarget}
+          onClose={() => setResetTarget(null)}
+          onDone={() => setResetTarget(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function PasswordResetModal({ username, onClose, onDone }) {
+  const [pwd, setPwd] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function confirm() {
+    if (!pwd) return alert('กรอกรหัสผ่านใหม่');
+    if (pwd.length < 4) return alert('รหัสผ่านสั้นเกินไป (ขั้นต่ำ 4)');
+    setBusy(true);
+    try {
+      await axios.post(`/api/admin/users/${encodeURIComponent(username)}/reset-password`, { newPassword: pwd });
+      alert('เปลี่ยนรหัสผ่านสำเร็จ');
+      onDone();
+    } catch (e) {
+      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-[var(--sh-lg)]">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--g100)]">
+          <div className="text-[14px] font-semibold text-[var(--text)]">ตั้งรหัสผ่านใหม่ · {username}</div>
+          <button onClick={onClose} className="text-[var(--tmuted)] hover:text-[var(--text)]">
+            <Icon name="close" size="md" />
+          </button>
+        </div>
+        <div className="p-5">
+          <label className="block text-[12px] font-medium text-[var(--tsub)] mb-1">รหัสผ่านใหม่ (ขั้นต่ำ 4)</label>
+          <input
+            type="password"
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            placeholder="รหัสผ่านใหม่"
+            autoFocus
+            className="w-full h-9 px-3 rounded-lg border border-[var(--g200)] text-[13px] focus:outline-none focus:border-[var(--blue)]"
+            onKeyDown={(e) => e.key === 'Enter' && !busy && confirm()}
+          />
+          <div className="flex justify-end gap-2 mt-4">
+            <button onClick={onClose} className="px-3 py-2 rounded-lg border border-[var(--g300)] text-[13px]">
+              ยกเลิก
+            </button>
+            <button
+              onClick={confirm}
+              disabled={busy}
+              className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold disabled:opacity-60"
+            >
+              {busy ? 'กำลังบันทึก...' : 'บันทึก'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

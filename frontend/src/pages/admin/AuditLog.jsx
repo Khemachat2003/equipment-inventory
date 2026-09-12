@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Icon from '../../components/ui/Icon.jsx';
+import { useBusy, BusyOverlay } from '../../components/ui/Busy.jsx';
 
 export default function AuditLog() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const busy = useBusy();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -37,7 +39,7 @@ export default function AuditLog() {
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-2">
         <button
-          onClick={load}
+          onClick={() => busy.run('กำลังโหลด Audit Log...', load)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]"
         >
           <Icon name="refresh" size="sm" /> รีเฟรช
@@ -99,6 +101,7 @@ export default function AuditLog() {
           </table>
         </div>
       </div>
+      <BusyOverlay label={busy.busyLabel} />
     </div>
   );
 }
