@@ -34,6 +34,11 @@ PATTERNS = [
     re.compile(r'''\bicon="([a-z_0-9]+)"'''),
 ]
 
+# dynamic name เช่น <Icon name={on ? 'videocam_off' : 'videocam'} />
+# → เก็บทุก string literal รูป icon ที่อยู่ใน name={...} มาด้วย
+DYN_NAME_RE = re.compile(r'''\bname=\{([^}]*)\}''')
+ICON_LITERAL_RE = re.compile(r'''['"`]([a-z0-9_]{2,})['"`]''')
+
 
 def collect_icon_names() -> set:
     names = set(EXTRA_ICONS)
@@ -42,6 +47,8 @@ def collect_icon_names() -> set:
         text = f.read_text(encoding="utf-8", errors="ignore")
         for pat in PATTERNS:
             names.update(pat.findall(text))
+        for block in DYN_NAME_RE.findall(text):
+            names.update(ICON_LITERAL_RE.findall(block))
     return names
 
 
@@ -50,7 +57,17 @@ def main() -> int:
         print(f"❌ ไม่พบ full font: {FULL_FONT}")
         return 1
     names = collect_icon_names()
-    # ชื่อ icon ตรงกับ glyph name ใน full font (เช่น 'inventory_2')
+    # ดึง glyph name ที่มีอยู่จริงใน full font → ตัดชื่อที่ไม่ใช่ icon ออกก่อนส่ง fonttools
+    from fontTools.ttLib import TTFont  # noqa: E402
+    _pre = TTFont(str(FULL_FONT))
+    _cmap = _pre.getBestCmap()
+    _valid_glyphs = set(_cmap.values())
+    valid_names = {n for n in names if n in _valid_glyphs}
+    skipped = sorted(names - valid_names)
+    if skipped:
+        print(f"⚠️  ตัดชื่อที่ไม่มี glyph ในฟอนต์ออก ({len(skipped)}): {', '.join(skipped)}")
+    names = valid_names
+    # glyph name ตรงกับ glyph name ใน full font (เช่น 'inventory_2')
     # → ระบุ --glyphs ตรงๆ เพื่อให้ ligature glyph ถูกเก็บมาด้วย
     #   (--text อย่างเดียวทำ closure ของ GSUB ligature ไม่ครบ → icon จะว่างเปล่า!)
     glyphs = ",".join(sorted(names))

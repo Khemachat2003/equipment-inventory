@@ -87,9 +87,10 @@ export const ICON_CODEPOINTS = {
   'table_view': 0xf1be,
   'trending_down': 0xe8e3,
   'trending_up': 0xe8e5,
+  'videocam': 0xe04b,
   'videocam_off': 0xe04c,
   'visibility': 0xe8f4,
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
 };
-// 90/90 icons mapped
+// 91/91 icons mapped

@@ -117,7 +117,14 @@ export default function ScanPage() {
       (expected ? console.info : console.error)('scan start error:', kind ? `${kind}: ${e.message || e}` : e);
       restoreConsole();
       if (kind === 'NotAllowedError') {
-        setError('เบราว์เซอร์ไม่อนุญาตให้ใช้กล้อง — กดไอคอนกล้อง/แม่กุญแจที่แถบ address bar แล้วเปิดสิทธิ์ Camera (ถ้าเปิดผ่านระบบ Portal ให้ผู้ดูแลเพิ่ม allow="camera" ใน iframe) หรือพิมพ์ Serial ด้านล่างแทน');
+        const inIframe = window.self !== window.top;
+        let policyBlocks = false;
+        try { policyBlocks = !!document.featurePolicy && document.featurePolicy.allowsFeature('camera') === false; } catch (_) {}
+        if (inIframe || policyBlocks) {
+          setError('ระบบเปิดกล้องไม่ได้ เพราะระบบ Portal ปิดสิทธิ์กล้องไว้ (iframe ยังไม่ allow="camera") — ให้ผู้ดูแลเพิ่ม allow="camera" ในแท็ก iframe แล้วลองใหม่ หรือพิมพ์ Serial ด้านล่างแทน');
+        } else {
+          setError('เบราว์เซอร์ไม่อนุญาตให้ใช้กล้อง — ตรวจว่าปิดเบราว์เซอร์/แอปอื่นที่ใช้กล้องอยู่ แล้วกดไอคอนแม่กุญแจ/กล้องที่ address bar เพื่อเปิดสิทธิ์ Camera (ต้องเปิดผ่าน https://) หรือพิมพ์ Serial ด้านล่างแทน');
+        }
       } else if (kind === 'NotFoundError' || kind === 'OverconstrainedError') {
         setError('ไม่พบกล้องในอุปกรณ์นี้ — ใช้ช่อง "พิมพ์ Serial" ด้านล่าง หรือเครื่องยิงบาร์โค้ด (USB Scanner) แทนได้เลย');
       } else {
