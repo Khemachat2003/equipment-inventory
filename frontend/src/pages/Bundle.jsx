@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
 const BTONES = {
   'In Stock': 'blue',
@@ -27,6 +28,7 @@ export default function Bundle() {
   const [transfer, setTransfer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
+  const busy = useBusy();
 
   const load = useCallback(async () => {
     try {
@@ -86,62 +88,72 @@ export default function Bundle() {
   }
 
   async function createBundle(data) {
-    try {
-      await axios.post('/api/bundles', data);
-      await load();
-      setCreateOpen(false);
-      alert('สร้าง Bundle สำเร็จ');
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    await busy.run('กำลังสร้าง Bundle...', async () => {
+      try {
+        await axios.post('/api/bundles', data);
+        await load();
+        setCreateOpen(false);
+        alert('สร้าง Bundle สำเร็จ');
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   async function removeAsset(bundleId, assetId) {
     if (!confirm(`นำ ${assetId} ออกจากชุด?`)) return;
-    try {
-      await axios.delete(`/api/bundles/${bundleId}/assets/${assetId}`);
-      await load();
-      await openDetail(bundleId);
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    await busy.run('กำลังนำอุปกรณ์ออกจากชุด...', async () => {
+      try {
+        await axios.delete(`/api/bundles/${bundleId}/assets/${assetId}`);
+        await load();
+        await openDetail(bundleId);
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   async function deploy(bundleId, farmId, farmName, note) {
-    try {
-      const { data } = await axios.post(`/api/bundles/${bundleId}/deploy`, { farmId, farmName, note });
-      await load();
-      setDeployOpen(null);
-      if (detail) await openDetail(bundleId);
-      alert(data.message || 'ย้ายสำเร็จ');
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    await busy.run('กำลังย้ายชุดไปฟาร์ม...', async () => {
+      try {
+        const { data } = await axios.post(`/api/bundles/${bundleId}/deploy`, { farmId, farmName, note });
+        await load();
+        setDeployOpen(null);
+        if (detail) await openDetail(bundleId);
+        alert(data.message || 'ย้ายสำเร็จ');
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   async function recall(bundleId) {
     if (!confirm('คืน Bundle กลับ Stock?')) return;
-    try {
-      const { data } = await axios.post(`/api/bundles/${bundleId}/recall`);
-      await load();
-      if (detail) await openDetail(bundleId);
-      alert(data.message || 'คืนสำเร็จ');
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    await busy.run('กำลังคืนชุดกลับ Stock...', async () => {
+      try {
+        const { data } = await axios.post(`/api/bundles/${bundleId}/recall`);
+        await load();
+        if (detail) await openDetail(bundleId);
+        alert(data.message || 'คืนสำเร็จ');
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   async function commitAddAssets(bundleId) {
-    try {
-      const { data } = await axios.post(`/api/bundles/${bundleId}/assets/bulk`, { assetIds: pendingAssets });
-      await load();
-      await openDetail(bundleId);
-      setAddAssetOpen(null);
-      setPendingAssets([]);
-      alert(data.message || 'เพิ่มสำเร็จ');
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    await busy.run('กำลังเพิ่มอุปกรณ์เข้าชุด...', async () => {
+      try {
+        const { data } = await axios.post(`/api/bundles/${bundleId}/assets/bulk`, { assetIds: pendingAssets });
+        await load();
+        await openDetail(bundleId);
+        setAddAssetOpen(null);
+        setPendingAssets([]);
+        alert(data.message || 'เพิ่มสำเร็จ');
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   async function searchAssets(q) {
@@ -162,6 +174,7 @@ export default function Bundle() {
 
   return (
     <div className="space-y-4">
+      <BusyOverlay label={busy.busyLabel} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]">

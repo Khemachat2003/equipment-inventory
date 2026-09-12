@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import Icon from '../components/ui/Icon.jsx';
+import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
 const IMAGE_URL = (code, ext) =>
   `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext}?v=3`;
@@ -17,6 +18,7 @@ export default function Stock() {
   const [confirmBorrow, setConfirmBorrow] = useState(null);
   const [cart, setCart] = useState({});
   const [notice, setNotice] = useState('');
+  const busyBorrow = useBusy();
 
   const load = useCallback(async () => {
     try {
@@ -86,37 +88,44 @@ export default function Stock() {
   async function confirmBorrowSubmit() {
     const carts = Object.entries(cart).map(([code, v]) => ({ code, qty: v.qty }));
     if (!carts.length) return;
-    setBorrowOpen(false);
-    try {
-      const { data } = await axios.post('/api/borrow-selected', { items: carts });
-      if (data.success) {
-        const ok = (data.borrowed || []).length;
-        const short = data.short || [];
-        if (ok) flash(`เบิกสำเร็จ ${ok} รายการ${short.length ? `, ไม่พอ ${short.length} รายการ` : ''}`);
-        else flash('ไม่มีรายการที่เบิกได้');
-        if (short.length) setConfirmBorrow({ items: short });
-        clearCart();
-        await load();
-      } else {
+    // ครอบด้วย busy: modal ค้างอยู่พร้อมสถานะ + overlay กันกดซ้ำระหว่างเบิกเสร็จ
+    await busyBorrow.run('กำลังเบิกของ...', async () => {
+      try {
+        const { data } = await axios.post('/api/borrow-selected', { items: carts });
+        if (data.success) {
+          const ok = (data.borrowed || []).length;
+          const short = data.short || [];
+          if (ok) flash(`เบิกสำเร็จ ${ok} รายการ${short.length ? `, ไม่พอ ${short.length} รายการ` : ''}`);
+          else flash('ไม่มีรายการที่เบิกได้');
+          if (short.length) setConfirmBorrow({ items: short });
+          clearCart();
+          await load();
+        } else {
+          flash('เกิดข้อผิดพลาด');
+        }
+      } catch (e) {
         flash('เกิดข้อผิดพลาด');
+      } finally {
+        setBorrowOpen(false);
       }
-    } catch (e) {
-      flash('เกิดข้อผิดพลาด');
-    }
+    });
   }
 
   async function editTotal(code, current) {
     const n = prompt('แก้ไขจำนวนทั้งหมด:', current);
     if (n === null) return;
-    try {
-      const { data } = await axios.post('/api/update-total', { code, newTotal: parseInt(n) });
-      if (data.error) alert(data.error);
-      else {
-        await load();
+    await busyBorrow.run('กำลังบันทึกจำนวน...', async () => {
+      try {
+        const { data } = await axios.post('/api/update-total', { code, newTotal: parseInt(n) });
+        if (data.error) alert(data.error);
+        else {
+          await load();
+          flash('บันทึกจำนวนเรียบร้อย');
+        }
+      } catch (e) {
+        alert('เกิดข้อผิดพลาด');
       }
-    } catch (e) {
-      alert('เกิดข้อผิดพลาด');
-    }
+    });
   }
 
   function flash(msg) {
@@ -394,6 +403,7 @@ export default function Stock() {
 
       {returnOpen && <ReturnModal onClose={() => setReturnOpen(false)} onDone={() => { load(); setReturnOpen(false); }} />}
       {addOpen && <AddModal onClose={() => setAddOpen(false)} onDone={() => { load(); setAddOpen(false); }} />}
+      <BusyOverlay label={busyBorrow.busyLabel} />
     </div>
   );
 }

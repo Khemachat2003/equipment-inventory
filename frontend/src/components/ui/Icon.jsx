@@ -1,5 +1,9 @@
 // Material Symbols icon component
 // Usage: <Icon name="inventory_2" size="md" weight="regular" />
+// แสดงผลผ่าน codepoint (ICON_CODEPOINTS) — subset font ถูกตัด GSUB ligature ทิ้ง
+// → ใช้ codepoint ตรงๆ เพื่อให้ icon แสดงได้เสมอ (ชื่อที่ไม่มี => fallback แสดงชื่อ)
+import { ICON_CODEPOINTS } from '/src/data/iconCodepoints.js';
+
 export default function Icon({
   name,
   size = 'md',
@@ -15,6 +19,7 @@ export default function Icon({
   const gradeMap = { normal: 0, dark: 100, light: -25 };
 
   const px = sizeMap[size] ?? 24;
+  const cp = ICON_CODEPOINTS[name];
 
   return (
     <span
@@ -27,7 +32,7 @@ export default function Icon({
       aria-hidden="true"
       {...props}
     >
-      {name}
+      {cp !== undefined ? String.fromCodePoint(cp) : name}
     </span>
   );
 }

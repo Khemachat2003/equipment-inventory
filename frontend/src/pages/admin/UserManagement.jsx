@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Icon from '../../components/ui/Icon.jsx';
+import { useBusy, BusyOverlay } from '../../components/ui/Busy.jsx';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const busy = useBusy();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -24,34 +26,40 @@ export default function UserManagement() {
   }, [load]);
 
   async function changeRole(username, role) {
-    try {
-      await axios.put(`/api/admin/users/${encodeURIComponent(username)}`, { role });
-      await load();
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    await busy.run('กำลังเปลี่ยนสิทธิ์...', async () => {
+      try {
+        await axios.put(`/api/admin/users/${encodeURIComponent(username)}`, { role });
+        await load();
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   async function resetPassword(username) {
     const newPassword = prompt(`ตั้งรหัสผ่านใหม่สำหรับ ${username}`);
     if (!newPassword) return;
     if (newPassword.length < 4) return alert('รหัสผ่านสั้นเกินไป (ขั้นต่ำ 4)');
-    try {
-      await axios.post(`/api/admin/users/${encodeURIComponent(username)}/reset-password`, { newPassword });
-      alert('เปลี่ยนรหัสผ่านสำเร็จ');
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    await busy.run('กำลังรีเซ็ตรหัสผ่าน...', async () => {
+      try {
+        await axios.post(`/api/admin/users/${encodeURIComponent(username)}/reset-password`, { newPassword });
+        alert('เปลี่ยนรหัสผ่านสำเร็จ');
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   async function deleteUser(username) {
     if (!confirm(`ยืนยันลบผู้ใช้ ${username}?`)) return;
-    try {
-      await axios.delete(`/api/admin/users/${encodeURIComponent(username)}`);
-      await load();
-    } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
-    }
+    await busy.run('กำลังลบผู้ใช้...', async () => {
+      try {
+        await axios.delete(`/api/admin/users/${encodeURIComponent(username)}`);
+        await load();
+      } catch (e) {
+        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      }
+    });
   }
 
   return (
@@ -115,6 +123,7 @@ export default function UserManagement() {
         </table>
         </div>
       </div>
+      <BusyOverlay label={busy.busyLabel} />
     </div>
   );
 }
