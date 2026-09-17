@@ -1,8 +1,10 @@
 {
   "name": "equipment-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "INTRANIN EMS — Equipment Management System: ระบบจัดการคลังอุปกรณ์, ยืม-คืน, โอนย้าย, QR/Barcode tracking และ audit trail",
+  "author": "INTRANIN",
+  "license": "UNLICENSED",
+  "private": true,
   "scripts": {
     "test": "node --test \"tests/*.test.js\"",
     "build": "cd frontend && npm ci && npm run build",
