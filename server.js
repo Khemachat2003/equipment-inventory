@@ -33,6 +33,20 @@ requiredEnv.forEach(key => {
     process.exit(1);
   }
 });
+// ========== PROCESS-LEVEL CRASH GUARDS ==========
+// Node 15+: unhandledRejection จะ crash ทั้ง process ทันที (default behavior)
+// → ผลคือ Render ต้อง restart service → user ที่กำลังโหลดหน้าเว็บในช่วงนั้น
+//   จะเจอ 500 กับทุก request (รวมไฟล์ static ด้วย) = อาการ "เข้าเว็บไม่ได้พร้อมกันหมด"
+// จับ event ทั้งสองไว้ log แทน crash เพื่อให้ service ยังรับ request ต่อได้
+// (สาเหตุจริงยังถูก log เต็มๆ ลง Render Logs เพื่อ debug ภายหลัง)
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Unhandled Rejection (process kept alive):", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception (process kept alive):", err);
+});
+
+// ========== RATE LIMIT ==========
 console.log("✅ All required environment variables are set.");
 
 // ========== RATE LIMIT ==========
@@ -167,6 +181,13 @@ if (DATABASE_URL) {
     },
     createTableIfMissing: true,
     pruneSessionInterval: 60 * 60, // ล้าง session ที่หมดอายุชั่วโมงละครั้ง
+  });
+  // ⚠️ จำเป็นมาก: PGStore เป็น EventEmitter — ถ้าไม่มี listener รับ 'error'
+  // แล้ว DB ดับ (เช่น Aiven free plan ถูก power off ตอน idle)
+  // ทุก error จะกลายเป็น uncaughtException → process ตาย → Render restart
+  // → user ที่กำลังใช้งานเจอ 500 ทั้งไซต์ชั่วคราว (อาการที่เคยเกิดจริง)
+  sessionConfig.store.on("error", (err) => {
+    console.error("⚠️ Session store (PostgreSQL) error:", err.message);
   });
   console.log("✅ Session store: PostgreSQL");
 } else {
@@ -390,7 +411,11 @@ app.get("/", (req, res) => {
 app.use(express.static("public"));
 
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", uptime: process.uptime() });
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+  });
 });
 
 // SPA catch-all: path GET ที่ไม่ใช่ API/static/public (เช่น /stock, /asset)
@@ -417,6 +442,30 @@ app.use((err, req, res, next) => {
 
 // ========== START SERVER ==========
 app.listen(PORT, () => {
+// ========== GRACEFUL SHUTDOWN ==========
+// Render ส่ง SIGTERM ตอน redeploy/restart → หยุดรับ request ใหม่
+// แล้วรอ request ที่กำลังทำค้างเสร็จก่อน (สูงสุด 10 วิ) ค่อย exit
+// กันอาการ user โดนตัดกลางคัน + กัน request ค้างใน keep-alive
+const server = app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  // เรียก sync asset history
+  assetRouter.syncInitialAssetHistory().catch(console.error);
+});
+
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`🛑 ${signal} received — closing server gracefully...`);
+  server.close(() => {
+    console.log("✅ Server closed cleanly");
+    process.exit(0);
+  });
+  // กันค้างนานเกิน: force exit หลัง 10 วินาที
+  setTimeout(() => process.exit(0), 10000).unref();
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
   console.log(`✅ Server running on port ${PORT}`);
   // เรียก sync asset history
   assetRouter.syncInitialAssetHistory().catch(console.error);
@@ -426,6 +475,33 @@ app.listen(PORT, () => {
 // รัน Full System Backup อัตโนมัติตาม BACKUP_CRON
 // แบบ "smart": จะ backup ก็ต่อเมื่อมี Audit Log ใหม่เกิดขึ้น หลัง backup ครั้งล่าสุด
 // (กรณีไม่มีการเปลี่ยนแปลงข้อมูลจริงในวันนั้น จะข้ามไป ไม่สิ้นเปลือง quota)
+// ========== DB KEEP-ALIVE (กัน Aiven free plan power off) ==========
+// Aiven free tier จะ "power off" service เมื่อไม่มี activity ต่อเนื่อง
+// (ต้องกดเปิดเองใน console — connection เข้าไม่ปลุกให้เอง)
+// → ping SELECT 1 เป็นระยะ เพื่อให้ Aiven ไม่นับว่า idle
+// ปิดได้ด้วย env PG_KEEPALIVE_MINUTES=0 / ปรับความถี่ได้ (ค่า default 5 นาที)
+const { getDatabaseUrl } = require("./services/pg");
+const PG_KEEPALIVE_MINUTES = parseInt(process.env.PG_KEEPALIVE_MINUTES) || 5;
+if (getDatabaseUrl() && PG_KEEPALIVE_MINUTES > 0) {
+  const keepAliveCron = require("node-cron");
+  keepAliveCron.schedule(`*/${PG_KEEPALIVE_MINUTES} * * * *`, async () => {
+    const client = createClient();
+    try {
+      await client.connect();
+      await client.query("SELECT 1");
+      await client.end();
+    } catch (err) {
+      // DB ยังดำรงอยู่แต่ connect ไม่ได้ชั่วคราว → log แล้วรอรอบหน้า (ไม่ crash)
+      console.error("⚠️ DB keep-alive ping failed:", err.message);
+      try { await client.end(); } catch (e) { /* ignore */ }
+    }
+  });
+  console.log(`✅ DB keep-alive ping: every ${PG_KEEPALIVE_MINUTES} min (กัน Aiven idle power-off)`);
+} else {
+  console.log("ℹ️ DB keep-alive disabled");
+}
+
+// ── ตรวจว่า Audit_Log มีแถวใหม่กว่า backup ครั้งล่าสุดหรือไม่ ──
 // ปิดได้ด้วย env BACKUP_CRON=""
 const cron = require("node-cron");
 const BACKUP_CRON = process.env.BACKUP_CRON;
