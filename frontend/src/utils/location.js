@@ -28,21 +28,30 @@ function isStocky(siteName, location) {
 
 /**
  * @param {object} input
- * @param {string} input.siteName   ชื่อฟาร์ม (คอลัมน์ H)
- * @param {string} input.houseName  ชื่อโรงเรือน (คอลัมน์ M)
- * @param {string} input.houseId    รหัสโรงเรือน (คอลัมน์ L)
- * @param {string} input.location   จุดติดตั้ง (คอลัมน์ G)
+ * @param {string} input.siteName   ชื่อฟาร์ม/ไซต์งาน          (คอลัมน์ H = SiteName)
+ * @param {string} input.houseName  ช���่อโรงเรือน              (คอลัมน์ M = HouseName)
+ * @param {string} input.houseId    รหัสโรงเรือน                (คอลัมน์ L = HouseID)
+ * @param {string} input.location   จุดติดตั้ง                  (คอลัมน์ G = Location)
+ * @param {string} input.bundleId   ถ้ามีค่า = ตัวนี้อยู่ในชุด  (คอลัมน์ N = BundleID)
  * @returns {{kind:string, farm:string, house:string, point:string, full:string, chips:Array}}
  */
 export function buildLocation(input = {}) {
   const siteName = clean(input.siteName);
   const houseName = clean(input.houseName);
   const houseId = clean(input.houseId);
-  let point = clean(input.location);
+  const inBundle = !!clean(input.bundleId);
+  const rawLoc = clean(input.location);
+
+  // ⚠️ อุปกรณ์ที่อยู่ในชุด (Bundle) เก็บข้อมูล "กลับกัน" กับอุปกรณ์เดี่ยว:
+  //    คอลัมน์ H = ชื่อชุด (SiteName ถูกล็อกให้เป็นชื่อ Bundle เสมอ)
+  //    คอลัมน์ G = ชื่อฟาร์มที่ชุดนั้นไปติดตั้ง
+  //    → ชั้น "ฟาร์ม" ของตัวนี้ต้องอ่านจาก G ไม่ใช่ H
+  let farm = inBundle ? rawLoc : siteName;
+  let point = inBundle ? '' : rawLoc;
 
   // อยู่คลังกลาง — ไม่มีชั้นโรงเรือน/จุดติดตั้ง
-  if (isStocky(siteName, clean(input.location))) {
-    const inStock = clean(input.location) === 'Stock';
+  if (isStocky(inBundle ? '' : siteName, inBundle ? rawLoc : rawLoc)) {
+    const inStock = rawLoc === 'Stock';
     return {
       kind: 'stock',
       farm: '', house: '', point: '',
@@ -51,20 +60,22 @@ export function buildLocation(input = {}) {
     };
   }
 
+  farm = farm || siteName;
+
   // ข้อมูลเก่า: เคยเก็บชื่อฟาร์มไว้ในคอลัมน์ Location — ไม่ต้องแสดงซ้ำสองชั้น
-  if (point && point === siteName) point = '';
+  if (point && point === farm) point = '';
 
   const house = houseId ? `${houseId} ${houseName}`.trim() : houseName;
 
-  const full = [siteName, house, point].filter(Boolean).join('  ›  ');
+  const full = [farm, house, point].filter(Boolean).join('  ›  ');
 
   const chips = [
-    { key: 'farm', label: 'ฟาร์ม', value: siteName },
+    { key: 'farm', label: 'ฟาร์ม', value: farm },
     { key: 'house', label: 'โรงเรือน', value: house },
     { key: 'point', label: 'จุดติดตั้ง', value: point },
   ].filter((c) => c.value);
 
-  return { kind: 'site', farm: siteName, house, point, full, chips };
+  return { kind: 'site', farm, house, point, full, chips };
 }
 
 /**
@@ -77,6 +88,7 @@ export function buildBundleLocation(assets = []) {
     houseName: a.houseName,
     houseId: a.houseId,
     location: a.location,
+    bundleId: a.bundleId || 'bundle',
   }));
   if (!all.length) {
     return { main: buildLocation({}), divergent: false, paths: [] };

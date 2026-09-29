@@ -5,8 +5,8 @@ import { buildLocation } from '../../utils/location.js';
  *   บรรทัดบน = เส้นทางเต็มอ่านตามลำดับ  ฟาร์ม › โรงเรือน › จุดติดตั้ง
  *   บรรทัดล่าง = ป้ายย่อย 3 ชั้น (แสดงเฉพาะชั้นที่มีข้อมูล)
  */
-export default function LocationPath({ siteName, houseName, houseId, location, size = 'sm', showChips = false, className = '' }) {
-  const loc = buildLocation({ siteName, houseName, houseId, location });
+export default function LocationPath({ siteName, houseName, houseId, location, bundleId, size = 'sm', showChips = false, className = '' }) {
+  const loc = buildLocation({ siteName, houseName, houseId, location, bundleId });
 
   const isMain = size === 'md';
   const textCls = isMain

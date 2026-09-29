@@ -392,14 +392,18 @@ async function loadAsset(){
               ${(()=>{
                 const esc=(v)=>String(v??"").replace(/[&<>"]/g,(m)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
                 const cl=(v)=>{const s=String(v??"").trim();return (!s||s==="-"||s==="null"||s==="undefined")?"":s;};
-                const site=cl(d.siteName), hn=cl(d.houseName), hi=cl(d.houseId);
-                let pt=cl(d.location);
-                if(pt&&pt===site)pt="";            // ข้อมูลเก่า: เคยเก็บชื่อฟาร์มไว้ใน Location
-                const isStock = !site||site==="Intranin"||cl(d.location)==="Stock";
-                const house = hi?`${esc(hi)} ${esc(hn)}`.trim():esc(hn);
                 const chip=(l,v)=>`<div class="factory-chip"><div class="fc-lbl">${l}</div><div class="fc-val">${v}</div></div>`;
-                if(isStock) return chip("ตำแหน่ง", cl(d.location)==="Stock"?"คลังกลาง (Stock)":"คลังกลาง (Intranin)");
-                return chip("ฟาร์ม",esc(site))+(house?chip("โรงเรือน",house):"")+(pt?chip("จุดติดตั้ง",esc(pt)):"");
+                const inBundle=!!cl(d.bundleId);
+                const site=cl(d.siteName), hn=cl(d.houseName), hi=cl(d.houseId), loc=cl(d.location);
+                // อุปกรณ์ในชุด: H = ชื่อชุด, G = ชื่อฟาร์ม → ฟาร์มต้องอ่านจาก G
+                let farm = inBundle ? loc : site;
+                let pt   = inBundle ? ""  : loc;
+                if(pt&&pt===farm)pt="";
+                const isStock = loc==="Stock"||(!inBundle&&(site==="Intranin"||!site))||(inBundle&&!farm);
+                const house = hi?`${esc(hi)} ${esc(hn)}`.trim():esc(hn);
+                const bundleChip = inBundle ? chip("อยู่ในชุด", esc(cl(d.bundleName)||cl(d.bundleId))) : "";
+                if(isStock) return bundleChip+chip("ตำแหน่ง", loc==="Stock"?"คลังกลาง (Stock)":"คลังกลาง (Intranin)");
+                return bundleChip+chip("ฟาร์ม",esc(farm))+(house?chip("โรงเรือน",house):"")+(pt?chip("จุดติดตั้ง",esc(pt)):"");
               })()}
             </div>
           </div>`;
@@ -483,9 +487,20 @@ async function loadAsset(){
             </div>
           </div>
           <div style="border-top:1px solid #f1f5f9;padding:16px 24px 20px">
-            <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span> ไซต์/ฟาร์ม</span><span class="info-val">${d.siteName||"-"}</span></div>
-            ${(()=>{const loc=(d.location||"").trim();const site=(d.siteName||"").trim();const show=loc&&loc!=="-"&&loc!==site&&loc!=="Stock"&&site!=="Intranin";return show?`<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">my_location</span> จุดติดตั้ง</span><span class="info-val">${loc}</span></div>`:"";})()}
-            ${d.houseName && d.houseName!=="-" ? `<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">home</span> โรงเรือน</span><span class="info-val">${d.houseName}</span></div>`:""}
+            ${(()=>{
+              const cl=(v)=>{const s=String(v??"").trim();return (!s||s==="-"||s==="null"||s==="undefined")?"":s;};
+              const row=(icon,label,val)=>val?`<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">${icon}</span> ${label}</span><span class="info-val">${val}</span></div>`:"";
+              const inBundle=!!cl(d.bundleId);
+              const site=cl(d.siteName), hi=cl(d.houseId), hn=cl(d.houseName), loc=cl(d.location);
+              let farm=inBundle?loc:site, pt=inBundle?"":loc;
+              if(pt&&pt===farm)pt="";
+              const isStock = loc==="Stock"||(!inBundle&&(site==="Intranin"||!site))||(inBundle&&!farm);
+              const house = hi?`${hi} ${hn}`.trim():hn;
+              const stockLabel = loc==="Stock"?"คลังกลาง (Stock)":"คลังกลาง (Intranin)";
+              return row("inventory_2","อยู่ในชุด",inBundle?cl(d.bundleName)||cl(d.bundleId):"")
+                + (isStock ? row("place","ตำแหน่ง",stockLabel)
+                           : row("place","ฟาร์ม",farm)+row("home","โรงเรือน",house)+row("my_location","จุดติดตั้ง",pt));
+            })()}
             ${d.farmType && d.farmType!=="-" ? `<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">factory</span> ประเภทฟาร์ม</span><span class="info-val">${d.farmType}</span></div>`:""}
             <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">person</span> ผู้รับผิดชอบ</span><span class="info-val">${d.user||"-"}</span></div>
             <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">event</span> อัปเดตล่าสุด</span><span class="info-val">${d.date||"-"}</span></div>

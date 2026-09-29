@@ -122,7 +122,7 @@ export default function Asset() {
     filtered.forEach((a) => rows.push([
       a.assetId, a.code, a.name, a.serialNumber, a.status,
       a.bundleName || a.bundleId || '',
-      buildLocation({ siteName: a.siteName, houseName: a.houseName, houseId: a.houseId, location: a.location }).full,
+      buildLocation({ siteName: a.siteName, houseName: a.houseName, houseId: a.houseId, location: a.location, bundleId: a.bundleId }).full,
       a.user, catOf(a),
     ]));
     dlCSV(`asset_export_${stamp()}.csv`, rows);
@@ -238,8 +238,7 @@ export default function Asset() {
                   <th className="px-3 py-2.5 font-medium">Name</th>
                   <th className="px-3 py-2.5 font-medium">Serial</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
-                  <th className="px-3 py-2.5 font-medium">อยู่ในชุด</th>
-                  <th className="px-3 py-2.5 font-medium">ตำแหน่ง (ฟาร์ม › โรงเรือน › จุดติดตั้ง)</th>
+                  <th className="px-3 py-2.5 font-medium">ชุด / ตำแหน่ง</th>
                   <th className="px-3 py-2.5 font-medium">User</th>
                   <th className="px-3 py-2.5 font-medium text-center">Trace</th>
                   <th className="px-3 py-2.5 font-medium text-center">QR</th>
@@ -247,9 +246,9 @@ export default function Asset() {
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={11} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
+                {loading && <tr><td colSpan={10} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
                 {!loading && paged.length === 0 && (
-                  <tr><td colSpan={11} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
+                  <tr><td colSpan={10} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
                 )}
                 {paged.map((a) => (
                   <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--g100)] hover:bg-[var(--surface2)]">
@@ -258,27 +257,25 @@ export default function Asset() {
                     <td className="px-3 py-2 font-medium"><span title={categoryLabel(catOf(a))} className="inline-flex items-center gap-1"><Icon name={categoryIcon(catOf(a))} size="xs" className="text-[var(--tsub)]" /> {a.name}</span></td>
                     <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]">{a.serialNumber}</td>
                     <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
-                    <td className="px-3 py-2 text-[var(--tsub)]">
-                      {a.bundleId
-                        ? (
+                    <td className="px-3 py-2">
+                      <div className="min-w-0 max-w-[260px]">
+                        {a.bundleId && (
                           <span
-                            title={`${a.bundleName || a.bundleId} — เปิดรายละเอียดชุดเพื่อดูตำแหน่งเต็ม`}
-                            className="inline-flex items-center gap-1.5 rounded-md bg-[var(--blue-l)] border border-[var(--blue-b)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--blue)] max-w-[160px]"
+                            title={`อยู่ในชุด ${a.bundleName || a.bundleId}`}
+                            className="mb-0.5 inline-flex max-w-full items-center gap-1 rounded bg-[var(--blue-l)] px-1.5 py-px text-[10px] font-medium text-[var(--blue)] border border-[var(--blue-b)]"
                           >
                             <Icon name="inventory_2" size="xs" className="flex-shrink-0" />
                             <span className="truncate">{a.bundleName || a.bundleId}</span>
                           </span>
-                        )
-                        : <span className="text-[var(--tmuted)]">—</span>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <LocationPath
-                        siteName={a.siteName}
-                        houseName={a.houseName}
-                        houseId={a.houseId}
-                        location={a.location}
-                        showChips
-                      />
+                        )}
+                        <LocationPath
+                          siteName={a.siteName}
+                          houseName={a.houseName}
+                          houseId={a.houseId}
+                          location={a.location}
+                          bundleId={a.bundleId}
+                        />
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-[var(--tsub)]">{a.user}</td>
                     <td className="px-3 py-2 text-center">
@@ -335,6 +332,7 @@ export default function Asset() {
                     houseName={a.houseName}
                     houseId={a.houseId}
                     location={a.location}
+                    bundleId={a.bundleId}
                     showChips
                   />
                   {a.user && <div className="text-[var(--tsub)]">ผู้ใช้: <span className="text-[var(--text)]">{a.user}</span></div>}

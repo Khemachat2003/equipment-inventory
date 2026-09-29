@@ -319,6 +319,26 @@ router.get("/api/public/asset/:code", async (req, res) => {
     const qrUrl = `${req.protocol}://${req.get("host")}/a/${encodeURIComponent(code)}`;
     const qrImage = await QRCode.toDataURL(qrUrl);
 
+    // ชื่อชุดอุปกรณ์ที่ตัวนี้อยู่ (ถ้ามี) — ใช้แก้การแสดงตำแหน่งให้ถูกชั้น
+    let bundleName = "";
+    if (row[13]) {
+      let nameMap = cache.get("assetBundleNames");
+      if (!nameMap) {
+        nameMap = {};
+        try {
+          const bRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Bundles!A2:F",
+          });
+          (bRes.data.values || []).forEach((r) => {
+            if (r[0]) nameMap[r[0]] = r[1] || r[0];
+          });
+          cache.set("assetBundleNames", nameMap);
+        } catch (e) { /* ไม่มี Bundles ก็ข้าม */ }
+      }
+      bundleName = nameMap[row[13]] || row[13];
+    }
+
     const result = {
       assetId: row[0] || "-",
       code: row[1] || "-",
@@ -333,6 +353,8 @@ router.get("/api/public/asset/:code", async (req, res) => {
       farmType: row[10] || "-",
       houseId: row[11] || "-",
       houseName: row[12] || "-",
+      bundleId: row[13] || "",
+      bundleName: row[13] ? bundleName : "",
       qr: qrImage,
       traceUrl: qrUrl,
     };
