@@ -192,6 +192,7 @@ async function revertAssetFromBundle({
 //     เพราะ SiteName ต้องคงเป็นชื่อ Bundle เสมอไม่ว่าจะอยู่ที่ไหน ──
 async function cascadeBundleLocationToAssets({
   sheets, assetIds, bundleId, bundleName, newLocation, action, note, user,
+  houseId, houseName,
 }) {
   if (!assetIds || !assetIds.length) return;
   const assetRows = await getAssetRows(sheets);
@@ -210,11 +211,18 @@ async function cascadeBundleLocationToAssets({
     updates.push({ range: `${ASSET_SHEET}!G${aRow}`, values: [[newLocation]] });
     // ไม่แตะ H (SiteName) — ยังคงโชว์ชื่อ Bundle เดิม ไม่ว่า Bundle จะอยู่ที่ไหน
 
+    // L/M = HouseID / HouseName — บันทึกโรงเรือนปลายทางให้ทุกชิ้นในชุด
+    // ถ้าไม่ได้ระบุโรงเรือน ให้ล้างค่าเดิมทิ้ง (ไม่ให้ค้างโรงเรือนของฟาร์มก่อนหน้า)
+    if (houseId !== undefined || houseName !== undefined) {
+      updates.push({ range: `${ASSET_SHEET}!L${aRow}`, values: [[houseId || "-"]] });
+      updates.push({ range: `${ASSET_SHEET}!M${aRow}`, values: [[houseName || "-"]] });
+    }
+
     historyJobs.push(() => saveAssetHistory(
       serial,
       action,
       `${label} (${oldLocation})`,
-      `${label} (${newLocation})`,
+      `${label} (${newLocation})${houseName && houseName !== '-' ? ` [${houseName}]` : ""}`,
       user,
       note
     ));
@@ -528,12 +536,14 @@ router.post(
   [
     body("farmId").trim().notEmpty().withMessage("farmId required"),
     body("farmName").trim().notEmpty().withMessage("farmName required"),
+    body("houseId").optional().isString(),
+    body("houseName").optional().isString(),
   ],
   validate,
   async (req, res) => {
     try {
       const bundleId = req.params.id;
-      const { farmId, farmName, note } = req.body;
+      const { farmId, farmName, note, houseId, houseName } = req.body;
       const user     = req.session.user.username || req.session.user.email;
       const sheets   = await getSheetsClient();
 
@@ -566,14 +576,18 @@ router.post(
 
       // ── 2. ลากอุปกรณ์ทุกชิ้นในชุดตามไปที่ฟาร์มนั้นในทีเดียว (ไม่ต้องย้ายทีละตัว) ──
       //     SiteName ของอุปกรณ์ยังคงเป็นชื่อ Bundle เดิม เปลี่ยนแค่ Location ──
+      //     HouseID/HouseName (คอลัมน์ L/M) เขียนให้ทุกชิ้นในชุด ถ้าเลือกโรงเรือนมา ──
+      const houseLabel = houseName ? ` [${houseName}]` : "";
       await cascadeBundleLocationToAssets({
         sheets,
         assetIds,
         bundleId,
         bundleName,
         newLocation: farmName,
+        houseId: houseId || "-",
+        houseName: houseName || "-",
         action: `Deploy Bundle: ${bundleId}`,
-        note: note || `ย้ายทั้งชุด Bundle ${bundleName} ไปที่ ${farmName} (${farmId})`,
+        note: note || `ย้ายทั้งชุด Bundle ${bundleName} ไปที่ ${farmName} (${farmId})${houseLabel}`,
         user,
       });
 
@@ -582,11 +596,11 @@ router.post(
       await logAudit(
         user,
         "BUNDLE_DEPLOY",
-        `Deploy Bundle ${bundleId} (${assetIds.length} อุปกรณ์) → ${farmName}`
+        `Deploy Bundle ${bundleId} (${assetIds.length} อุปกรณ์) → ${farmName}${houseLabel}`
       );
       res.json({
         success: true,
-        message: `ย้าย Bundle ไป ${farmName} สำเร็จ (${assetIds.length} อุปกรณ์)`,
+        message: `ย้าย Bundle ไป ${farmName}${houseLabel} สำเร็จ (${assetIds.length} อุปกรณ์)`,
       });
     } catch (err) {
       console.error("❌ POST /api/bundles/:id/deploy:", err);
@@ -639,6 +653,8 @@ router.post("/api/bundles/:id/recall", requireLogin, async (req, res) => {
       bundleId,
       bundleName,
       newLocation: "Stock",
+      houseId: "-",
+      houseName: "-",
       action: `Recall Bundle: ${bundleId}`,
       note: `คืนทั้งชุด Bundle ${bundleName} กลับ Stock (จากเดิมที่ ${prevFarm})`,
       user,

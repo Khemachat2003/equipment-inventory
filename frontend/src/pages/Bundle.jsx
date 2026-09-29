@@ -113,10 +113,12 @@ export default function Bundle() {
     });
   }
 
-  async function deploy(bundleId, farmId, farmName, note) {
+  async function deploy(bundleId, farmId, farmName, note, houseId, houseName) {
     await busy.run('กำลังย้ายชุดไปฟาร์ม...', async () => {
       try {
-        const { data } = await axios.post(`/api/bundles/${bundleId}/deploy`, { farmId, farmName, note });
+        const { data } = await axios.post(`/api/bundles/${bundleId}/deploy`, {
+          farmId, farmName, note, houseId, houseName,
+        });
         await load();
         setDeployOpen(null);
         if (detail) await openDetail(bundleId);
@@ -254,7 +256,7 @@ export default function Bundle() {
           bundle={bundles.find((b) => b.bundleId === deployOpen)}
           farms={farms}
           onClose={() => setDeployOpen(null)}
-          onDeploy={(farmId, farmName, note) => deploy(deployOpen, farmId, farmName, note)}
+          onDeploy={(farmId, farmName, note, houseId, houseName) => deploy(deployOpen, farmId, farmName, note, houseId, houseName)}
         />
       )}
 
@@ -417,8 +419,26 @@ function CreateModal({ onClose, onSubmit }) {
 
 function DeployModal({ bundle, farms, onClose, onDeploy }) {
   const [farmId, setFarmId] = useState('');
+  const [houseId, setHouseId] = useState('');
+  const [houses, setHouses] = useState([]);
+  const [loadingHouses, setLoadingHouses] = useState(false);
   const [note, setNote] = useState('');
   const farmName = farms.find((f) => f.farmId === farmId)?.farmName || '';
+
+  // โหลดโรงเรือนของฟาร์มที่เลือก — เปลี่ยนฟาร์มแล้วต้องล้างโรงเรือนเดิมเสมอ
+  useEffect(() => {
+    setHouseId('');
+    if (!farmId) { setHouses([]); return; }
+    setLoadingHouses(true);
+    axios
+      .get(`/api/farm-houses/${encodeURIComponent(farmId)}`)
+      .then(({ data }) => setHouses(data || []))
+      .catch(() => setHouses([]))
+      .finally(() => setLoadingHouses(false));
+  }, [farmId]);
+
+  const houseName = houses.find((h) => h.houseId === houseId)?.houseName || '';
+
   return (
     <Modal onClose={onClose} title="ย้ายชุดอุปกรณ์ไปฟาร์ม">
       {bundle && (
@@ -429,17 +449,51 @@ function DeployModal({ bundle, farms, onClose, onDeploy }) {
         </div>
       )}
       <Field label="เลือกฟาร์มปลายทาง *">
-        <select value={farmId} onChange={(e) => setFarmId(e.target.value)} className={inp}>
+        <select
+          value={farmId}
+          onChange={(e) => setFarmId(e.target.value)}
+          className={inp}
+        >
           <option value="">— เลือกฟาร์ม —</option>
           {farms.map((f) => <option key={f.farmId} value={f.farmId}>{f.farmName} ({f.farmType})</option>)}
         </select>
       </Field>
+      <Field label={`โรงเรือน${farmId ? ' (ตามฟาร์มที่เลือก)' : ''}`}>
+        <select
+          value={houseId}
+          onChange={(e) => setHouseId(e.target.value)}
+          className={inp}
+          disabled={!farmId || loadingHouses}
+        >
+          <option value="">{loadingHouses ? '— กำลังโหลดโรงเรือน… —' : '— ไม่ระบุ —'}</option>
+          {houses.map((h) => (
+            <option key={h.houseId} value={h.houseId}>
+              {h.houseId} · {h.houseName}{h.houseType ? ` (${h.houseType})` : ''}
+            </option>
+          ))}
+        </select>
+        {farmId && !loadingHouses && houses.length === 0 && (
+          <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-[var(--tmuted)]">
+            <Icon name="info" size="sm" />
+            <span>ฟาร์มนี้ยังไม่มีโรงเรือนลงทะเบียน — ติดต่อผู้ดูแลเพื่อเพิ่มที่หน้า Farm</span>
+          </div>
+        )}
+      </Field>
       <Field label="หมายเหตุการย้าย"><input value={note} onChange={(e) => setNote(e.target.value)} className={inp} /></Field>
       <div className="flex gap-2 px-4 py-3 rounded-xl bg-[var(--amber-l)] text-[var(--amber-d)] text-[12px]">
         <Icon name="warning" size="sm" />
-        <span>อุปกรณ์ทุกชิ้นในชุดนี้จะถูกย้ายตำแหน่งไปฟาร์มที่เลือกพร้อมกัน การดำเนินการนี้จะถูกบันทึกในประวัติ</span>
+        <span>
+          อุปกรณ์ทุกชิ้นในชุดนี้จะถูกย้ายตำแหน่งไปฟาร์มที่เลือกพร้อมกัน
+          {houseName ? ` พร้อมระบุโรงเรือน "${houseName}" ให้ทุกชิ้น` : ''}
+          {' '}การดำเนินการนี้จะถูกบันทึกในประวัติ
+        </span>
       </div>
-      <ModalFooter onClose={onClose} onSubmit={() => farmId && onDeploy(farmId, farmName, note)} submitLabel="ย้ายทั้งชุด" submitDisabled={!farmId} />
+      <ModalFooter
+        onClose={onClose}
+        onSubmit={() => farmId && onDeploy(farmId, farmName, note, houseId, houseName)}
+        submitLabel="ย้ายทั้งชุด"
+        submitDisabled={!farmId}
+      />
     </Modal>
   );
 }

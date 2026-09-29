@@ -239,10 +239,10 @@ router.get("/api/public/asset/:code", async (req, res) => {
     if (cached) return res.json(cached);
 
     const sheets = await getSheetsClient();
-    const assetRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Asset_List!A2:M",
-    });
+      const assetRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Asset_List!A2:Q",
+      });
     const rows = assetRes.data.values || [];
 
     let row = null;

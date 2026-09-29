@@ -54,6 +54,9 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
 
   // โหลดโรงเรือนเมื่อเลือกไซต์
   useEffect(() => {
+    // เปลี่ยนไซต์แล้ว houseId ของไซต์เดิมต้องถูกล้างเสมอ
+    // ไม่งั้น dropdown จะดูเหมือน "ยังไม่ได้เลือก" แต่ค่าของฟาร์มเก่ายังถูกส่งไปกับฟอร์ม
+    setHouseId('');
     if (!siteId) { setHouses([]); return; }
     axios.get(`/api/farm-houses/${encodeURIComponent(siteId)}`)
       .then(({ data }) => {
@@ -173,11 +176,26 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
                     ))}
                   </select>
                 </Field>
-                <Field label="โรงเรือน">
-                  <select value={houseId} onChange={(e) => setHouseId(e.target.value)} className={inp}>
-                    <option value="">— เลือกโรงเรือน —</option>
-                    {houses.map((h) => <option key={h.houseId} value={h.houseId}>{h.houseName}</option>)}
+                <Field label={`โรงเรือน${siteId && siteId !== 'Intranin' ? ' (ตามไซต์ที่เลือก)' : ''}`}>
+                  <select
+                    value={houseId}
+                    onChange={(e) => setHouseId(e.target.value)}
+                    className={inp}
+                    disabled={!siteId || siteId === 'Intranin'}
+                  >
+                    <option value="">— ไม่ระบุ —</option>
+                    {houses.map((h) => (
+                      <option key={h.houseId} value={h.houseId}>
+                        {h.houseId} · {h.houseName}{h.houseType ? ` (${h.houseType})` : ''}
+                      </option>
+                    ))}
                   </select>
+                  {siteId && siteId !== 'Intranin' && houses.length === 0 && (
+                    <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-[var(--tmuted)]">
+                      <Icon name="info" size="sm" />
+                      <span>ฟาร์มนี้ยังไม่มีโรงเรือนลงทะเบียน — ติดต่อผู้ดูแลเพื่อเพิ่มที่หน้า Farm</span>
+                    </div>
+                  )}
                 </Field>
               </div>
             </>
