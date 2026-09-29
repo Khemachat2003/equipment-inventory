@@ -123,6 +123,37 @@ router.get("/api/assets", requireLogin, async (req, res) => {
   }
 });
 
+// -------------------- GET ASSET LOCATIONS --------------------
+// รายการ "ตำแหน่งย่อยในไซต์" (คอลัมน์ G) ที่เคยถูกใช้มาแล้ว
+// ใช้เป็นตัวเดา (datalist) ให้ผู้ใช้เลือกตำแหน่งที่ใช้บ่อย แต่ยังพิมพ์ค่าใหม่เองได้
+router.get("/api/asset-locations", requireLogin, async (req, res) => {
+  const cacheKey = "assetLocationList";
+  let list = cache.get(cacheKey);
+  if (list) return res.json(list);
+
+  try {
+    const sheets = await getSheetsClient();
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_List!G2:G",
+    });
+    const rows = r.data.values || [];
+    const seen = new Set();
+    rows.forEach((row) => {
+      const v = (row[0] || "").trim();
+      // กรองค่าที่ไม่ใช่ตำแหน่งย่อยจริงออก — Stock ไม่ใช่ตำแหน่งย่อย
+      if (!v || v === "-" || v === "Stock" || v === "Intranin") return;
+      seen.add(v);
+    });
+    list = [...seen].sort((a, b) => a.localeCompare(b, "th"));
+    cache.set(cacheKey, list);
+    res.json(list);
+  } catch (error) {
+    console.error("❌ Get Asset Locations Error:", error);
+    res.json([]);
+  }
+});
+
 // -------------------- GET ASSET HISTORY --------------------
 router.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
   try {

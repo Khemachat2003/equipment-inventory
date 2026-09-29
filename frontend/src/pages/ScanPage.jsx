@@ -319,7 +319,12 @@ export default function ScanPage() {
                   <div className="text-[11px] font-mono text-[var(--blue)] mt-0.5">{a.serialNumber}</div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] text-[var(--tmuted)]">{a.siteName}: {a.location}</span>
+                  <span className="text-[11px] text-[var(--tmuted)]">
+                    {a.siteName}
+                    {a.location && a.location !== '-' && a.location !== a.siteName
+                      ? ` · ${a.location}`
+                      : ''}
+                  </span>
                   <StatusBadge status={a.status} />
                 </div>
               </button>
@@ -380,7 +385,13 @@ function ResultCard({ asset, history, onHistory, onTransfer, onScanAgain, onRefr
             <span className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 bg-[var(--emerald)] text-white"><Icon name="place" size="sm" /></span>
             <div className="min-w-0">
               <div className="text-[10px] text-[var(--tmuted)] uppercase tracking-wide">ตำแหน่งปัจจุบัน</div>
-              <div className="text-[14px] font-bold text-[var(--text)] truncate">{asset.siteName} · {asset.location}</div>
+              <div className="text-[14px] font-bold text-[var(--text)] truncate">
+                {asset.siteName}
+                {asset.location && asset.location !== '-' && asset.location !== asset.siteName
+                  ? ` · ${asset.location}`
+                  : ''}
+                {asset.houseName && asset.houseName !== '-' ? ` · ${asset.houseName}` : ''}
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 text-[12px] pt-1">

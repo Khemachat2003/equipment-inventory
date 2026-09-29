@@ -474,7 +474,8 @@ async function loadAsset(){
             </div>
           </div>
           <div style="border-top:1px solid #f1f5f9;padding:16px 24px 20px">
-            <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span> ตำแหน่ง</span><span class="info-val">${d.siteName||"-"} ${d.location?`(${d.location})`:""}</span></div>
+            <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span> ไซต์/ฟาร์ม</span><span class="info-val">${d.siteName||"-"}</span></div>
+            ${(()=>{const loc=(d.location||"").trim();const site=(d.siteName||"").trim();const show=loc&&loc!=="-"&&loc!==site;return show?`<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">my_location</span> ตำแหน่งย่อย</span><span class="info-val">${loc}</span></div>`:"";})()}
             ${d.houseName && d.houseName!=="-" ? `<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">home</span> โรงเรือน</span><span class="info-val">${d.houseName}</span></div>`:""}
             ${d.farmType && d.farmType!=="-" ? `<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">factory</span> ประเภทฟาร์ม</span><span class="info-val">${d.farmType}</span></div>`:""}
             <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">person</span> ผู้รับผิดชอบ</span><span class="info-val">${d.user||"-"}</span></div>

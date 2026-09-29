@@ -115,9 +115,9 @@ export default function Asset() {
   }
 
   function exportCSV() {
-    const heads = ['Asset ID', 'Code', 'Name', 'Serial', 'Status', 'Location', 'Site', 'User', 'Category'];
+    const heads = ['Asset ID', 'Code', 'Name', 'Serial', 'Status', 'ตำแหน่งย่อย', 'ไซต์/ฟาร์ม', 'โรงเรือน', 'User', 'Category'];
     const rows = [heads];
-    filtered.forEach((a) => rows.push([a.assetId, a.code, a.name, a.serialNumber, a.status, a.location, a.siteName, a.user, catOf(a)]));
+    filtered.forEach((a) => rows.push([a.assetId, a.code, a.name, a.serialNumber, a.status, a.location, a.siteName, a.houseName, a.user, catOf(a)]));
     dlCSV(`asset_export_${stamp()}.csv`, rows);
   }
 
@@ -231,8 +231,9 @@ export default function Asset() {
                   <th className="px-3 py-2.5 font-medium">Name</th>
                   <th className="px-3 py-2.5 font-medium">Serial</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
-                  <th className="px-3 py-2.5 font-medium">Location</th>
-                  <th className="px-3 py-2.5 font-medium">Site</th>
+                  <th className="px-3 py-2.5 font-medium">ตำแหน่งย่อย</th>
+                  <th className="px-3 py-2.5 font-medium">ไซต์/ฟาร์ม</th>
+                  <th className="px-3 py-2.5 font-medium">โรงเรือน</th>
                   <th className="px-3 py-2.5 font-medium">User</th>
                   <th className="px-3 py-2.5 font-medium text-center">Trace</th>
                   <th className="px-3 py-2.5 font-medium text-center">QR</th>
@@ -240,9 +241,9 @@ export default function Asset() {
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={11} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
+                {loading && <tr><td colSpan={12} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
                 {!loading && paged.length === 0 && (
-                  <tr><td colSpan={11} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
+                  <tr><td colSpan={12} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
                 )}
                 {paged.map((a) => (
                   <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--g100)] hover:bg-[var(--surface2)]">
@@ -253,6 +254,11 @@ export default function Asset() {
                     <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
                     <td className="px-3 py-2 text-[var(--tsub)]">{a.location}</td>
                     <td className="px-3 py-2 text-[var(--tsub)]">{a.siteName}</td>
+                    <td className="px-3 py-2 text-[var(--tsub)]">
+                      {a.houseName && a.houseName !== '-'
+                        ? <span title={a.houseId}>{a.houseName}</span>
+                        : <span className="text-[var(--tmuted)]">—</span>}
+                    </td>
                     <td className="px-3 py-2 text-[var(--tsub)]">{a.user}</td>
                     <td className="px-3 py-2 text-center">
                       <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดู trace" className="text-[var(--blue)]">
@@ -295,8 +301,13 @@ export default function Asset() {
                 </div>
                 <div className="pl-[42px] grid grid-cols-1 gap-1 text-[12px]">
                   <div className="text-[var(--tsub)]">Serial: <span className="font-mono text-[var(--text)]">{a.serialNumber}</span></div>
-                  <div className="text-[var(--tsub)]">ที่อยู่: <span className="text-[var(--text)]">{a.location}</span></div>
-                  <div className="text-[var(--tsub)]">Site: <span className="text-[var(--text)]">{a.siteName}</span></div>
+                  <div className="text-[var(--tsub)]">ไซต์/ฟาร์ม: <span className="text-[var(--text)]">{a.siteName}</span></div>
+                  {a.houseName && a.houseName !== '-' && (
+                    <div className="text-[var(--tsub)]">โรงเรือน: <span className="text-[var(--text)]">{a.houseName}</span></div>
+                  )}
+                  {a.location && a.location !== '-' && (
+                    <div className="text-[var(--tsub)]">ตำแหน่งย่อย: <span className="text-[var(--text)]">{a.location}</span></div>
+                  )}
                   {a.user && <div className="text-[var(--tsub)]">ผู้ใช้: <span className="text-[var(--text)]">{a.user}</span></div>}
                 </div>
                 <div className="pl-[42px] flex items-center gap-2">

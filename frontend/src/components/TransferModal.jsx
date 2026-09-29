@@ -28,6 +28,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
   const [houseId, setHouseId] = useState('');
   const [houseFree, setHouseFree] = useState('');
   const [location, setLocation] = useState('');
+  const [knownLocations, setKnownLocations] = useState([]);
   const [user, setUser] = useState('');
   const [remark, setRemark] = useState('');
   const busy = useBusy();
@@ -35,6 +36,9 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
   const cur = current || {};
   const showFarm =
     !action.includes('ซ่อม') && !action.includes('คืนคลัง');
+  // "ตำแหน่งย่อย" มีความหมายเฉพาะตอนอยู่ที่ฟาร์มเท่านั้น
+  // (คืนคลัง = ไปที่ Stock, ส่งซ่อม = อยู่คลังแต่ซ่อม — ไม่ต้องระบุจุดย่อย)
+  const isStockZone = !showFarm || siteId === 'Intranin' || !siteId;
 
   useEffect(() => {
     if (!open) return;
@@ -51,6 +55,12 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
     setRemark('');
     axios.get('/api/farm-sites').then(({ data }) => setSites(data || [])).catch(() => {});
   }, [open, cur]);
+
+  // โหลด "ตำแหน่งย่อยในไซต์" ที่เคยใช้มาแล้ว เพื่อเป็นตัวเดาในช่องกรอก
+  useEffect(() => {
+    if (!open) return;
+    axios.get('/api/asset-locations').then(({ data }) => setKnownLocations(data || [])).catch(() => {});
+  }, [open]);
 
   // โหลดโรงเรือนเมื่อเลือกไซต์
   useEffect(() => {
@@ -74,30 +84,34 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
     } else if (nextAction.includes('คืนคลัง')) {
       setStatus('สำรอง');
       setSiteId('Intranin');
-      setLocation('Stock');
+      setLocation('');
+      setHouseId('');
     }
   }
 
   async function submit() {
     if (!serial) return alert('ไม่พบ Serial Number');
     const selectedSite = sites.find((s) => s.siteId === siteId);
-    // เดิม: transferSite เป็นชื่อฟาร์มแบบแสดงผล (siteName) — dropdown จับคู่ siteId→siteName
+    // SiteName (คอลัมน์ H) = ตัวระบุว่าอยู่ฟาร์มไหน — มาจากช่อง "ไซต์งาน / ฟาร์ม" ช่องเดียว
     const destSite = siteId === 'Intranin' ? 'Intranin' : selectedSite ? selectedSite.siteName : siteFree;
     if (showFarm && !destSite) return alert('เลือกไซต์งาน / ฟาร์มปลายทาง');
+
+    const isReturn = action.includes('คืนคลัง');
 
     const body = {
       serialNumber: serial,
       action,
       status,
-      location: action.includes('คืนคลัง') ? 'Stock' : location,
+      // Location (คอลัมน์ G) = ตำแหน่งย่อยภายในไซต์ เช่น "ชั้น 2" / "ใกล้ประตู" — ไม่ซ้ำกับชื่อฟาร์มอีก
+      location: isReturn ? 'Stock' : location.trim(),
       siteName: destSite,
       user,
       remark,
       fromLocation: `${cur.siteName || ''} (${cur.location || ''})`.trim(),
       farmType: showFarm ? farmType || '-' : '-',
       animalType: showFarm ? animalType || '-' : '-',
-      houseId: houseId || houseFree || '-',
-      houseName: houseId ? (houses.find((h) => h.houseId === houseId)?.houseName || houseFree) : houseFree || '-',
+      houseId: isReturn ? '-' : houseId || houseFree || '-',
+      houseName: isReturn ? '-' : houseId ? (houses.find((h) => h.houseId === houseId)?.houseName || houseFree) : houseFree || '-',
     };
 
     await busy.run('กำลังโอนย้าย...', async () => {
@@ -202,11 +216,23 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Location / ตำแหน่ง">
-              <select value={location} onChange={(e) => setLocation(e.target.value)} className={inp} disabled={action.includes('คืนคลัง')}>
-                <option value="Stock">Stock (คลังกลาง)</option>
-                {sites.filter((s) => s.siteName && s.siteName !== 'Intranin').map((s) => <option key={s.siteId} value={s.siteName}>{s.siteName}</option>)}
-              </select>
+            <Field label="ตำแหน่งย่อยในไซต์">
+              <input
+                list="knownLocations"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder={isStockZone ? 'ไม่ระบุ' : 'เช่น ชั้น 2, ใกล้ประตู, โซนให้อาหาร'}
+                className={inp}
+                disabled={isStockZone}
+              />
+              <datalist id="knownLocations">
+                {knownLocations.map((l) => <option key={l} value={l} />)}
+              </datalist>
+              {!isStockZone && (
+                <div className="mt-1.5 text-[11px] text-[var(--tmuted)]">
+                  ระบุจุดย่อยภายในฟาร์มที่เลือก — พิมพ์เองได้ หรือเลือกจากค่าที่เคยใช้
+                </div>
+              )}
             </Field>
             <Field label="ผู้รับผิดชอบ">
               <input value={user} onChange={(e) => setUser(e.target.value)} placeholder="ชื่อผู้ดูแล" className={inp} />
