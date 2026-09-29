@@ -100,6 +100,26 @@ router.get("/api/assets", requireLogin, async (req, res) => {
       range: "Asset_List!A2:P",
     });
     const assetRows = assetResponse.data.values || [];
+
+    // ดึงชื่อชุดอุปกรณ์มาไว้แนบ เพื่อให้หน้า Asset แสดงได้ว่า "อยู่ในชุดอะไร"
+    // (Asset_List เก็บแค่ BundleID ที่คอลัมน์ N — ชื่อชุดต้องมาจาก sheet Bundles)
+    let bundleNameMap = cache.get("assetBundleNames");
+    if (!bundleNameMap) {
+      bundleNameMap = {};
+      try {
+        const bRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: "Bundles!A2:F",
+        });
+        (bRes.data.values || []).forEach((r) => {
+          if (r[0]) bundleNameMap[r[0]] = r[1] || r[0];
+        });
+        cache.set("assetBundleNames", bundleNameMap);
+      } catch (e) {
+        console.error("❌ Load bundle names:", e.message);
+      }
+    }
+
     assets = assetRows.map((row) => ({
       assetId: row[0] || "-",
       code: row[1] || "-",
@@ -114,6 +134,7 @@ router.get("/api/assets", requireLogin, async (req, res) => {
       houseId: row[11] || "-",
       houseName: row[12] || "-",
       bundleId: row[13] || "", // ว่าง = ไม่ได้อยู่ใน Bundle ไหน
+      bundleName: row[13] ? bundleNameMap[row[13]] || row[13] : "",
     }));
     cache.set(cacheKey, assets);
     res.json(assets);

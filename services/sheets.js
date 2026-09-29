@@ -72,6 +72,7 @@ function clearStockCache() {
 function clearAssetCache() {
   cache.del("assetData");
   cache.del("assetLocationList");
+  cache.del("assetBundleNames");
 }
 
 const DAMAGED_SHEET = "Damaged_Assets";

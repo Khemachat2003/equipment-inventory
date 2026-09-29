@@ -47,6 +47,7 @@ const CACHE_KEY     = "bundleData";
 // ─── helper: clear bundle cache ───────────────
 function clearBundleCache() {
   cache.del(CACHE_KEY);
+  cache.del("assetBundleNames");
 }
 
 function today() {
@@ -772,6 +773,8 @@ router.get("/api/bundles/asset-info", requireLogin, async (req, res) => {
         location: r[6] || "",
         site:     r[7] || "",
         user:     r[8] || "",
+        houseId:  r[11] || "",
+        houseName: r[12] || "",
         bundleId: r[13] || "",
       }));
 

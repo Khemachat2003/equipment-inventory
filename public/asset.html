@@ -389,9 +389,18 @@ async function loadAsset(){
             <div style="font-weight:700;color:#475569;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">factory</span> ข้อมูลการติดตั้ง</div>
             <div class="factory-grid">
               ${d.farmType!=="-" ? `<div class="factory-chip"><div class="fc-lbl">ประเภทฟาร์ม</div><div class="fc-val">${d.farmType}</div></div>`:""}
-              ${d.siteName!=="-" ? `<div class="factory-chip"><div class="fc-lbl">ไซต์งาน</div><div class="fc-val">${d.siteName}</div></div>`:""}
-              ${d.houseName!=="-" ? `<div class="factory-chip"><div class="fc-lbl">โรงเรือน</div><div class="fc-val">${d.houseName}</div></div>`:""}
-              ${d.location!=="-" ? `<div class="factory-chip"><div class="fc-lbl">ตำแหน่ง</div><div class="fc-val">${d.location}</div></div>`:""}
+              ${(()=>{
+                const esc=(v)=>String(v??"").replace(/[&<>"]/g,(m)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+                const cl=(v)=>{const s=String(v??"").trim();return (!s||s==="-"||s==="null"||s==="undefined")?"":s;};
+                const site=cl(d.siteName), hn=cl(d.houseName), hi=cl(d.houseId);
+                let pt=cl(d.location);
+                if(pt&&pt===site)pt="";            // ข้อมูลเก่า: เคยเก็บชื่อฟาร์มไว้ใน Location
+                const isStock = !site||site==="Intranin"||cl(d.location)==="Stock";
+                const house = hi?`${esc(hi)} ${esc(hn)}`.trim():esc(hn);
+                const chip=(l,v)=>`<div class="factory-chip"><div class="fc-lbl">${l}</div><div class="fc-val">${v}</div></div>`;
+                if(isStock) return chip("ตำแหน่ง", cl(d.location)==="Stock"?"คลังกลาง (Stock)":"คลังกลาง (Intranin)");
+                return chip("ฟาร์ม",esc(site))+(house?chip("โรงเรือน",house):"")+(pt?chip("จุดติดตั้ง",esc(pt)):"");
+              })()}
             </div>
           </div>`;
       }
@@ -475,7 +484,7 @@ async function loadAsset(){
           </div>
           <div style="border-top:1px solid #f1f5f9;padding:16px 24px 20px">
             <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">place</span> ไซต์/ฟาร์ม</span><span class="info-val">${d.siteName||"-"}</span></div>
-            ${(()=>{const loc=(d.location||"").trim();const site=(d.siteName||"").trim();const show=loc&&loc!=="-"&&loc!==site;return show?`<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">my_location</span> ตำแหน่งย่อย</span><span class="info-val">${loc}</span></div>`:"";})()}
+            ${(()=>{const loc=(d.location||"").trim();const site=(d.siteName||"").trim();const show=loc&&loc!=="-"&&loc!==site&&loc!=="Stock"&&site!=="Intranin";return show?`<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">my_location</span> จุดติดตั้ง</span><span class="info-val">${loc}</span></div>`:"";})()}
             ${d.houseName && d.houseName!=="-" ? `<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">home</span> โรงเรือน</span><span class="info-val">${d.houseName}</span></div>`:""}
             ${d.farmType && d.farmType!=="-" ? `<div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">factory</span> ประเภทฟาร์ม</span><span class="info-val">${d.farmType}</span></div>`:""}
             <div class="info-row"><span class="info-lbl"><span class="material-symbols-rounded icon-md icon-regular icon-outline icon-primary">person</span> ผู้รับผิดชอบ</span><span class="info-val">${d.user||"-"}</span></div>

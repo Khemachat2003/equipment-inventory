@@ -4,9 +4,11 @@ import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import StatPill from '../components/ui/StatPill.jsx';
 import Pagination from '../components/ui/Pagination.jsx';
+import LocationPath from '../components/ui/LocationPath.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { CATEGORY_FALLBACK, categoryIcon, categoryLabel } from '../data/categories.js';
+import { buildLocation } from '../utils/location.js';
 
 export default function Asset() {
   const [assets, setAssets] = useState([]);
@@ -115,9 +117,14 @@ export default function Asset() {
   }
 
   function exportCSV() {
-    const heads = ['Asset ID', 'Code', 'Name', 'Serial', 'Status', 'ตำแหน่งย่อย', 'ไซต์/ฟาร์ม', 'โรงเรือน', 'User', 'Category'];
+    const heads = ['Asset ID', 'Code', 'Name', 'Serial', 'Status', 'อยู่ในชุด', 'ตำแหน่ง (ฟาร์ม › โรงเรือน › จุดติดตั้ง)', 'User', 'Category'];
     const rows = [heads];
-    filtered.forEach((a) => rows.push([a.assetId, a.code, a.name, a.serialNumber, a.status, a.location, a.siteName, a.houseName, a.user, catOf(a)]));
+    filtered.forEach((a) => rows.push([
+      a.assetId, a.code, a.name, a.serialNumber, a.status,
+      a.bundleName || a.bundleId || '',
+      buildLocation({ siteName: a.siteName, houseName: a.houseName, houseId: a.houseId, location: a.location }).full,
+      a.user, catOf(a),
+    ]));
     dlCSV(`asset_export_${stamp()}.csv`, rows);
   }
 
@@ -231,9 +238,8 @@ export default function Asset() {
                   <th className="px-3 py-2.5 font-medium">Name</th>
                   <th className="px-3 py-2.5 font-medium">Serial</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
-                  <th className="px-3 py-2.5 font-medium">ตำแหน่งย่อย</th>
-                  <th className="px-3 py-2.5 font-medium">ไซต์/ฟาร์ม</th>
-                  <th className="px-3 py-2.5 font-medium">โรงเรือน</th>
+                  <th className="px-3 py-2.5 font-medium">อยู่ในชุด</th>
+                  <th className="px-3 py-2.5 font-medium">ตำแหน่ง (ฟาร์ม › โรงเรือน › จุดติดตั้ง)</th>
                   <th className="px-3 py-2.5 font-medium">User</th>
                   <th className="px-3 py-2.5 font-medium text-center">Trace</th>
                   <th className="px-3 py-2.5 font-medium text-center">QR</th>
@@ -241,9 +247,9 @@ export default function Asset() {
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={12} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
+                {loading && <tr><td colSpan={11} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
                 {!loading && paged.length === 0 && (
-                  <tr><td colSpan={12} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
+                  <tr><td colSpan={11} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
                 )}
                 {paged.map((a) => (
                   <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--g100)] hover:bg-[var(--surface2)]">
@@ -252,12 +258,27 @@ export default function Asset() {
                     <td className="px-3 py-2 font-medium"><span title={categoryLabel(catOf(a))} className="inline-flex items-center gap-1"><Icon name={categoryIcon(catOf(a))} size="xs" className="text-[var(--tsub)]" /> {a.name}</span></td>
                     <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]">{a.serialNumber}</td>
                     <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
-                    <td className="px-3 py-2 text-[var(--tsub)]">{a.location}</td>
-                    <td className="px-3 py-2 text-[var(--tsub)]">{a.siteName}</td>
                     <td className="px-3 py-2 text-[var(--tsub)]">
-                      {a.houseName && a.houseName !== '-'
-                        ? <span title={a.houseId}>{a.houseName}</span>
+                      {a.bundleId
+                        ? (
+                          <span
+                            title={`${a.bundleName || a.bundleId} — เปิดรายละเอียดชุดเพื่อดูตำแหน่งเต็ม`}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-[var(--blue-l)] border border-[var(--blue-b)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--blue)] max-w-[160px]"
+                          >
+                            <Icon name="inventory_2" size="xs" className="flex-shrink-0" />
+                            <span className="truncate">{a.bundleName || a.bundleId}</span>
+                          </span>
+                        )
                         : <span className="text-[var(--tmuted)]">—</span>}
+                    </td>
+                    <td className="px-3 py-2">
+                      <LocationPath
+                        siteName={a.siteName}
+                        houseName={a.houseName}
+                        houseId={a.houseId}
+                        location={a.location}
+                        showChips
+                      />
                     </td>
                     <td className="px-3 py-2 text-[var(--tsub)]">{a.user}</td>
                     <td className="px-3 py-2 text-center">
@@ -301,13 +322,21 @@ export default function Asset() {
                 </div>
                 <div className="pl-[42px] grid grid-cols-1 gap-1 text-[12px]">
                   <div className="text-[var(--tsub)]">Serial: <span className="font-mono text-[var(--text)]">{a.serialNumber}</span></div>
-                  <div className="text-[var(--tsub)]">ไซต์/ฟาร์ม: <span className="text-[var(--text)]">{a.siteName}</span></div>
-                  {a.houseName && a.houseName !== '-' && (
-                    <div className="text-[var(--tsub)]">โรงเรือน: <span className="text-[var(--text)]">{a.houseName}</span></div>
+                  {a.bundleId && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[var(--tsub)]">อยู่ในชุด:</span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-[var(--blue-l)] border border-[var(--blue-b)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--blue)]">
+                        <Icon name="inventory_2" size="xs" /> {a.bundleName || a.bundleId}
+                      </span>
+                    </div>
                   )}
-                  {a.location && a.location !== '-' && (
-                    <div className="text-[var(--tsub)]">ตำแหน่งย่อย: <span className="text-[var(--text)]">{a.location}</span></div>
-                  )}
+                  <LocationPath
+                    siteName={a.siteName}
+                    houseName={a.houseName}
+                    houseId={a.houseId}
+                    location={a.location}
+                    showChips
+                  />
                   {a.user && <div className="text-[var(--tsub)]">ผู้ใช้: <span className="text-[var(--text)]">{a.user}</span></div>}
                 </div>
                 <div className="pl-[42px] flex items-center gap-2">

@@ -5,6 +5,7 @@ import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
+import { buildLocation, buildBundleLocation } from '../utils/location.js';
 
 const BTONES = {
   'In Stock': 'blue',
@@ -307,7 +308,8 @@ function StatCard({ label, value, icon, tone }) {
 
 function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
   const b = bundle;
-  const loc = b.status === 'In Stock' ? 'Stock' : b.location || b.farmId;
+  const inStock = b.status === 'In Stock';
+  const loc = inStock ? 'คลังกลาง' : b.location || b.farmId;
   return (
     <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between">
@@ -319,8 +321,18 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
         <StatusBadge status={b.status} tone={BTONES[b.status]} />
       </div>
       <div className="flex items-center gap-3 text-[12px] text-[var(--tsub)]">
-        <span className="flex items-center gap-1"><Icon name="devices" size="xs" /> {b.assetIds?.length || 0} อุปกรณ์</span>
-        <span className="flex items-center gap-1"><Icon name="place" size="xs" /> {loc}</span>
+        <span className="flex items-center gap-1 flex-shrink-0"><Icon name="devices" size="xs" /> {b.assetIds?.length || 0} อุปกรณ์</span>
+        <span className="flex items-center gap-1 min-w-0">
+          <Icon name="place" size="xs" className="flex-shrink-0" />
+          <span className="truncate" title={loc}>
+            {inStock ? 'คลังกลาง' : loc}
+          </span>
+        </span>
+        {!inStock && (
+          <button onClick={onDetail} className="ml-auto flex-shrink-0 text-[11px] font-semibold text-[var(--blue)] hover:underline whitespace-nowrap">
+            ดูตำแหน่งเต็ม
+          </button>
+        )}
       </div>
       <div className="flex items-center gap-2 pt-2 border-t border-[var(--g100)]">
         <button onClick={onDetail} className="flex items-center justify-center gap-1 flex-1 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="search" size="xs" /> รายละเอียด</button>
@@ -333,7 +345,18 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
 }
 
 function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, onDeploy, onRecall, onTransfer }) {
-  const loc = b.status === 'In Stock' ? 'Stock' : b.location || b.farmId;
+  const inStock = b.status === 'In Stock';
+  // ตำแหน่งของชุด = ตำแหน่งของสมาชิก (ย้ายทั้งชุดพร้อมกัน จึงใช้ค่าจากสมาชิกได้เลย)
+  // ถ้าสมาชิกอยู่คนละจุด แปลว่ามีการย้ายเฉพาะรายชิ้นหลังจากนั้น — ต้องเตือนให้เห็นชัด
+  const loc = useMemo(
+    () => (inStock ? buildLocation({ location: 'Stock' }) : buildBundleLocation(assets).main),
+    [assets, inStock],
+  );
+  const divergence = useMemo(
+    () => (inStock || assets.length < 2 ? null : buildBundleLocation(assets)),
+    [assets, inStock],
+  );
+  const divergent = divergence?.divergent;
   return (
     <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
       <div className="p-5 border-b border-[var(--g100)] bg-gradient-to-r from-[var(--blue-l)] to-transparent">
@@ -357,11 +380,32 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
           </div>
         </div>
         <div className="flex flex-wrap gap-4 mt-3 text-[12px] text-[var(--tsub)]">
-          <span className="flex items-center gap-1"><Icon name="place" size="xs" /> ตำแหน่ง: <strong>{loc}</strong></span>
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Icon name="place" size="xs" /> ตำแหน่ง:
+            <strong className="font-semibold text-[var(--text)] truncate">{loc.full}</strong>
+          </span>
+          {loc.chips.map((c) => (
+            <span key={c.key} className="flex items-center gap-1">
+              <span className="rounded bg-[var(--surface2)] px-1.5 py-px text-[10px] font-medium text-[var(--tsub)] border border-[var(--g100)]">{c.label}</span>
+              <strong className="font-semibold text-[var(--text)]">{c.value}</strong>
+            </span>
+          ))}
           <span className="flex items-center gap-1"><Icon name="folder_open" size="xs" /> อุปกรณ์: <strong>{b.assetIds?.length || 0} ชิ้น</strong></span>
           <span className="flex items-center gap-1"><Icon name="person" size="xs" /> สร้างโดย: <strong>{b.createdBy || '-'}</strong></span>
           <span className="flex items-center gap-1"><Icon name="sync" size="xs" /> อัพเดท: <strong>{b.updatedDate || '-'}</strong></span>
         </div>
+        {divergent && (
+          <div className="mt-3 flex items-start gap-2 px-3 py-2.5 rounded-xl bg-[var(--amber-l)] border border-[var(--amber-b)] text-[11px] text-[var(--amber-d)]">
+            <Icon name="warning" size="sm" />
+            <div>
+              <div className="font-bold">อุปกรณ์ในชุดนี้ไม่ได้อยู่ที่เดียวกัน</div>
+              <div className="mt-1 space-y-0.5">
+                {divergence.paths.map((p) => <div key={p}>• {p}</div>)}
+              </div>
+              <div className="mt-1.5">ย้ายทั้งชุดอีกครั้งเพื่อให้อยู่ตำแหน่งเดียวกัน</div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-5">
