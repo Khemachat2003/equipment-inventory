@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement,
+  PointElement,
   Filler,
   Tooltip,
   Legend,
@@ -14,7 +16,12 @@ import Icon from '../components/ui/Icon.jsx';
 import StatPill from '../components/ui/StatPill.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Filler, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler, Tooltip, Legend);
+
+const CHART_TYPES = [
+  { value: 'bar', label: 'แท่ง', icon: 'bar_chart' },
+  { value: 'line', label: 'เส้น', icon: 'trending_up' },
+];
 
 const RANGES = [
   { days: 7, label: '7 วัน' },
@@ -32,6 +39,13 @@ const STATUS_TONES = {
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [range, setRange] = useState(30);
+  const [chartType, setChartType] = useState(() => {
+    try {
+      return localStorage.getItem('dashboard-chart-type') || 'bar';
+    } catch {
+      return 'bar';
+    }
+  });
   const [loading, setLoading] = useState(true);
   const busy = useBusy();
 
@@ -60,7 +74,16 @@ export default function Dashboard() {
     );
   }
 
-  const chart = buildChartData(data?.chartData, range);
+  const chart = buildChartData(data?.chartData, range, chartType);
+
+  function handleChartTypeChange(next) {
+    setChartType(next);
+    try {
+      localStorage.setItem('dashboard-chart-type', next);
+    } catch {
+      /* ignore storage errors (private mode etc.) */
+    }
+  }
   const totalAssets = data?.assets?.length ?? 0;
   const statusEntries = Object.entries(data?.statusCount || {})
     .map(([label, value]) => ({ label, value, ...(STATUS_TONES[label] || { tone: 'blue', icon: 'inventory_2' }) }))
@@ -123,24 +146,48 @@ export default function Dashboard() {
               </span>
               สถิติการเบิก–คืน
             </div>
-            <div className="flex gap-1 rounded-lg bg-[var(--surface2)] border border-[var(--g100)] p-0.5">
-              {RANGES.map((r) => (
-                <button
-                  key={r.days}
-                  onClick={() => setRange(r.days)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                    range === r.days
-                      ? 'bg-[var(--blue)] text-white shadow-[var(--sh-sm)]'
-                      : 'text-[var(--tsub)] hover:bg-white'
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex gap-1 rounded-lg bg-[var(--surface2)] border border-[var(--g100)] p-0.5" role="tablist" aria-label="ประเภทกราฟ">
+                {CHART_TYPES.map((t) => (
+                  <button
+                    key={t.value}
+                    role="tab"
+                    aria-selected={chartType === t.value}
+                    title={t.value === 'bar' ? 'กราฟแท่ง' : 'กราฟเส้น'}
+                    onClick={() => handleChartTypeChange(t.value)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                      chartType === t.value
+                        ? 'bg-[var(--blue)] text-white shadow-[var(--sh-sm)]'
+                        : 'text-[var(--tsub)] hover:bg-white'
+                    }`}
+                  >
+                    <Icon name={t.icon} size="sm" /> {t.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1 rounded-lg bg-[var(--surface2)] border border-[var(--g100)] p-0.5">
+                {RANGES.map((r) => (
+                  <button
+                    key={r.days}
+                    onClick={() => setRange(r.days)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                      range === r.days
+                        ? 'bg-[var(--blue)] text-white shadow-[var(--sh-sm)]'
+                        : 'text-[var(--tsub)] hover:bg-white'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="h-[280px]">
-            <Bar data={chart.data} options={chart.options} />
+            {chartType === 'line' ? (
+              <Line data={chart.data} options={chart.options} />
+            ) : (
+              <Bar data={chart.data} options={chart.options} />
+            )}
           </div>
         </div>
 
@@ -260,10 +307,11 @@ function KpiCard({ icon, tone, label, value, desc }) {
   );
 }
 
-function buildChartData(chartData, days) {
+function buildChartData(chartData, days, type = 'bar') {
   const labels = chartData ? Object.keys(chartData).sort().slice(-days) : [];
   const borrowData = labels.map((d) => chartData?.[d]?.borrow || 0);
   const returnData = labels.map((d) => chartData?.[d]?.return || 0);
+  const isLine = type === 'line';
 
   return {
     data: {
@@ -272,24 +320,42 @@ function buildChartData(chartData, days) {
         {
           label: 'เบิก',
           data: borrowData,
-          backgroundColor: 'rgba(27,108,168,.85)',
+          // Bar style
+          backgroundColor: isLine ? 'rgba(27,108,168,.15)' : 'rgba(27,108,168,.85)',
           hoverBackgroundColor: '#1B6CA8',
           borderRadius: 6,
           borderSkipped: false,
           barPercentage: 0.7,
           categoryPercentage: 0.55,
           maxBarThickness: 18,
+          // Line style
+          borderColor: '#1B6CA8',
+          fill: isLine ? true : undefined,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointBackgroundColor: '#1B6CA8',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
         },
         {
           label: 'คืน',
           data: returnData,
-          backgroundColor: 'rgba(0,200,150,.75)',
+          backgroundColor: isLine ? 'rgba(0,200,150,.15)' : 'rgba(0,200,150,.75)',
           hoverBackgroundColor: '#00C896',
           borderRadius: 6,
           borderSkipped: false,
           barPercentage: 0.7,
           categoryPercentage: 0.55,
           maxBarThickness: 18,
+          borderColor: '#00C896',
+          fill: isLine ? true : undefined,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointBackgroundColor: '#00C896',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
         },
       ],
     },
