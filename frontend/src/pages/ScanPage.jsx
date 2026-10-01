@@ -202,6 +202,23 @@ export default function ScanPage() {
       .slice(0, 8);
   }, [search, catalog]);
 
+  // ประวัติแบบ inline ในผลค้นหา — กดแล้วเห็นทันทีใต้แถวนั้น
+  // (เดิมผูกกับ ResultCard ที่อยู่ล่างสุดของหน้า → กดแล้วเหมือนไม่มีอะไรเกิดขึ้น เพราะผลอยู่นอกจอ)
+  const [rowHist, setRowHist] = useState(null); // { serial, logs, loading, error }
+
+  async function toggleRowHistory(a) {
+    const sn = (a.serialNumber || '').trim();
+    if (!sn) return;
+    if (rowHist && rowHist.serial === sn) return setRowHist(null);
+    setRowHist({ serial: sn, logs: [], loading: true });
+    try {
+      const { data } = await axios.get(`/api/asset-history/${encodeURIComponent(sn)}`);
+      setRowHist({ serial: sn, logs: data || [], loading: false });
+    } catch (e) {
+      setRowHist({ serial: sn, logs: [], loading: false, error: true });
+    }
+  }
+
   // รับ ?serial= จากหน้าแรก (Home Workdesk ปุ่ม "ย้าย") — เปิดมาค้นหาให้เลย
   useEffect(() => {
     try {
@@ -266,11 +283,15 @@ export default function ScanPage() {
                 ไม่พบ "{search}" — ลองคำอื่น หรือพิมพ์ Serial ด้านล่าง
               </div>
             ) : (
-              searchHits.map((a) => (
+              searchHits.map((a) => {
+                const sn = (a.serialNumber || '').trim();
+                const histOpen = rowHist && rowHist.serial === sn;
+                return (
                 <div
                   key={(a.serialNumber || '') + (a.assetId || '')}
-                  className="px-3.5 py-3 rounded-xl border border-[var(--g200)] hover:bg-[var(--surface2)] flex items-center justify-between gap-3"
+                  className="rounded-xl border border-[var(--g200)] hover:bg-[var(--surface2)] overflow-hidden"
                 >
+                  <div className="px-3.5 py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] font-semibold truncate">{a.name || a.code}</span>
@@ -297,15 +318,50 @@ export default function ScanPage() {
                       <Icon name="local_shipping" size="sm" /> โอนย้าย
                     </button>
                     <button
-                      onClick={() => { setAsset(a); setStatus('found'); openHistory(a.serialNumber); }}
+                      onClick={() => toggleRowHistory(a)}
+                      disabled={!sn}
                       title="ดูประวัติอุปกรณ์นี้"
-                      className="h-8 px-2.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-white flex items-center gap-1"
+                      className={`h-8 px-2.5 rounded-lg border text-[12px] flex items-center gap-1 ${
+                        histOpen
+                          ? 'bg-[var(--blue-l)] border-[var(--blue-b)] text-[var(--blue)] font-semibold'
+                          : 'border-[var(--g300)] text-[var(--tsub)] hover:bg-white'
+                      } disabled:opacity-40`}
                     >
                       <Icon name="history" size="sm" /> ประวัติ
                     </button>
                   </div>
                 </div>
-              ))
+                  {histOpen && (
+                    <div className="border-t border-[var(--g100)] bg-[var(--surface2)] px-3.5 py-3">
+                      {rowHist.loading ? (
+                        <div className="text-center text-[12px] text-[var(--tmuted)] py-2">กำลังโหลดประวัติ...</div>
+                      ) : rowHist.error ? (
+                        <div className="text-center text-[12px] text-[var(--red)] py-2">โหลดประวัติไม่สำเร็จ — ลองใหม่อีกครั้ง</div>
+                      ) : rowHist.logs.length === 0 ? (
+                        <div className="text-center text-[12px] text-[var(--tmuted)] py-2">ยังไม่มีประวัติการเคลื่อนไหว</div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {rowHist.logs.map((l, i) => (
+                            <div key={i} className="flex gap-2.5 items-start">
+                              <span className={`w-6 h-6 flex items-center justify-center rounded-full shrink-0 ${i === 0 ? 'bg-[var(--blue-l)] text-[var(--blue)]' : 'bg-[var(--g100)] text-[var(--tsub)]'}`}>
+                                <Icon name={i === 0 ? 'place' : (l.action || '').includes('คืน') ? 'undo' : (l.action || '').includes('ซ่อม') ? 'build' : (l.action || '').includes('Deploy') ? 'folder_open' : 'sync_alt'} size="xs" />
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[12px] font-semibold">{l.action}</span>
+                                  <span className="text-[10px] text-[var(--tmuted)] whitespace-nowrap">{l.date}</span>
+                                </div>
+                                <div className="text-[11px] text-[var(--tsub)] mt-0.5">{l.from && l.from !== '-' ? `${l.from} → ` : ''}{l.to}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                );
+              })
             )}
           </div>
         )}
