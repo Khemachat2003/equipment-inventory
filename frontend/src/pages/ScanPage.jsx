@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { BarcodeFormat } from '@zxing/library';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
+import LocationPath from '../components/ui/LocationPath.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
@@ -149,8 +150,10 @@ export default function ScanPage() {
     restoreConsole();
   }
 
-  const [starting, setStarting] = useState(true);
-  const [camOn, setCamOn] = useState(true);
+  // UX (feedback): กล้องห้ามเปิดเอง — ผู้ใช้กด "เปิดกล้อง" เองเท่านั้น
+  // → เข้าหน้าแล้วไม่มี popup ขอสิทธิ์กล้องรบกวนคนที่ไม่ได้จะใช้กล้อง
+  const [starting, setStarting] = useState(false);
+  const [camOn, setCamOn] = useState(false);
   const [error, setError] = useState('');
   const [manual, setManual] = useState('');
   const [status, setStatus] = useState('idle'); // idle | searching | found | multiple | notfound
@@ -181,11 +184,23 @@ export default function ScanPage() {
     }
   }
 
+  // ตัด auto-start เดิม (startCam ตอน mount) ออก — เหลือแค่ cleanup ปิดกล้องเมื่อออกจากหน้า
+  useEffect(() => () => stop(), []);
+
+  // ── ค้นหาอุปกรณ์ด้วยชื่อ/รหัส (ทางเข้าหลัก — ผู้ใช้รู้ว่าของคืออะไร แต่จำ Serial ไม่ได้) ──
+  const [search, setSearch] = useState('');
+  const [catalog, setCatalog] = useState([]);
   useEffect(() => {
-    startCam();
-    return stop;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    axios.get('/api/assets').then(({ data }) => setCatalog(data || [])).catch(() => {});
   }, []);
+
+  const searchHits = useMemo(() => {
+    const k = search.trim().toLowerCase();
+    if (!k) return null;
+    return catalog
+      .filter((a) => [a.name, a.code, a.assetId, a.serialNumber].some((v) => (v || '').toLowerCase().includes(k)))
+      .slice(0, 8);
+  }, [search, catalog]);
 
   // รับ ?serial= จากหน้าแรก (Home Workdesk ปุ่ม "ย้าย") — เปิดมาค้นหาให้เลย
   useEffect(() => {
@@ -230,15 +245,88 @@ export default function ScanPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {/* กล้องสแกน */}
+      {/* ① ค้นหาอุปกรณ์ที่จะย้าย — ทางเข้าหลัก (พิมพ์ชื่อ/รหัส/Serial ก็เจอ) */}
+      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+        <div className="text-[13px] font-semibold text-[var(--text)] mb-2.5">ค้นหาอุปกรณ์ที่จะย้าย</div>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)] pointer-events-none">
+            <Icon name="search" size="sm" />
+          </span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="พิมพ์ชื่อ / รหัส / Serial อุปกรณ์..."
+            className="w-full h-11 pl-9 pr-3 rounded-lg border border-[var(--g300)] text-[13px] focus:outline-none focus:border-[var(--blue)]"
+          />
+        </div>
+        {search && searchHits && (
+          <div className="mt-3 space-y-2 max-h-80 overflow-y-auto">
+            {searchHits.length === 0 ? (
+              <div className="py-4 text-center text-[12px] text-[var(--tmuted)]">
+                ไม่พบ "{search}" — ลองคำอื่น หรือพิมพ์ Serial ด้านล่าง
+              </div>
+            ) : (
+              searchHits.map((a) => (
+                <div
+                  key={(a.serialNumber || '') + (a.assetId || '')}
+                  className="px-3.5 py-3 rounded-xl border border-[var(--g200)] hover:bg-[var(--surface2)] flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold truncate">{a.name || a.code}</span>
+                      <StatusBadge status={a.status} />
+                    </div>
+                    <div className="text-[11px] font-mono text-[var(--blue)] mt-0.5 truncate">
+                      {a.serialNumber || a.assetId || a.code}
+                    </div>
+                    <LocationPath
+                      className="mt-1"
+                      siteName={a.siteName}
+                      houseName={a.houseName}
+                      houseId={a.houseId}
+                      location={a.location}
+                      bundleId={a.bundleName}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => setTransfer(a)}
+                      title="โอนย้ายอุปกรณ์นี้"
+                      className="h-8 px-2.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold hover:bg-[var(--blue-d)] flex items-center gap-1"
+                    >
+                      <Icon name="local_shipping" size="sm" /> โอนย้าย
+                    </button>
+                    <button
+                      onClick={() => { setAsset(a); setStatus('found'); openHistory(a.serialNumber); }}
+                      title="ดูประวัติอุปกรณ์นี้"
+                      className="h-8 px-2.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-white flex items-center gap-1"
+                    >
+                      <Icon name="history" size="sm" /> ประวัติ
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+        {!search && <p className="text-[11px] text-[var(--tmuted)] mt-2">ไม่ต้องจำ Serial — พิมพ์ชื่อหรือรหัสอุปกรณ์ก็เจอ</p>}
+      </div>
+
+      {/* ② สแกนด้วยกล้อง — ปิดไว้เริ่มต้น ผู้ใช้กดเปิดเองเท่านั้น */}
       <div className="relative rounded-2xl overflow-hidden bg-black shadow-[var(--sh-md)]">
         {camOn ? (
           <video ref={videoRef} className="w-full h-72 sm:h-80 object-cover" muted playsInline />
         ) : (
-          <div className="w-full h-72 sm:h-80 flex flex-col items-center justify-center gap-3 text-white/70">
+          <div className="w-full h-56 sm:h-64 flex flex-col items-center justify-center gap-3 text-white/70">
             <Icon name="videocam_off" size="2xl" />
-            <div className="text-[14px] font-medium">กล้องปิดอยู่</div>
-            <div className="text-[12px] text-white/50 text-center px-8">ใช้ช่อง "พิมพ์ Serial" ด้านล่างกับเครื่องยิงบาร์โค้ด (USB Scanner) ได้เลย</div>
+            <div className="text-[12px] text-white/50 text-center px-8">จะสแกนบาร์โค้ด/QR ที่ติดอุปกรณ์ กดปุ่มด้านล่างเพื่อเปิดกล้อง<br />(ไม่จำเป็นต้องใช้กล้อง — ค้นหาจากด้านบนก็ย้ายได้)</div>
+            <button
+              onClick={startCam}
+              disabled={starting}
+              className="mt-1 flex items-center gap-2 h-11 px-6 rounded-xl bg-[var(--emerald)] text-white text-[14px] font-semibold hover:bg-[var(--emerald-d)] disabled:opacity-50"
+            >
+              <Icon name="videocam" size="sm" /> {starting ? 'กำลังเปิดกล้อง...' : 'เปิดกล้องเพื่อสแกนบาร์โค้ด'}
+            </button>
           </div>
         )}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
@@ -252,24 +340,22 @@ export default function ScanPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <button
-          onClick={toggleCam}
-          className={`flex items-center gap-2 h-10 px-5 rounded-xl font-semibold transition-colors ${
-            camOn
-              ? 'bg-[var(--red-l)] text-[var(--red)] border border-[var(--red-b)] hover:bg-[var(--red)] hover:text-white'
-              : 'bg-[var(--emerald)] text-white border border-[var(--emerald-d)] hover:bg-[var(--emerald-d)]'
-          }`}
-        >
-          <Icon name={camOn ? 'videocam_off' : 'videocam'} size="sm" />
-          {camOn ? 'ปิดกล้อง' : 'เปิดกล้อง'}
-        </button>
-        {status === 'idle' && (
-          <button onClick={reset} className="flex items-center gap-2 h-10 px-5 rounded-xl bg-[var(--emerald)] text-white text-[14px] font-semibold hover:bg-[var(--emerald-d)]">
-            <Icon name="document_scanner" size="sm" /> พร้อมสแกน — วางบาร์โค้ดในกรอบ
+      {/* ปุ่มควบคุมกล้อง — แสดงเฉพาะเมื่อผู้ใช้เปิดกล้องเองไว้แล้ว */}
+      {camOn && (
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={toggleCam}
+            className="flex items-center gap-2 h-10 px-5 rounded-xl font-semibold transition-colors bg-[var(--red-l)] text-[var(--red)] border border-[var(--red-b)] hover:bg-[var(--red)] hover:text-white"
+          >
+            <Icon name="videocam_off" size="sm" /> ปิดกล้อง
           </button>
-        )}
-      </div>
+          {status === 'idle' && (
+            <button onClick={reset} className="flex items-center gap-2 h-10 px-5 rounded-xl bg-[var(--emerald)] text-white text-[14px] font-semibold hover:bg-[var(--emerald-d)]">
+              <Icon name="document_scanner" size="sm" /> พร้อมสแกน — วางบาร์โค้ดในกรอบ
+            </button>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[var(--red-l)] border border-[var(--red-b)] text-[13px] text-[var(--red)]">
@@ -374,7 +460,7 @@ export default function ScanPage() {
 
 function ResultCard({ asset, history, onHistory, onTransfer, onScanAgain, onRefresh }) {
   return (
-    <Card title="สแกนสำเร็จ" accent="success">
+    <Card title="พบอุปกรณ์" accent="success">
       <div className="rounded-xl border border-[var(--g200)] overflow-hidden">
         <div className="p-4 bg-[var(--surface2)] space-y-1.5">
           <div className="flex items-start justify-between gap-3">
