@@ -231,30 +231,33 @@ export default function Layout() {
         ))}
       </nav>
 
-      {/* Floating action buttons (เดสก์ท็อปเท่านั้น) — สแกน / ฉลาก
-          มือถือซ่อน เพราะบังข้อมูลใน list และฟังก์ชันเดียวกันมีอยู่ในแถบล่างแล้ว */}
-      <div className="hidden md:flex fixed right-4 bottom-8 z-30 flex-col items-end gap-3">
-        <button onClick={() => navigate('/qr')} title="พิมพ์ฉลาก QR / Barcode" className="group flex items-center justify-end gap-2">
-          <span className="hidden sm:block px-2.5 py-1 rounded-lg bg-[var(--ink)] text-white text-[11px] font-medium shadow-[var(--sh-sm)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            พิมพ์ฉลาก QR / Barcode
-          </span>
-          <span className="w-11 h-11 rounded-full bg-[var(--blue)] text-white shadow-[var(--sh-md)] flex items-center justify-center hover:bg-[var(--blue-d)] transition-colors">
-            <Icon name="qr_code_2" size="sm" />
-          </span>
-        </button>
-        <button onClick={() => navigate('/scan')} title="สแกน Barcode / Serial" className="group flex items-center justify-end gap-2">
-          <span className="hidden sm:block px-2.5 py-1 rounded-lg bg-[var(--ink)] text-white text-[11px] font-medium shadow-[var(--sh-sm)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            สแกน Barcode / Serial
-          </span>
-          <span className="w-14 h-14 rounded-full bg-[var(--emerald)] text-white shadow-[var(--sh-lg)] flex items-center justify-center hover:bg-[var(--emerald-d)] transition-colors ring-4 ring-white">
-            <Icon name="document_scanner" size="lg" />
-          </span>
-        </button>
-      </div>
+      {/* ปุ่มกลับขึ้นด้านบน — โผล่เฉพาะเวลาสกอลลงพอสมควร (ทุกอุปกรณ์) */}
+      <BackToTop />
 
       {/* บทแนะนำผู้ใช้ใหม่ (แสดงครั้งแรกครั้งเดียว — จำใน localStorage) */}
       <OnboardingTour />
     </div>
+  );
+}
+
+function BackToTop() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      title="กลับขึ้นด้านบน"
+      aria-label="กลับขึ้นด้านบน"
+      className={`fixed right-4 bottom-20 md:bottom-6 z-30 w-10 h-10 rounded-full bg-[var(--ink)] text-white/90 shadow-[var(--sh-md)] flex items-center justify-center hover:bg-[var(--blue)] hover:text-white transition-all ${
+        show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'
+      }`}
+    >
+      <Icon name="keyboard_arrow_up" size="md" />
+    </button>
   );
 }
 

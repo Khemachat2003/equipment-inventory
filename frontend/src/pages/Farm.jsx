@@ -5,6 +5,7 @@ import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import StatPill from '../components/ui/StatPill.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import LocationPath from '../components/ui/LocationPath.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -218,64 +219,71 @@ export default function Farm() {
             <table className="w-full text-[12px]">
               <thead>
                 <tr className="text-left text-[var(--tmuted)] bg-[var(--surface2)] border-b border-[var(--g100)]">
-                  <th className="px-3 py-2.5 font-medium">Asset ID</th>
-                  <th className="px-3 py-2.5 font-medium">Code</th>
-                  <th className="px-3 py-2.5 font-medium">Name</th>
+                  <th className="px-3 py-2.5 font-medium">รหัส</th>
+                  <th className="px-3 py-2.5 font-medium">ชื่อ</th>
                   <th className="px-3 py-2.5 font-medium">Serial</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
-                  <th className="px-3 py-2.5 font-medium">Location</th>
-                  <th className="px-3 py-2.5 font-medium">Site</th>
+                  <th className="px-3 py-2.5 font-medium">ตำแหน่ง</th>
                   <th className="px-3 py-2.5 font-medium">User</th>
-                  <th className="px-3 py-2.5 font-medium text-center">Trace</th>
-                  <th className="px-3 py-2.5 font-medium text-center">QR</th>
                   <th className="px-3 py-2.5 font-medium text-center">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={11} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
+                {loading && <tr><td colSpan={7} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
                 {!loading && filteredAssets.length === 0 && filteredBundles.length === 0 && (
-                  <tr><td colSpan={11} className="text-center py-12 text-[var(--tmuted)]">
+                  <tr><td colSpan={7} className="text-center py-12 text-[var(--tmuted)]">
                     <div className="flex justify-center mb-2 text-[var(--tmuted)]"><Icon name="factory" size="2xl" /></div>ไม่พบอุปกรณ์ในไซต์งานนี้
                   </td></tr>
                 )}
                 {filteredBundles.map((b) => (
                   <tr key={'bundle-' + b.bundleId} className="border-b border-[var(--g100)] bg-[var(--blue-l)] cursor-pointer hover:bg-[var(--blue-b)]" onClick={() => openBundle(b.bundleId)}>
-                    <td className="px-3 py-2 font-mono text-[11px]">{b.bundleId}</td>
-                    <td className="px-3 py-2">-</td>
+                    <td className="px-3 py-2"><span className="font-mono text-[11px]">{b.bundleId}</span></td>
                     <td className="px-3 py-2 font-bold"><Icon name="folder_open" size="xs" /> {b.bundleName}</td>
                     <td className="px-3 py-2"><span className="text-[var(--blue)]">{b.assetIds?.length || 0} ชิ้นในชุด</span></td>
                     <td className="px-3 py-2"><StatusBadge status={b.status} /></td>
-                    <td className="px-3 py-2">{b.location || '-'}</td>
-                    <td className="px-3 py-2">{b.location || '-'}</td>
-                    <td className="px-3 py-2">-</td>
-                    <td className="px-3 py-2">-</td>
+                    <td className="px-3 py-2 text-[var(--tsub)]">{b.location || '-'}</td>
                     <td className="px-3 py-2">-</td>
                     <td className="px-3 py-2 text-center">
-                      <button onClick={(e) => { e.stopPropagation(); openBundle(b.bundleId); }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--blue)] text-white text-[11px] font-semibold"><Icon name="folder_open" size="xs" /> ดูชุด</button>
+                      <button onClick={(e) => { e.stopPropagation(); openBundle(b.bundleId); }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--blue)] text-white text-[11px] font-semibold mx-auto"><Icon name="folder_open" size="xs" /> ดูชุด</button>
                     </td>
                   </tr>
                 ))}
                 {filteredAssets.map((a) => (
                   <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--g100)] hover:bg-[var(--surface2)]">
-                    <td className="px-3 py-2 font-mono text-[11px]">{a.assetId}</td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]">{a.code}</td>
+                    <td className="px-3 py-2">
+                      <div className="font-mono text-[11px] text-[var(--blue)]">{a.code}</div>
+                      <div className="font-mono text-[10px] text-[var(--tmuted)]">{a.assetId}</div>
+                    </td>
                     <td className="px-3 py-2 font-medium">{a.name}</td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]">{a.serialNumber}</td>
+                    <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]"><span className="block max-w-[150px] truncate" title={a.serialNumber}>{a.serialNumber}</span></td>
                     <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
-                    <td className="px-3 py-2 text-[var(--tsub)]">{a.location}</td>
-                    <td className="px-3 py-2 text-[var(--tsub)]">{a.siteName}</td>
+                    <td className="px-3 py-2">
+                      <div className="min-w-0 max-w-[260px]">
+                        {a.bundleId && (
+                          <span className="mb-0.5 inline-flex max-w-full items-center gap-1 rounded bg-[var(--blue-l)] px-1.5 py-px text-[10px] font-medium text-[var(--blue)] border border-[var(--blue-b)]">
+                            <Icon name="inventory_2" size="xs" className="flex-shrink-0" />
+                            <span className="truncate">{a.bundleName || a.bundleId}</span>
+                          </span>
+                        )}
+                        <LocationPath
+                          siteName={a.siteName}
+                          houseName={a.houseName}
+                          houseId={a.houseId}
+                          location={a.location}
+                          bundleId={a.bundleId}
+                        />
+                      </div>
+                    </td>
                     <td className="px-3 py-2 text-[var(--tsub)]">{a.user}</td>
-                    <td className="px-3 py-2 text-center">
-                      <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดู trace" className="text-[var(--blue)]"><Icon name="description" size="sm" /></a>
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="QR" className="text-[var(--tsub)]"><Icon name="qr_code" size="sm" /></a>
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <button onClick={() => setTransfer({
-                        serial: a.serialNumber,
-                        current: { status: a.status, location: a.location, siteName: a.siteName, user: a.user },
-                      })} title="โอนย้าย" className="text-[var(--blue)]"><Icon name="local_shipping" size="sm" /></button>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดู trace" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="description" size="sm" /></a>
+                        <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="QR" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="qr_code" size="sm" /></a>
+                        <button onClick={() => setTransfer({
+                          serial: a.serialNumber,
+                          current: { status: a.status, location: a.location, siteName: a.siteName, user: a.user },
+                        })} title="โอนย้าย" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="local_shipping" size="sm" /></button>
+                      </div>
                     </td>
                   </tr>
                 ))}

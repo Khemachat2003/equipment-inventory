@@ -225,31 +225,30 @@ export default function Asset() {
           {/* Table (จอใหญ่) */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-[12px]">
-              <thead>
-                <tr className="text-left text-[var(--tmuted)] bg-[var(--surface2)] border-b border-[var(--g100)]">
-                  <th className="px-3 py-2.5 font-medium">Asset ID</th>
-                  <th className="px-3 py-2.5 font-medium">Code</th>
-                  <th className="px-3 py-2.5 font-medium">Name</th>
+<thead>
+              <tr className="text-left text-[12px] text-[var(--tsub)] border-b border-[var(--g200)] bg-[var(--surface2)]/50">
+                  <th className="px-3 py-2.5 font-medium">รหัส</th>
+                  <th className="px-3 py-2.5 font-medium">ชื่อ</th>
                   <th className="px-3 py-2.5 font-medium">Serial</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
                   <th className="px-3 py-2.5 font-medium">ชุด / ตำแหน่ง</th>
                   <th className="px-3 py-2.5 font-medium">User</th>
-                  <th className="px-3 py-2.5 font-medium text-center">Trace</th>
-                  <th className="px-3 py-2.5 font-medium text-center">QR</th>
                   <th className="px-3 py-2.5 font-medium text-center">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={10} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
+                {loading && <tr><td colSpan={7} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
                 {!loading && paged.length === 0 && (
-                  <tr><td colSpan={10} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
+                  <tr><td colSpan={7} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
                 )}
                 {paged.map((a) => (
                   <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--g100)] hover:bg-[var(--surface2)]">
-                    <td className="px-3 py-2 font-mono text-[11px]">{a.assetId}</td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]">{a.code}</td>
+                    <td className="px-3 py-2">
+                      <div className="font-mono text-[11px] text-[var(--blue)]">{a.code}</div>
+                      <div className="font-mono text-[10px] text-[var(--tmuted)]">{a.assetId}</div>
+                    </td>
                     <td className="px-3 py-2 font-medium"><span title={categoryLabel(catOf(a))} className="inline-flex items-center gap-1"><Icon name={categoryIcon(catOf(a))} size="xs" className="text-[var(--tsub)]" /> {a.name}</span></td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]">{a.serialNumber}</td>
+                    <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]"><span className="block max-w-[150px] truncate" title={a.serialNumber}>{a.serialNumber}</span></td>
                     <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
                     <td className="px-3 py-2">
                       <div className="min-w-0 max-w-[260px]">
@@ -272,20 +271,18 @@ export default function Asset() {
                       </div>
                     </td>
                     <td className="px-3 py-2 text-[var(--tsub)]">{a.user}</td>
-                    <td className="px-3 py-2 text-center">
-                      <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดู trace" className="text-[var(--blue)]">
-                        <Icon name="description" size="sm" />
-                      </a>
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="QR" className="text-[var(--tsub)]">
-                        <Icon name="qr_code" size="sm" />
-                      </a>
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <button onClick={() => doTransfer(a)} title="โอนย้าย" className="text-[var(--blue)]">
-                        <Icon name="local_shipping" size="sm" />
-                      </button>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดู trace" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]">
+                          <Icon name="description" size="sm" />
+                        </a>
+                        <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="QR" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]">
+                          <Icon name="qr_code" size="sm" />
+                        </a>
+                        <button onClick={() => doTransfer(a)} title="โอนย้าย" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]">
+                          <Icon name="local_shipping" size="sm" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
