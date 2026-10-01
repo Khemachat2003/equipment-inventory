@@ -99,6 +99,23 @@ router.post("/api/add-part",
     try {
       const { partNumber, partName, category, description, unit } = req.body;
       const sheets = await getSheetsClient();
+
+      // 🔒 กัน Part ซ้ำ — Part Number เดียวต้องมีแถวเดียวใน Part_Catalog
+      // (กันข้อมูลซ้ำซ้อนตอนดูแลระบบ: เพิ่ม Part ซ้ำ = นับ total ผิด / ค้นหาสับสน)
+      const catRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Part_Catalog!A2:A",
+      });
+      const partExists = (catRes.data.values || []).some(
+        (r) => String(r[0] || "").trim() === String(partNumber || "").trim()
+      );
+      if (partExists) {
+        return res.status(400).json({
+          success: false,
+          error: `Part ${partNumber} มีอยู่แล้วในระบบ — เพิ่มไม่ได้อีก (ใช้ Part เดิมได้เลย)`,
+        });
+      }
+
       const date = new Date().toLocaleString("th-TH");
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,

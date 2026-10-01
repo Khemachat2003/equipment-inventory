@@ -26,6 +26,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
   const [sites, setSites] = useState([]);
   const [parts, setParts] = useState([]);
   const [result, setResult] = useState(null); // { serials, added, partCreated }
+  const [newPart, setNewPart] = useState(null); // โหมดกรอก Part ใหม่ { partNumber, partName }
   const busy = useBusy();
 
   useEffect(() => {
@@ -39,11 +40,16 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     setUser('');
     setAdvanced(false);
     setResult(null);
+    setNewPart(null);
     axios.get('/api/farm-sites').then(({ data }) => setSites(data || [])).catch(() => {});
     axios.get('/api/part-catalog').then(({ data }) => setParts(data || [])).catch(() => {});
   }, [open, presetName]);
 
-  const pn = selected ? selected.partNumber : sanitizePartNumber(query);
+  const pn = selected
+    ? selected.partNumber
+    : newPart
+      ? sanitizePartNumber(newPart.partNumber)
+      : sanitizePartNumber(query);
   const qtyNum = Math.max(1, parseInt(qty) || 0);
 
   const suggestions = useMemo(() => {
@@ -68,6 +74,20 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     const prefix = `SN-${pn}-${ds}`;
     return Array.from({ length: Math.min(qtyNum, 4) }, (_, i) => `${prefix}-${String(i + 1).padStart(4, '0')}`);
   }, [pn, qtyNum]);
+
+  async function confirmNewPart() {
+    const pnum = sanitizePartNumber(newPart.partNumber);
+    const pname = (newPart.partName || '').trim();
+    if (!pnum) return alert('กรอก Part Number ก่อน (ตัวย่อภาษาอังกฤษ เช่น SENWT)');
+    if (!/^[A-Z0-9][A-Z0-9._-]*$/.test(pnum)) {
+      return alert('Part Number ใช้ได้เฉพาะ A-Z 0-9 . _ - เท่านั้น (ห้ามช่องว่าง/ภาษาไทย) — เพราะจะถูกใช้สร้าง Serial');
+    }
+    if (parts.some((p) => sanitizePartNumber(p.partNumber) === pnum)) {
+      return alert('Part Number นี้มีอยู่แล้วในระบบ — กดเลือกจากรายการด้านบนแทน');
+    }
+    setSelected({ partNumber: pnum, partName: pname || pnum, isNew: true });
+    setNewPart(null);
+  }
 
   async function submit() {
     if (!selected) return alert('เลือกอุปกรณ์จากรายการ หรือกด "สร้าง Part ใหม่" ก่อน');
@@ -137,7 +157,38 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
             {/* ① อุปกรณ์อะไร — พิมพ์แล้วเลือกจาก suggestion หรือสร้างใหม่ */}
             <div className="space-y-1">
               <label className="block text-[12px] font-medium text-[var(--tsub)]">① อุปกรณ์อะไร? (พิมพ์ชื่อหรือ Part Number)</label>
-              {selected ? (
+              {newPart ? (
+                /* ฟอร์มสร้าง Part ใหม่ — แยก "ชื่ออุปกรณ์" กับ "Part Number (ตัวย่ออังกฤษ)" ออกจากกัน
+                   เพราะ Part Number จะถูกใช้สร้าง Serial (SN-<PART>-...) ต้องเป็น A-Z 0-9 เท่านั้น */
+                <div className="p-3 rounded-lg border border-[var(--emerald-b)] bg-[var(--emerald-l)] space-y-2">
+                  <div className="text-[12px] font-bold text-[var(--emerald-d)]">สร้าง Part ใหม่ — กรอกให้ครบ 2 ช่อง</div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-medium text-[var(--tsub)]">ชื่ออุปกรณ์ (โชว์ในระบบ — ภาษาไทยได้)</label>
+                    <input
+                      value={newPart.partName}
+                      onChange={(e) => setNewPart({ ...newPart, partName: e.target.value })}
+                      placeholder="เช่น เซนเซอร์วัดน้ำ"
+                      className={ain}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-medium text-[var(--tsub)]">Part Number (ตัวย่อ — ใช้ใน Serial)</label>
+                    <input
+                      value={newPart.partNumber}
+                      onChange={(e) => setNewPart({ ...newPart, partNumber: e.target.value })}
+                      placeholder="เช่น SENWT"
+                      className={ain + ' font-mono uppercase'}
+                    />
+                    <div className="text-[10px] text-[var(--tmuted)]">
+                      ตัวอย่าง Serial ที่จะได้: SN-{sanitizePartNumber(newPart.partNumber) || 'PART'}-01102026-0001
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setNewPart(null)} className="px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">ยกเลิก</button>
+                    <button onClick={confirmNewPart} className="px-3 py-1.5 rounded-lg bg-[var(--emerald)] text-white text-[12px] font-semibold hover:bg-[var(--emerald-d)]">ยืนยัน Part นี้</button>
+                  </div>
+                </div>
+              ) : selected ? (
                 <div className="flex items-center justify-between gap-2 px-3 h-9 rounded-lg bg-[var(--blue-l)] border border-[var(--blue-b)]">
                   <span className="text-[13px] font-semibold text-[var(--blue)] truncate">
                     {selected.partNumber} — {selected.partName}
@@ -154,7 +205,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
                     className={ain}
                     autoFocus
                   />
-                  {suggestions && (
+                  {suggestions && !newPart && (
                     <div className="absolute z-10 mt-1 w-full rounded-xl border border-[var(--g200)] bg-white shadow-[var(--sh-md)] overflow-hidden max-h-56 overflow-y-auto">
                       {suggestions.hits.map((p) => (
                         <button
@@ -171,11 +222,11 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
                       ))}
                       {suggestions.showCreate && (
                         <button
-                          onClick={() => setSelected({ partNumber: pn, partName: query.trim(), isNew: true })}
+                          onClick={() => setNewPart({ partName: query.trim(), partNumber: '' })}
                           className="w-full text-left px-3 py-2 hover:bg-[var(--emerald-l)] flex items-center gap-2 border-t border-[var(--g100)]"
                         >
                           <Icon name="add_circle" size="sm" />
-                          <span className="text-[13px] font-semibold text-[var(--emerald-d)]">สร้าง Part ใหม่ "{query.trim()}"</span>
+                          <span className="text-[13px] font-semibold text-[var(--emerald-d)]">สร้าง Part ใหม่ "{query.trim()}" — กรอก Part Number ต่อ</span>
                         </button>
                       )}
                     </div>
