@@ -15,7 +15,7 @@ const IMAGE_URL = (code, ext) =>
   `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext || 'jpg'}?v=4`;
 
 const QUICK_ACTIONS = [
-  { action: 'add', icon: 'app_registration', box: 'bg-[var(--purple-l)] text-[var(--purple)]', title: 'ลงทะเบียนอุปกรณ์', desc: 'เพิ่มรายชิ้นใหม่ — ระบบสร้าง Serial ให้อัตโนมัติ ไม่ซ้ำ' },
+  { to: '/asset', icon: 'list_alt', box: 'bg-[var(--purple-l)] text-[var(--purple)]', title: 'ทะเบียนรายชิ้น', desc: 'ดู/ค้นหารายชิ้นทั้งหมด — สถานะ, ที่ตั้ง และประวัติ' },
   { to: '/scan', icon: 'document_scanner', box: 'bg-[var(--blue-l)] text-[var(--blue)]', title: 'ย้าย/โอนอุปกรณ์', desc: 'สแกนบาร์โค้ด (หรือพิมพ์รหัส) แล้วเลือกปลายทาง' },
   { to: '/stock', icon: 'inventory_2', box: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]', title: 'เบิก–คืนของ', desc: 'หยิบของจากคลังไปใช้ที่งาน หรือคืนกลับคลัง' },
   { to: '/qr', icon: 'qr_code_2', box: 'bg-[var(--amber-l)] text-[var(--amber-d)]', title: 'พิมพ์ฉลาก', desc: 'พิมพ์ฉลาก QR / Barcode ติดอุปกรณ์' },
@@ -303,7 +303,7 @@ export default function Home() {
           {QUICK_ACTIONS.map((a) => (
             <button
               key={a.title}
-              onClick={() => (a.action === 'add' ? setAddOpen(true) : navigate(a.to))}
+              onClick={() => navigate(a.to)}
               className="group text-left rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 hover:border-[var(--blue)] hover:shadow-[var(--sh-md)] hover:-translate-y-0.5 transition-all"
             >
               <span className={`flex items-center justify-center w-11 h-11 rounded-xl ${a.box} transition-transform group-hover:scale-105`}>
