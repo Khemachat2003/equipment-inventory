@@ -418,19 +418,26 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
         )}
         <div className="space-y-2">
           {assets.map((a) => (
-            <div key={a.assetId} className="flex flex-wrap items-center gap-3 px-3 py-2.5 rounded-xl border border-[var(--g100)] hover:bg-[var(--surface2)]">
-              <div className="flex-1 min-w-0">
+            <div key={a.assetId} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 rounded-xl border border-[var(--g100)] hover:bg-[var(--surface2)]">
+              <div className="flex-1 min-w-[150px]">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-[12px] font-semibold text-[var(--text)]">{a.serial || a.assetId}</span>
                   <StatusBadge status={a.status} />
                 </div>
                 <div className="text-[12px] text-[var(--tsub)] truncate">{a.name} <span className="text-[var(--tmuted)]">· {a.assetId} · {a.code}</span></div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <a href={`/trace/${encodeURIComponent(a.serial)}`} target="_blank" title="Trace" className="p-1.5 rounded-lg text-[var(--blue)]"><Icon name="description" size="sm" /></a>
-                <a href={`/qr?serial=${encodeURIComponent(a.serial)}`} target="_blank" title="QR" className="p-1.5 rounded-lg text-[var(--tsub)]"><Icon name="qr_code" size="sm" /></a>
-                <button onClick={() => onTransfer(a)} title="โอนย้าย" className="p-1.5 rounded-lg text-[var(--blue)]"><Icon name="local_shipping" size="sm" /></button>
-                <button onClick={() => onRemove(a.assetId)} title="ถอดออกจากชุด" className="p-1.5 rounded-lg text-[var(--red)]"><Icon name="close" size="sm" /></button>
+              <div className="flex items-center gap-1">
+                <a href={`/trace/${encodeURIComponent(a.serial)}`} target="_blank" title="Trace" className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="description" size="sm" /></a>
+                <a href={`/qr?serial=${encodeURIComponent(a.serial)}`} target="_blank" title="QR" className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="qr_code" size="sm" /></a>
+                <button onClick={() => onTransfer(a)} title="โอนย้าย" className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="local_shipping" size="sm" /></button>
+                <span className="w-px h-6 bg-[var(--g200)] mx-1" aria-hidden="true" />
+                <button
+                  onClick={() => onRemove(a.assetId)}
+                  title="ถอดออกจากชุด"
+                  className="h-9 px-2.5 flex items-center gap-1 rounded-lg bg-[var(--red-l)] text-[var(--red)] text-[12px] font-semibold hover:bg-[var(--red)] hover:text-white"
+                >
+                  <Icon name="close" size="xs" /> ถอดออก
+                </button>
               </div>
             </div>
           ))}
