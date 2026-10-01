@@ -21,8 +21,6 @@ const QUICK_ACTIONS = [
   { to: '/qr', icon: 'qr_code_2', box: 'bg-[var(--amber-l)] text-[var(--amber-d)]', title: 'พิมพ์ฉลาก', desc: 'พิมพ์ฉลาก QR / Barcode ติดอุปกรณ์' },
 ];
 
-const TYPE_ICON = { 'เบิก': 'trending_up', 'คืน': 'trending_down' };
-
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -41,7 +39,7 @@ export default function Home() {
         axios.get('/api/assets'),
         axios.get('/api/stock'),
         axios.get('/api/dashboard-full'),
-        axios.get('/api/history'),
+        axios.get('/api/asset-history-recent'),
       ]);
       if (!alive) return;
       if (a.status === 'fulfilled') setAssets(a.value.data || []);
@@ -230,51 +228,52 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ══ สรุปตัวเลขวันนี้ (ไม่มีกราฟ — กราฟเดิมอยู่ที่ /dashboard) ══ */}
+      {/* ══ สรุปภาพรวม (ไม่มีกราฟ — กราฟเดิมอยู่ที่ /dashboard) ══ */}
       <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--tmuted)] mb-2">สรุปวันนี้</div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--tmuted)] mb-2">สรุปภาพรวม</div>
+        {/* แถว 1 — วันนี้ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatPill icon="inventory_2" tone="blue" label="ในคลัง (Office)" value={loading ? '…' : (stats?.totalOffice ?? 0)} />
           <StatPill icon="factory" tone="amber" label="อยู่ที่ Site" value={loading ? '…' : (stats?.totalSite ?? 0)} />
           <StatPill icon="trending_up" tone="green" label="เบิกวันนี้" value={loading ? '…' : (stats?.todayBorrow ?? 0)} />
           <StatPill icon="trending_down" tone="red" label="คืนวันนี้" value={loading ? '…' : (stats?.todayReturn ?? 0)} />
         </div>
+        {/* แถว 2 — ฟาร์มและอุปกรณ์รายชิ้น (ให้ผู้ใช้ใหม่เห็นภาพรวมทันที) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+          <StatPill icon="place" tone="green" label="ฟาร์มทั้งหมด" value={loading ? '…' : (stats?.totalFarms ?? 0)} />
+          <StatPill icon="precision_manufacturing" tone="blue" label="ติดตั้งที่ฟาร์ม" value={loading ? '…' : (stats?.totalFarmAssets ?? 0)} />
+          <StatPill icon="inventory_2" tone="amber" label="รอติดตั้ง (สต็อก)" value={loading ? '…' : (stats?.totalStockAssets ?? 0)} />
+          <StatPill icon="devices" tone="blue" label="รายชิ้นทั้งหมด" value={loading ? '…' : (stats?.assets?.length ?? 0)} />
+        </div>
       </div>
 
-      {/* ══ ล่าสุด 5 รายการ ══ */}
+      {/* ══ การโอนย้ายล่าสุด (จาก Asset_History — เฉพาะการย้าย/โอนอุปกรณ์รายชิ้น) ══ */}
       <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--g100)]">
           <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)]">
-            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--surface2)] text-[var(--tsub)]">
-              <Icon name="history" size="sm" />
+            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--blue-l)] text-[var(--blue)]">
+              <Icon name="local_shipping" size="sm" />
             </span>
-            ล่าสุด
+            การโอนย้ายล่าสุด
           </div>
-          <button onClick={() => navigate('/history')} className="text-[12px] font-semibold text-[var(--blue)] hover:underline">
-            ดูทั้งหมด
+          <button onClick={() => navigate('/asset')} title="ไปหน้าทะเบียนรายชิ้น" className="text-[12px] font-semibold text-[var(--blue)] hover:underline">
+            ดูทะเบียนรายชิ้น
           </button>
         </div>
         {recent.length === 0 ? (
           <div className="px-4 py-6 text-center text-[12px] text-[var(--tmuted)]">
-            {loading ? 'กำลังโหลด...' : 'ยังไม่มีรายการ'}
+            {loading ? 'กำลังโหลด...' : 'ยังไม่มีการโอนย้าย'}
           </div>
         ) : (
           <div className="divide-y divide-[var(--g100)]">
             {recent.map((r, idx) => (
               <div key={idx} className="flex items-center gap-2.5 px-4 py-2.5 text-[12px]">
-                <span
-                  className={`flex items-center justify-center w-6 h-6 rounded-lg shrink-0 ${
-                    r.type === 'เบิก'
-                      ? 'bg-[var(--blue-l)] text-[var(--blue)]'
-                      : r.type === 'คืน'
-                        ? 'bg-[var(--emerald-l)] text-[var(--emerald-d)]'
-                        : 'bg-[var(--surface2)] text-[var(--tsub)]'
-                  }`}
-                >
-                  <Icon name={TYPE_ICON[r.type] || 'sync_alt'} size="xs" />
+                <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-[var(--blue-l)] text-[var(--blue)] shrink-0">
+                  <Icon name="sync_alt" size="xs" />
                 </span>
-                <span className="font-semibold text-[var(--text)] shrink-0">{r.type || 'โอน'}</span>
-                <span className="truncate text-[var(--tsub)]">{r.name || r.code} × {r.qty}</span>
+                <span className="font-semibold text-[var(--text)] shrink-0 hidden min-[430px]:inline">{r.action}</span>
+                <span className="font-mono text-[var(--blue)] truncate max-w-[180px]" title={r.serialNumber}>{r.serialNumber}</span>
+                <span className="truncate text-[var(--tsub)] hidden sm:inline" title={r.to}>→ {r.to}</span>
                 <span className="ml-auto shrink-0 text-[var(--tmuted)]">{r.date}</span>
               </div>
             ))}

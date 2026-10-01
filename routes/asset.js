@@ -209,6 +209,42 @@ router.get("/api/asset-history/:serial", requireLogin, async (req, res) => {
   }
 });
 
+// -------------------- RECENT ASSET TRANSFERS (หน้าแรก) --------------------
+// การโอนย้ายอุปกรณ์รายชิ้นล่าสุดทั้งระบบ (Asset_History!A2:G)
+// ใช้ในการ์ด "การโอนย้ายล่าสุด" ของหน้าแรก (Home Workdesk)
+router.get("/api/asset-history-recent", requireLogin, async (req, res) => {
+  try {
+    const cacheKey = "assetHistoryRecent";
+    let cached = cache.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    const sheets = await getSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Asset_History!A2:G",
+    });
+    const rows = response.data.values || [];
+    const recent = rows
+      .filter((row) => row[1])
+      .slice(-10)
+      .reverse()
+      .map((row) => ({
+        date: row[0] || "-",
+        serialNumber: row[1] || "-",
+        action: row[2] || "-",
+        from: row[3] || "-",
+        to: row[4] || "-",
+        user: row[5] || "-",
+        remark: row[6] || "-",
+      }));
+    cache.set(cacheKey, recent, 60);
+    res.json(recent);
+  } catch (error) {
+    console.error("❌ Recent Asset History Error:", error);
+    res.status(500).json([]);
+  }
+});
+
 // -------------------- PUBLIC ASSET HISTORY --------------------
 router.get("/api/public-asset-history/:serial", async (req, res) => {
   try {
@@ -514,6 +550,7 @@ router.post("/api/update-asset-status",
       clearAssetCache();
       cache.del(`assetHistory_${serialNumber}`);
      cache.del(`publicAssetHistory_${serialNumber}`);
+      cache.del("assetHistoryRecent");
 
 // ✅ บันทึก Audit Log
 await logAudit(
@@ -683,6 +720,7 @@ router.post("/api/transfer-asset",
       clearAssetCache();
       cache.del(`assetHistory_${serialNumber}`);
       cache.del(`publicAssetHistory_${serialNumber}`);
+      cache.del("assetHistoryRecent");
 
 // ✅ บันทึก Audit Log
 await logAudit(
