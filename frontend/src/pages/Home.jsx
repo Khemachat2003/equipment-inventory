@@ -88,14 +88,14 @@ export default function Home() {
             <Icon name="qr_code_scanner" size="sm" /> <span className="hidden min-[430px]:inline">สแกน</span>
           </button>
         </div>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2.5 flex flex-col items-stretch gap-2 min-[560px]:flex-row min-[560px]:items-center">
           <button
             onClick={() => setAddOpen(true)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--g300)] text-[12px] font-medium text-[var(--tsub)] hover:bg-[var(--blue-l)] hover:text-[var(--blue)] hover:border-[var(--blue-b)]"
+            className="flex items-center justify-center gap-1.5 h-11 px-5 rounded-xl bg-[var(--blue)] text-white text-[13px] font-semibold shadow-[var(--sh-sm)] hover:bg-[var(--blue-d)] active:scale-[.98] transition whitespace-nowrap shrink-0"
           >
             <Icon name="add" size="sm" /> เพิ่มอุปกรณ์ใหม่
           </button>
-          <span className="text-[11px] text-[var(--tmuted)]">ยังไม่มีในระบบ? สร้าง Serial ได้เลย — ระบบสร้างให้อัตโนมัติ ไม่ซ้ำ</span>
+          <span className="text-[11px] leading-relaxed text-[var(--tmuted)]">ยังไม่มีในระบบ? สร้าง Serial ได้เลย — ระบบสร้างให้อัตโนมัติ ไม่ซ้ำ</span>
         </div>
       </div>
 

@@ -441,17 +441,16 @@ app.use((err, req, res, next) => {
 });
 
 // ========== START SERVER ==========
-app.listen(PORT, () => {
-// ========== GRACEFUL SHUTDOWN ==========
-// Render ส่ง SIGTERM ตอน redeploy/restart → หยุดรับ request ใหม่
-// แล้วรอ request ที่กำลังทำค้างเสร็จก่อน (สูงสุด 10 วิ) ค่อย exit
-// กันอาการ user โดนตัดกลางคัน + กัน request ค้างใน keep-alive
 const server = app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   // เรียก sync asset history
   assetRouter.syncInitialAssetHistory().catch(console.error);
 });
 
+// ========== GRACEFUL SHUTDOWN ==========
+// Render ส่ง SIGTERM ตอน redeploy/restart → หยุดรับ request ใหม่
+// แล้วรอ request ที่กำลังทำค้างเสร็จก่อน (สูงสุด 10 วิ) ค่อย exit
+// กันอาการ user โดนตัดกลางคัน + กัน request ค้างใน keep-alive
 let shuttingDown = false;
 function shutdown(signal) {
   if (shuttingDown) return;
@@ -466,10 +465,6 @@ function shutdown(signal) {
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
-  console.log(`✅ Server running on port ${PORT}`);
-  // เรียก sync asset history
-  assetRouter.syncInitialAssetHistory().catch(console.error);
-});
 
 // ========== SCHEDULED BACKUP ==========
 // รัน Full System Backup อัตโนมัติตาม BACKUP_CRON
