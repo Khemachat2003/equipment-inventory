@@ -901,6 +901,33 @@ router.post("/api/bulk-add-asset",
         ]);
       }
 
+      // 🔒 ห้าม Serial ซ้ำเด็ดขาด — ตรวจทุก Serial ที่จะเขียนกับ Serial ทั้งชีตก่อนเขียนจริง
+      // (all-or-nothing: ซ้ำแม้แต่ตัวเดียว → ไม่เขียนอะไรลง Asset_List เลย แล้วแจ้งกลับ)
+      const existingSerials = new Set(
+        existingRows.map((r) => String(r[4] || "").trim()).filter(Boolean)
+      );
+      const dupRow = newRows.find((r) => existingSerials.has(String(r[4]).trim()));
+      if (dupRow) {
+        return res.status(400).json({
+          success: false,
+          error: `Serial ${dupRow[4]} ซ้ำกับที่มีอยู่แล้วในระบบ — ยกเลิกการเพิ่มทั้งหมด กรุณาลองใหม่อีกครั้ง`,
+        });
+      }
+      // กันซ้ำภายในชุดเอง (กันข้อมูลเก่ารูปแบบไม่ตรงทำให้ maxNum คำนวณผิด)
+      const batchSeen = new Set();
+      const dupInBatch = newRows.find((r) => {
+        const s = String(r[4]).trim();
+        if (batchSeen.has(s)) return true;
+        batchSeen.add(s);
+        return false;
+      });
+      if (dupInBatch) {
+        return res.status(400).json({
+          success: false,
+          error: `เกิด Serial ซ้ำภายในชุด (${dupInBatch[4]}) — ยกเลิกการเพิ่มทั้งหมด กรุณาลองใหม่อีกครั้ง`,
+        });
+      }
+
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
         range: "Asset_List!A:M",

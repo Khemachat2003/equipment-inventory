@@ -6,6 +6,7 @@ import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 
 const FORMATS = [
@@ -190,6 +191,7 @@ export default function ScanPage() {
   // ── ค้นหาอุปกรณ์ด้วยชื่อ/รหัส (ทางเข้าหลัก — ผู้ใช้รู้ว่าของคืออะไร แต่จำ Serial ไม่ได้) ──
   const [search, setSearch] = useState('');
   const [catalog, setCatalog] = useState([]);
+  const [addOpen, setAddOpen] = useState(false); // เพิ่มอุปกรณ์ใหม่ (เมื่อค้นหาไม่เจอ)
   useEffect(() => {
     axios.get('/api/assets').then(({ data }) => setCatalog(data || [])).catch(() => {});
   }, []);
@@ -491,9 +493,16 @@ export default function ScanPage() {
             <div className="text-[15px] font-bold text-[var(--text)]">"{miss}"</div>
             <p className="text-[12px] text-[var(--tmuted)]">ไม่พบ Serial/Code นี้ในทะเบียนอุปกรณ์</p>
           </div>
-          <div className="flex justify-center gap-2 mt-3">
+          <div className="flex flex-wrap justify-center gap-2 mt-3">
             <button onClick={() => { reset(); startCam(); }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--emerald)] text-white text-[13px] font-semibold">
               <Icon name="document_scanner" size="sm" /> สแกนอีกครั้ง
+            </button>
+            <button
+              onClick={() => setAddOpen(true)}
+              title="เพิ่มอุปกรณ์นี้เข้าระบบ (Serial สร้างอัตโนมัติ ไม่ซ้ำ)"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)]"
+            >
+              <Icon name="add" size="sm" /> เพิ่มอุปกรณ์ใหม่ "{miss}"
             </button>
           </div>
         </Card>
@@ -506,6 +515,21 @@ export default function ScanPage() {
           onSuccess={() => { setTransfer(null); refresh(); }}
           serial={transfer.serialNumber}
           current={{ status: transfer.status, location: transfer.location, siteName: transfer.siteName, user: transfer.user }}
+        />
+      )}
+
+      {/* เพิ่มอุปกรณ์ใหม่ (เมื่อค้นหาไม่เจอ — prefill คำค้น, เสร็จแล้วโชว์อุปกรณ์ที่เพิ่งสร้างเลย) */}
+      {addOpen && (
+        <AddDeviceModal
+          open
+          presetName={miss}
+          onClose={() => setAddOpen(false)}
+          onDone={(r) => {
+            setAddOpen(false);
+            axios.get('/api/assets').then(({ data }) => setCatalog(data || [])).catch(() => {});
+            const first = (r?.serials || [])[0];
+            if (first) { setSearch(''); resolve(first); }
+          }}
         />
       )}
 

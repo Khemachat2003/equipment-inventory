@@ -11,6 +11,7 @@ import StatPill from '../components/ui/StatPill.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import AddDeviceModal from '../components/AddDeviceModal.jsx';
 
 const IMAGE_URL = (code, ext) =>
   `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext || 'jpg'}?v=4`;
@@ -30,6 +31,8 @@ export default function Home() {
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [addOpen, setAddOpen] = useState(false);
+  const [dataVersion, setDataVersion] = useState(0); // เพิ่มของเสร็จ → โหลดสถิติใหม่
 
   useEffect(() => {
     let alive = true;
@@ -49,7 +52,7 @@ export default function Home() {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, []);
+  }, [dataVersion]);
 
   const results = useMemo(() => {
     const k = q.trim().toLowerCase();
@@ -94,6 +97,15 @@ export default function Home() {
           >
             <Icon name="qr_code_scanner" size="sm" /> <span className="hidden min-[430px]:inline">สแกน</span>
           </button>
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            onClick={() => setAddOpen(true)}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--g300)] text-[12px] font-medium text-[var(--tsub)] hover:bg-[var(--blue-l)] hover:text-[var(--blue)] hover:border-[var(--blue-b)]"
+          >
+            <Icon name="add" size="sm" /> เพิ่มอุปกรณ์ใหม่
+          </button>
+          <span className="text-[11px] text-[var(--tmuted)]">ยังไม่มีในระบบ? สร้าง Serial ได้เลย — ระบบสร้างให้อัตโนมัติ ไม่ซ้ำ</span>
         </div>
       </div>
 
@@ -280,6 +292,14 @@ export default function Home() {
           </div>
         )}
       </div>
+    {/* เพิ่มอุปกรณ์ใหม่ (โฟลว์เดียว: เลือก/สร้าง Part → Serial อัตโนมัติ กันซ้ำ) */}
+      {addOpen && (
+        <AddDeviceModal
+          open
+          onClose={() => setAddOpen(false)}
+          onDone={() => { setAddOpen(false); setDataVersion((v) => v + 1); }}
+        />
+      )}
     </div>
   );
 }

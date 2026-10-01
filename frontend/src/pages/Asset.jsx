@@ -6,6 +6,7 @@ import StatPill from '../components/ui/StatPill.jsx';
 import Pagination from '../components/ui/Pagination.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { CATEGORY_FALLBACK, categoryIcon, categoryLabel } from '../data/categories.js';
 import { buildLocation } from '../utils/location.js';
@@ -24,7 +25,6 @@ export default function Asset() {
   const [transfer, setTransfer] = useState(null);
   const [history, setHistory] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [bulkOpen, setBulkOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const busy = useBusy();
 
@@ -134,16 +134,10 @@ export default function Asset() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setBulkOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--emerald)] text-white text-[13px] font-semibold hover:opacity-90"
-          >
-            <Icon name="add" size="sm" /> เพิ่มหลายชิ้น
-          </button>
-          <button
             onClick={() => setAddOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)]"
           >
-            <Icon name="add" size="sm" /> เพิ่ม Asset
+            <Icon name="add" size="sm" /> เพิ่มอุปกรณ์ใหม่
           </button>
           <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]">
             <Icon name="refresh" size="sm" /> รีเฟรช
@@ -370,9 +364,8 @@ export default function Asset() {
       {/* History modal */}
       {history && <HistoryModal data={history} onClose={() => setHistory(null)} />}
 
-      {/* Add Asset / Bulk Add */}
-      {addOpen && <AddAssetModal assets={assets} parts={parts} categoryList={categoryList} onClose={() => setAddOpen(false)} onDone={() => { setAddOpen(false); load(); }} />}
-      {bulkOpen && <BulkAddModal parts={parts} categoryList={categoryList} onClose={() => setBulkOpen(false)} onDone={() => { setBulkOpen(false); load(); }} />}
+      {/* เพิ่มอุปกรณ์ใหม่ (โฟลว์เดียว: เลือก/สร้าง Part → Serial อัตโนมัติ กันซ้ำ) */}
+      {addOpen && <AddDeviceModal open onClose={() => setAddOpen(false)} onDone={() => { setAddOpen(false); load(); }} />}
 
       <BusyOverlay label={busy.busyLabel} />
     </div>
