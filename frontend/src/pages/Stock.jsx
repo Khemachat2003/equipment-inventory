@@ -10,7 +10,10 @@ const PAGE_SIZES = [20, 50, 100];
 export default function Stock() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  // รับ ?q= จากหน้าแรก (Home Workdesk ปุ่ม "เบิก") — เปิดมาค้นหาค้างไว้ให้เลย
+  const [search, setSearch] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('q') || ''; } catch { return ''; }
+  });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [returnOpen, setReturnOpen] = useState(false);

@@ -8,6 +8,8 @@ const ScanPage = lazy(() => import('./pages/ScanPage.jsx'));
 const TracePage = lazy(() => import('./pages/TracePage.jsx'));
 const QrPage = lazy(() => import('./pages/QrPage.jsx'));
 const Login = lazy(() => import('./pages/Login.jsx'));
+const Home = lazy(() => import('./pages/Home.jsx'));
+const Help = lazy(() => import('./pages/Help.jsx'));
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const Stock = lazy(() => import('./pages/Stock.jsx'));
 const Asset = lazy(() => import('./pages/Asset.jsx'));
@@ -70,13 +72,16 @@ export default function App() {
           </Protected>
         }
       >
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Home />} />
+        {/* Dashboard เดิม (มีกราฟ) — เก็บไว้ใช้ได้ แต่ไม่โชว์ในเมนู user ทั่วไป (ดู UI_FLAGS.charts) */}
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/stock" element={<Stock />} />
         <Route path="/asset" element={<Asset />} />
         <Route path="/bundle" element={<Bundle />} />
         <Route path="/farm" element={<Farm />} />
         <Route path="/history" element={<History />} />
         <Route path="/report" element={<Report />} />
+        <Route path="/help" element={<Help />} />
         <Route path="/scan" element={<ScanPage />} />
         <Route path="/qr" element={<QrPage />} />
 

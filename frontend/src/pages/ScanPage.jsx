@@ -187,6 +187,15 @@ export default function ScanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // รับ ?serial= จากหน้าแรก (Home Workdesk ปุ่ม "ย้าย") — เปิดมาค้นหาให้เลย
+  useEffect(() => {
+    try {
+      const sn = new URLSearchParams(window.location.search).get('serial');
+      if (sn) resolve(sn);
+    } catch (e) { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function resolve(q) {
     const key = extractSerial(q);
     if (!key) return;

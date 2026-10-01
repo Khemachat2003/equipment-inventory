@@ -3,7 +3,9 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Icon from '../ui/Icon.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { NAV_GROUPS, getRouteMeta } from '../../navigation.js';
+import { NAV_GROUPS, getRouteMeta, HELP_NAV, MOBILE_NAV } from '../../navigation.js';
+import { UI_FLAGS } from '../../uiConfig.js';
+import OnboardingTour from '../OnboardingTour.jsx';
 
 export default function Layout() {
   const { user, logout, portalHomeUrl, portalMode } = useAuth();
@@ -13,6 +15,12 @@ export default function Layout() {
   const isAdmin = user?.role === 'admin';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  // กลุ่ม "เพิ่มเติม" พับเก็บไว้เริ่มต้น (UX simplify — คุมด้วย UI_FLAGS.simpleMenu)
+  const [expanded, setExpanded] = useState(() => {
+    const m = {};
+    NAV_GROUPS.forEach((g) => { m[g.label] = !(g.collapsed && UI_FLAGS.simpleMenu); });
+    return m;
+  });
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -83,33 +91,75 @@ export default function Layout() {
               items: group.items.filter((it) => !it.adminOnly || isAdmin),
             }))
             .filter((g) => g.items.length > 0)
-            .map((group) => (
-            <div key={group.label}>
-              <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">
-                {group.label}
-              </div>
-              <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.end}
-                    onClick={() => setSidebarOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-                        isActive
-                          ? 'bg-[var(--blue)] text-white'
-                          : 'text-white/70 hover:bg-white/5 hover:text-white'
-                      }`
-                    }
-                  >
-                    <Icon name={item.icon} size="sm" />
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
-              </div>
-            </div>
-          ))}
+            .map((group) => {
+              const collapsible = group.collapsed && UI_FLAGS.simpleMenu;
+              const open = expanded[group.label] ?? !collapsible;
+              return (
+                <div key={group.label}>
+                  {collapsible ? (
+                    <button
+                      onClick={() => setExpanded((p) => ({ ...p, [group.label]: !open }))}
+                      title={open ? 'พับเก็บ' : 'กางเมนู'}
+                      className="w-full flex items-center gap-1.5 px-3 mb-1 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-white/35 hover:bg-white/5 hover:text-white/60"
+                    >
+                      <Icon
+                        name="chevron_right"
+                        size="xs"
+                        className={`transition-transform duration-150 ${open ? 'rotate-90' : ''}`}
+                      />
+                      <span>{group.label}</span>
+                      {!open && (
+                        <span className="ml-auto normal-case tracking-normal text-[10px] font-medium text-white/25">
+                          {group.items.length} รายการ
+                        </span>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">
+                      {group.label}
+                    </div>
+                  )}
+                  {open && (
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end={item.end}
+                          onClick={() => setSidebarOpen(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors ${
+                              isActive
+                                ? 'bg-[var(--blue)] text-white'
+                                : 'text-white/70 hover:bg-white/5 hover:text-white'
+                            }`
+                          }
+                        >
+                          <Icon name={item.icon} size="sm" />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+          {/* คู่มือ — แสดงถาวรทุกบทบาท (ผู้ใช้ใหม่กดดูได้เสมอ) */}
+          <div className="pt-1 border-t border-white/10">
+            <NavLink
+              to={HELP_NAV.to}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors ${
+                  isActive ? 'bg-[var(--blue)] text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
+                }`
+              }
+            >
+              <Icon name={HELP_NAV.icon} size="sm" />
+              <span>{HELP_NAV.label}</span>
+            </NavLink>
+          </div>
         </nav>
 
         {/* Footer */}
@@ -162,17 +212,54 @@ export default function Layout() {
                 <Icon name="qr_code_2" size="sm" />
                 <span className="hidden min-[430px]:inline">ฉลาก</span>
               </button>
-            </div>
-            <span className="text-[11px] text-[var(--tmuted)] hidden sm:block tabular-nums">{timeStr}</span>
+            <span className="w-px h-5 bg-[var(--g200)]" />
+            <button
+              onClick={() => navigate('/help')}
+              title="วิธีใช้งาน (คู่มือ)"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--tsub)] hover:bg-[var(--blue-l)] hover:text-[var(--blue)] transition-colors shrink-0"
+            >
+              <Icon name="help" size="sm" />
+            </button>
+          </div>
+          <span className="text-[11px] text-[var(--tmuted)] hidden sm:block tabular-nums">{timeStr}</span>
             <UserChip name={user?.username} role={user?.role} onLogout={handleLogout} />
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 p-4 sm:p-6">
+        {/* Content — pb เผื่อที่ให้ bottom nav มือถือ */}
+        <main className="flex-1 p-4 sm:p-6 pb-24 md:pb-6">
           <Outlet />
         </main>
       </div>
+
+      {/* Bottom nav (มือถือ) — 3 งานหลัก ไม่ต้องเปิด drawer */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 flex bg-[var(--panel)] text-white shadow-[var(--sh-nav)] pb-[env(safe-area-inset-bottom)]">
+        {MOBILE_NAV.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={() => setSidebarOpen(false)}
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+                isActive ? 'text-white' : 'text-white/55'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span className={`flex items-center justify-center w-8 h-8 rounded-lg ${isActive ? 'bg-[var(--blue)]' : ''}`}>
+                  <Icon name={item.icon} size="sm" />
+                </span>
+                {item.label}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* บทแนะนำผู้ใช้ใหม่ (แสดงครั้งแรกครั้งเดียว — จำใน localStorage) */}
+      <OnboardingTour />
     </div>
   );
 }

@@ -13,8 +13,8 @@ import {
   Legend,
 } from 'chart.js';
 import Icon from '../components/ui/Icon.jsx';
-import StatPill from '../components/ui/StatPill.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
+import { UI_FLAGS } from '../uiConfig.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler, Tooltip, Legend);
 
@@ -135,9 +135,11 @@ export default function Dashboard() {
         <KpiCard icon="inventory_2" tone="amber" label="อุปกรณ์ในสต็อก" value={data?.totalStockAssets ?? 0} desc="ยังไม่ได้ติดตั้ง/อยู่ที่ Intranin" />
       </div>
 
-      {/* ══ Main split: chart + สถานะ/อันดับฟาร์ม ══ */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 items-start">
+      {/* ══ Main split: chart + สถานะ/อันดับฟาร์ม ══
+          UI_FLAGS.charts = false → ซ่อนกราฟ (หลักการ "มีแต่ไม่แสดง" — โค้ดเดิมเก็บไว้ครบ) */}
+      <div className={`grid grid-cols-1 ${UI_FLAGS.charts ? 'xl:grid-cols-[1fr_320px]' : ''} gap-4 items-start`}>
         {/* Chart */}
+        {UI_FLAGS.charts && (
         <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)]">
@@ -190,6 +192,7 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+        )}
 
         {/* Right rail — สถานะ + อันดับฟาร์ม */}
         <div className="space-y-4">

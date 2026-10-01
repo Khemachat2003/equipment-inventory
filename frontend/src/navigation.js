@@ -2,26 +2,34 @@
 // แหล่งเดียวสำหรับ: เมนู sidebar (NAV_GROUPS) + ชื่อ/ชื่อรองหน้า (ROUTE_META)
 // ถ้าเพิ่มหน้าใหม่ ต้องลงทะเบียนที่นี่ครบทั้ง 2 ตัว (topbar จะขึ้นชื่อให้ตรงกันเอง)
 // ─────────────────────────────────────────────────────────────────────────────
+// แนวคิด UX (UX simplify): เมนูเรียงตาม "งานที่ผู้ใช้ต้องทำ" ไม่ใช่ "โครงสร้างข้อมูล"
+//   - งานประจำวัน (3 ปุ่ม) = สิ่งที่ใช้ทุกวัน มองเห็นทันที
+//   - เพิ่มเติม (collapsed) = หน้าข้อมูล/เครื่องมือที่ใช้ไม่บ่อย — พับเก็บ กางเมื่อต้องการ
+//     (กลุ่มนี้ถูกพับหรือไม่ ขึ้นกับ UI_FLAGS.simpleMenu — ดู Layout.jsx)
+//   - ผู้ดูแลระบบ (adminOnly) = ซ่อนจากผู้ใช้ทั่วไป
+// Route เดิมทุกเส้นยังใช้งานได้ตามลิงก์เดิม เพียงแค่ไม่โชว์ในเมนูหลัก
 
 export const NAV_GROUPS = [
   {
-    label: 'หลัก',
+    label: 'งานประจำวัน',
     items: [
-      { to: '/', label: 'Dashboard', icon: 'dashboard', end: true },
-      { to: '/stock', label: 'Stock', icon: 'inventory_2' },
-      { to: '/asset', label: 'Asset', icon: 'devices' },
-      { to: '/bundle', label: 'Bundle', icon: 'folder_open' },
+      { to: '/', label: 'หน้าแรก', icon: 'home', end: true },
+      { to: '/stock', label: 'เบิก–คืนของ', icon: 'inventory_2' },
+      { to: '/scan', label: 'ย้าย/โอนอุปกรณ์', icon: 'document_scanner' },
     ],
   },
   {
-    label: 'จัดการ',
+    label: 'เพิ่มเติม',
+    collapsed: true,
     items: [
-      { to: '/farm', label: 'ฟาร์ม', icon: 'agriculture' },
-      { to: '/scan', label: 'สแกน', icon: 'document_scanner' },
-      { to: '/qr', label: 'ฉลาก QR', icon: 'qr_code_2' },
-      { to: '/history', label: 'ประวัติ', icon: 'history' },
-      { to: '/report', label: 'รายงาน', icon: 'bar_chart' },
-      { to: '/settings', label: 'ตั้งค่า', icon: 'settings', adminOnly: true },
+      { to: '/farm', label: 'ของอยู่ฟาร์มไหน', icon: 'place' },
+      { to: '/asset', label: 'ทะเบียนรายชิ้น (Asset)', icon: 'devices' },
+      { to: '/bundle', label: 'ชุดอุปกรณ์ (Bundle)', icon: 'folder_open' },
+      { to: '/qr', label: 'พิมพ์ฉลาก QR', icon: 'qr_code_2' },
+      { to: '/history', label: 'ประวัติการเบิก–คืน', icon: 'history' },
+      { to: '/report', label: 'รายงาน PDF', icon: 'bar_chart' },
+      // Dashboard เดิม (มีกราฟ) — เก็บไว้ให้ admin ใช้ต่อ (ดู UI_FLAGS.charts)
+      { to: '/dashboard', label: 'Dashboard แบบเต็ม', icon: 'dashboard', adminOnly: true },
     ],
   },
   {
@@ -32,21 +40,34 @@ export const NAV_GROUPS = [
       { to: '/backup', label: 'ดูข้อมูล Backup', icon: 'analytics' },
       { to: '/audit', label: 'Audit Log', icon: 'fact_check' },
       { to: '/users', label: 'ผู้ใช้', icon: 'group' },
+      { to: '/settings', label: 'ตั้งค่า', icon: 'settings' },
     ],
   },
 ];
 
+// ทางเข้าคู่มือ — แสดงถาวรใต้กลุ่มเมนู (ทุกบทบาท)
+export const HELP_NAV = { to: '/help', label: 'วิธีใช้งาน', icon: 'help' };
+
+// Bottom nav บนมือถือ — 3 งานหลัก (md:hidden ใน Layout)
+export const MOBILE_NAV = [
+  { to: '/', label: 'หน้าแรก', icon: 'home', end: true },
+  { to: '/stock', label: 'เบิก–คืน', icon: 'inventory_2' },
+  { to: '/scan', label: 'ย้าย/โอน', icon: 'document_scanner' },
+];
+
 // ชื่อ + ชื่อรอง ของแต่ละหน้า (ค่าควรตรงกับ header ในไฟล์ page เอง)
 export const ROUTE_META = {
-  '/': { title: 'Dashboard', subtitle: 'ภาพรวมระบบ ณ วันนี้' },
-  '/stock': { title: 'Stock', subtitle: 'รายการอุปกรณ์ทั้งหมด' },
-  '/asset': { title: 'Asset Tracking', subtitle: 'ติดตามอุปกรณ์แยกตาม Part Number' },
-  '/bundle': { title: 'Bundle', subtitle: 'จัดการชุดอุปกรณ์' },
-  '/farm': { title: 'Farm Monitor', subtitle: 'ภาพรวมอุปกรณ์และชุดอุปกรณ์ตามฟาร์ม' },
-  '/scan': { title: 'สแกน', subtitle: 'สแกน Barcode / Serial เพื่อระบุตำแหน่งหรือโอนย้าย' },
-  '/qr': { title: 'ฉลาก QR', subtitle: 'สร้างฉลาก Barcode ตัวเดียวหรือ A4 หลายดวง' },
+  '/': { title: 'หน้าแรก', subtitle: 'ค้นหาอุปกรณ์และเริ่มงานได้จากที่เดียว' },
+  '/stock': { title: 'เบิก–คืนของ', subtitle: 'รายการอุปกรณ์ในคลัง — เบิก / คืน / เพิ่มของ' },
+  '/asset': { title: 'ทะเบียนรายชิ้น (Asset)', subtitle: 'ติดตามอุปกรณ์แยกตาม Part Number' },
+  '/bundle': { title: 'ชุดอุปกรณ์ (Bundle)', subtitle: 'จัดการชุดอุปกรณ์' },
+  '/farm': { title: 'ของอยู่ฟาร์มไหน', subtitle: 'ภาพรวมอุปกรณ์และชุดอุปกรณ์ตามฟาร์ม' },
+  '/scan': { title: 'ย้าย/โอนอุปกรณ์', subtitle: 'สแกน Barcode / Serial เพื่อระบุตำแหน่งหรือโอนย้าย' },
+  '/qr': { title: 'พิมพ์ฉลาก QR', subtitle: 'สร้างฉลาก Barcode ตัวเดียวหรือ A4 หลายดวง' },
   '/history': { title: 'ประวัติการเบิก–คืน', subtitle: 'ดูประวัติการโอนย้ายทั้งหมดในระบบ' },
-  '/report': { title: 'รายงาน', subtitle: 'Export ข้อมูลเป็น PDF' },
+  '/report': { title: 'รายงาน PDF', subtitle: 'Export ข้อมูลเป็น PDF' },
+  '/dashboard': { title: 'Dashboard แบบเต็ม', subtitle: 'ภาพรวม + กราฟสถิติ (ผู้ดูแลระบบ)' },
+  '/help': { title: 'วิธีใช้งาน', subtitle: 'คู่มือสั้น 3 งานหลัก — ไม่ต้องมีคนสอน' },
   '/settings': { title: 'Settings', subtitle: 'ข้อมูลระบบและผู้ใช้งาน' },
   '/admin-tools': { title: 'เครื่องมือผู้ดูแล', subtitle: 'Backup / Cache / ระบบ' },
   '/audit': { title: 'Audit Log', subtitle: 'บันทึกการใช้งานระบบ (Admin)' },
