@@ -231,8 +231,9 @@ export default function Layout() {
         ))}
       </nav>
 
-      {/* Floating action buttons — สแกน / ฉลาก (ใช้บ่อย ให้เด่น เข้าถึงได้จากทุกหน้า สไตล์ปุ่มลอย) */}
-      <div className="fixed right-4 bottom-24 md:bottom-8 z-30 flex flex-col items-end gap-3">
+      {/* Floating action buttons (เดสก์ท็อปเท่านั้น) — สแกน / ฉลาก
+          มือถือซ่อน เพราะบังข้อมูลใน list และฟังก์ชันเดียวกันมีอยู่ในแถบล่างแล้ว */}
+      <div className="hidden md:flex fixed right-4 bottom-8 z-30 flex-col items-end gap-3">
         <button onClick={() => navigate('/qr')} title="พิมพ์ฉลาก QR / Barcode" className="group flex items-center justify-end gap-2">
           <span className="hidden sm:block px-2.5 py-1 rounded-lg bg-[var(--ink)] text-white text-[11px] font-medium shadow-[var(--sh-sm)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
             พิมพ์ฉลาก QR / Barcode

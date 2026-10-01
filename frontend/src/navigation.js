@@ -53,6 +53,7 @@ export const MOBILE_NAV = [
   { to: '/', label: 'หน้าแรก', icon: 'home', end: true },
   { to: '/stock', label: 'เบิก–คืน', icon: 'inventory_2' },
   { to: '/scan', label: 'ย้าย/โอน', icon: 'document_scanner' },
+  { to: '/qr', label: 'พิมพ์ฉลาก', icon: 'qr_code_2' },
 ];
 
 // ชื่อ + ชื่อรอง ของแต่ละหน้า (ค่าควรตรงกับ header ในไฟล์ page เอง)
