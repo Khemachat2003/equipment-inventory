@@ -53,10 +53,12 @@ export const ICON_CODEPOINTS = {
   'home': 0xe9b2,
   'hourglass_empty': 0xe88b,
   'hourglass_top': 0xea5b,
+  'house': 0xea44,
   'inbox': 0xe156,
   'info': 0xe88e,
   'input': 0xe890,
   'inventory_2': 0xe1a1,
+  'keyboard_arrow_up': 0xe316,
   'label': 0xe893,
   'light': 0xf02a,
   'lightbulb': 0xe90f,
@@ -96,6 +98,7 @@ export const ICON_CODEPOINTS = {
   'storage': 0xe1db,
   'sync': 0xe627,
   'sync_alt': 0xea18,
+  'tab': 0xe8d8,
   'table_view': 0xf1be,
   'trending_down': 0xe8e3,
   'trending_up': 0xe8e5,
@@ -107,4 +110,4 @@ export const ICON_CODEPOINTS = {
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
 };
-// 105/105 icons mapped
+// 108/108 icons mapped
