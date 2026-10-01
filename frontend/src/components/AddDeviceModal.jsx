@@ -119,6 +119,19 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     });
   }
 
+  function startAnother() {
+    // เพิ่มอุปกรณ์ถัดไปทันที — เคลียร์ฟอร์มให้ใหม่ (คง modal เปิดอยู่)
+    setResult(null);
+    setSelected(null);
+    setQuery('');
+    setQty('1');
+    setStatus('ใช้งานได้');
+    setSiteName('Intranin');
+    setLocation('Stock');
+    setUser('');
+    setAdvanced(false);
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
@@ -144,7 +157,14 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
                 {result.serials.map((s) => <div key={s} className="font-mono text-[12px] text-[var(--blue)]">{s}</div>)}
               </div>
             </div>
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={startAnother}
+                title="เคลียร์ฟอร์มเพื่อเพิ่มอุปกรณ์ถัดไปทันที"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--blue-b)] bg-[var(--blue-l)] text-[var(--blue)] text-[13px] font-semibold hover:bg-[var(--blue)] hover:text-white"
+              >
+                <Icon name="add" size="sm" /> เพิ่มอุปกรณ์อื่นต่อ
+              </button>
               <button onClick={() => onDone(result)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)]">
                 <Icon name="check" size="sm" /> เสร็จ
               </button>

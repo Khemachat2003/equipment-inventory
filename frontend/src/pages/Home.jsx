@@ -7,10 +7,8 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/ui/Icon.jsx';
-import StatPill from '../components/ui/StatPill.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 
 const IMAGE_URL = (code, ext) =>
@@ -24,7 +22,6 @@ const QUICK_ACTIONS = [
 
 export default function Home() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [q, setQ] = useState('');
   const [assets, setAssets] = useState([]);
   const [stock, setStock] = useState([]);
@@ -66,18 +63,11 @@ export default function Home() {
     return { assets: hitAssets, stock: hitStock, total: hitAssets.length + hitStock.length };
   }, [q, assets, stock]);
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'สวัสดีตอนเช้า' : hour < 18 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น';
-
   return (
     <div className="space-y-5 max-w-4xl">
-      {/* ══ ทักทาย + ค้นหาอะไรก็ได้ ══ */}
+      {/* ══ ค้นหาอะไรก็ได้ ══ */}
       <div>
-        <div className="text-[15px] font-semibold text-[var(--text)]">
-          {greeting}{user?.username ? `, ${user.username}` : ''} 👋
-        </div>
-        <div className="text-[13px] text-[var(--tmuted)] mt-0.5">วันนี้ต้องทำอะไรครับ? ค้นหาอุปกรณ์ได้จากช่องด้านล่าง</div>
-        <div className="mt-3 flex gap-2">
+        <div className="flex gap-2">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)] pointer-events-none">
               <Icon name="search" size="sm" />
@@ -240,22 +230,47 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ══ สรุปภาพรวม (ไม่มีกราฟ — กราฟเดิมอยู่ที่ /dashboard) ══ */}
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--tmuted)] mb-2">สรุปภาพรวม</div>
-        {/* แถว 1 — วันนี้ */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatPill icon="inventory_2" tone="blue" label="ในคลัง (Office)" value={loading ? '…' : (stats?.totalOffice ?? 0)} />
-          <StatPill icon="factory" tone="amber" label="อยู่ที่ Site" value={loading ? '…' : (stats?.totalSite ?? 0)} />
-          <StatPill icon="trending_up" tone="green" label="เบิกวันนี้" value={loading ? '…' : (stats?.todayBorrow ?? 0)} />
-          <StatPill icon="trending_down" tone="red" label="คืนวันนี้" value={loading ? '…' : (stats?.todayReturn ?? 0)} />
+      {/* ══ ภาพรวม — hero วันนี้ (gradient + glass สไตล์เดียวกับ Dashboard) + อุปกรณ์และฟาร์ม ══ */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-4 items-stretch">
+        {/* Hero วันนี้ — gradient ink + glass KPI tiles */}
+        <div className="relative overflow-hidden rounded-2xl bg-[var(--ink)] text-white shadow-[var(--sh-md)]">
+          <div className="absolute -top-24 -right-14 w-64 h-64 rounded-full bg-[var(--emerald)]/15 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-28 left-28 w-64 h-64 rounded-full bg-[var(--blue)]/25 blur-3xl pointer-events-none" />
+          <div className="relative p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-[13px] font-semibold">
+                <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10"><Icon name="monitoring" size="sm" /></span>
+                ภาพรวมวันนี้
+              </div>
+              <button
+                onClick={() => setDataVersion((v) => v + 1)}
+                title="รีเฟรชข้อมูล"
+                className="h-8 px-2.5 rounded-lg bg-white/10 border border-white/15 text-[12px] text-white/80 hover:bg-white/20 hover:text-white flex items-center gap-1.5"
+              >
+                <Icon name="refresh" size="sm" /> รีเฟรช
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <HeroTile icon="inventory_2" glow="rgba(27,108,168,.35)" label="ในคลัง (Office)" value={loading ? '…' : (stats?.totalOffice ?? 0)} unit="ชิ้น" />
+              <HeroTile icon="factory" glow="rgba(255,149,0,.28)" label="อยู่ที่ Site" value={loading ? '…' : (stats?.totalSite ?? 0)} unit="ชิ้น" />
+              <HeroTile icon="trending_up" glow="rgba(0,200,150,.28)" label="เบิกวันนี้" value={loading ? '…' : (stats?.todayBorrow ?? 0)} unit="ครั้ง" />
+              <HeroTile icon="trending_down" glow="rgba(224,49,49,.28)" label="คืนวันนี้" value={loading ? '…' : (stats?.todayReturn ?? 0)} unit="ครั้ง" />
+            </div>
+          </div>
         </div>
-        {/* แถว 2 — ฟาร์มและอุปกรณ์รายชิ้น (ให้ผู้ใช้ใหม่เห็นภาพรวมทันที) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
-          <StatPill icon="place" tone="green" label="ฟาร์มทั้งหมด" value={loading ? '…' : (stats?.totalFarms ?? 0)} />
-          <StatPill icon="precision_manufacturing" tone="blue" label="ติดตั้งที่ฟาร์ม" value={loading ? '…' : (stats?.totalFarmAssets ?? 0)} />
-          <StatPill icon="inventory_2" tone="amber" label="รอติดตั้ง (สต็อก)" value={loading ? '…' : (stats?.totalStockAssets ?? 0)} />
-          <StatPill icon="devices" tone="blue" label="รายชิ้นทั้งหมด" value={loading ? '…' : (stats?.assets?.length ?? 0)} />
+
+        {/* อุปกรณ์และฟาร์ม — การ์ดขาว แถวสถิติแบบสะอาด */}
+        <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)] mb-1">
+            <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--purple-l)] text-[var(--purple)]"><Icon name="devices" size="sm" /></span>
+            อุปกรณ์และฟาร์ม
+          </div>
+          <div className="divide-y divide-[var(--g100)]">
+            <MiniStat icon="place" tone="green" label="ฟาร์มทั้งหมด" value={loading ? '…' : (stats?.totalFarms ?? 0)} />
+            <MiniStat icon="precision_manufacturing" tone="blue" label="ติดตั้งที่ฟาร์ม" value={loading ? '…' : (stats?.totalFarmAssets ?? 0)} />
+            <MiniStat icon="inventory_2" tone="amber" label="รอติดตั้ง (สต็อก)" value={loading ? '…' : (stats?.totalStockAssets ?? 0)} />
+            <MiniStat icon="category" tone="purple" label="รายชิ้นทั้งหมด" value={loading ? '…' : (stats?.assets?.length ?? 0)} />
+          </div>
         </div>
       </div>
 
@@ -300,6 +315,44 @@ export default function Home() {
           onDone={() => { setAddOpen(false); setDataVersion((v) => v + 1); }}
         />
       )}
+    </div>
+  );
+}
+
+// ── Helpers ของหน้าแรก: HeroTile (glass KPI บน hero) + MiniStat (แถวสถิติในการ์ดขาว) ──
+const TONE_BOX = {
+  green: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]',
+  blue: 'bg-[var(--blue-l)] text-[var(--blue)]',
+  amber: 'bg-[var(--amber-l)] text-[var(--amber-d)]',
+  purple: 'bg-[var(--purple-l)] text-[var(--purple)]',
+};
+
+function HeroTile({ icon, glow, label, value, unit }) {
+  return (
+    <div className="relative rounded-xl bg-white/10 border border-white/15 p-3 overflow-hidden">
+      <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-2xl pointer-events-none" style={{ background: glow }} />
+      <div className="relative">
+        <span className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center">
+          <Icon name={icon} size="sm" />
+        </span>
+        <div className="mt-2.5 flex items-baseline gap-1">
+          <span className="text-2xl font-bold tabular-nums">{value}</span>
+          <span className="text-[11px] text-white/60">{unit}</span>
+        </div>
+        <div className="text-[10px] text-white/50 mt-0.5">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ icon, tone, label, value }) {
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${TONE_BOX[tone] || TONE_BOX.blue}`}>
+        <Icon name={icon} size="sm" />
+      </span>
+      <div className="flex-1 min-w-0 text-[12px] text-[var(--tsub)]">{label}</div>
+      <div className="text-[17px] font-bold text-[var(--text)] tabular-nums">{value}</div>
     </div>
   );
 }

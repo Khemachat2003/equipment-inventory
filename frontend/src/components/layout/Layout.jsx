@@ -194,34 +194,7 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex items-center rounded-xl bg-[var(--surface2)] border border-[var(--g200)] p-0.5 gap-0.5">
-              <button
-                onClick={() => navigate('/scan')}
-                title="สแกน Barcode / Serial"
-                className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-[10px] text-[var(--tsub)] text-[13px] font-medium hover:bg-[var(--blue-l)] hover:text-[var(--blue)] transition-colors shrink-0"
-              >
-                <Icon name="document_scanner" size="sm" />
-                <span className="hidden min-[430px]:inline">สแกน</span>
-              </button>
-              <span className="w-px h-5 bg-[var(--g200)]" />
-              <button
-                onClick={() => navigate('/qr')}
-                title="พิมพ์ฉลาก QR / Barcode"
-                className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-[10px] text-[var(--tsub)] text-[13px] font-medium hover:bg-[var(--blue-l)] hover:text-[var(--blue)] transition-colors shrink-0"
-              >
-                <Icon name="qr_code_2" size="sm" />
-                <span className="hidden min-[430px]:inline">ฉลาก</span>
-              </button>
-            <span className="w-px h-5 bg-[var(--g200)]" />
-            <button
-              onClick={() => navigate('/help')}
-              title="วิธีใช้งาน (คู่มือ)"
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--tsub)] hover:bg-[var(--blue-l)] hover:text-[var(--blue)] transition-colors shrink-0"
-            >
-              <Icon name="help" size="sm" />
-            </button>
-          </div>
-          <span className="text-[11px] text-[var(--tmuted)] hidden sm:block tabular-nums">{timeStr}</span>
+            <span className="text-[11px] text-[var(--tmuted)] hidden sm:block tabular-nums">{timeStr}</span>
             <UserChip name={user?.username} role={user?.role} onLogout={handleLogout} />
           </div>
         </header>
@@ -257,6 +230,26 @@ export default function Layout() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Floating action buttons — สแกน / ฉลาก (ใช้บ่อย ให้เด่น เข้าถึงได้จากทุกหน้า สไตล์ปุ่มลอย) */}
+      <div className="fixed right-4 bottom-24 md:bottom-8 z-30 flex flex-col items-end gap-3">
+        <button onClick={() => navigate('/qr')} title="พิมพ์ฉลาก QR / Barcode" className="group flex items-center justify-end gap-2">
+          <span className="hidden sm:block px-2.5 py-1 rounded-lg bg-[var(--ink)] text-white text-[11px] font-medium shadow-[var(--sh-sm)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            พิมพ์ฉลาก QR / Barcode
+          </span>
+          <span className="w-11 h-11 rounded-full bg-[var(--blue)] text-white shadow-[var(--sh-md)] flex items-center justify-center hover:bg-[var(--blue-d)] transition-colors">
+            <Icon name="qr_code_2" size="sm" />
+          </span>
+        </button>
+        <button onClick={() => navigate('/scan')} title="สแกน Barcode / Serial" className="group flex items-center justify-end gap-2">
+          <span className="hidden sm:block px-2.5 py-1 rounded-lg bg-[var(--ink)] text-white text-[11px] font-medium shadow-[var(--sh-sm)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            สแกน Barcode / Serial
+          </span>
+          <span className="w-14 h-14 rounded-full bg-[var(--emerald)] text-white shadow-[var(--sh-lg)] flex items-center justify-center hover:bg-[var(--emerald-d)] transition-colors ring-4 ring-white">
+            <Icon name="document_scanner" size="lg" />
+          </span>
+        </button>
+      </div>
 
       {/* บทแนะนำผู้ใช้ใหม่ (แสดงครั้งแรกครั้งเดียว — จำใน localStorage) */}
       <OnboardingTour />
