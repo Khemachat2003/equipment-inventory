@@ -34,8 +34,20 @@ function validate(req, res, next) {
 const ADMIN_SESSION_KEY = 'active_admin_session';
 const ADMIN_LOCK_TTL = parseInt(process.env.ADMIN_LOCK_TTL, 10) || 15 * 60; // 15 นาที
 
+// endpoint เกี่ยวกับ auth ต้องผ่านได้เสมอ — ไม่งั้นผู้ที่ยังมี session admin ค้างอยู่
+// จะโดน lock บล็อกตั้งแต่ /api/check-auth และ /api/login → เข้า /login ไม่ได้ (403)
+const ADMIN_LOCK_SKIP_PATHS = new Set([
+  '/api/login',
+  '/api/logout',
+  '/api/check-auth',
+  '/api/portal-config',
+]);
+
 function createCheckAdminSessionLock(cache) {
   return function checkAdminSessionLock(req, res, next) {
+    const fullPath = (req.originalUrl || req.url || '').split('?')[0];
+    if (ADMIN_LOCK_SKIP_PATHS.has(fullPath)) return next();
+
     if (!req.session.user || req.session.user.role !== 'admin') {
       return next();
     }

@@ -45,9 +45,6 @@ export const NAV_GROUPS = [
   },
 ];
 
-// ทางเข้าคู่มือ — แสดงถาวรใต้กลุ่มเมนู (ทุกบทบาท)
-export const HELP_NAV = { to: '/help', label: 'วิธีใช้งาน', icon: 'help' };
-
 // Bottom nav บนมือถือ — 3 งานหลัก (md:hidden ใน Layout)
 export const MOBILE_NAV = [
   { to: '/', label: 'หน้าแรก', icon: 'home', end: true },
@@ -68,7 +65,6 @@ export const ROUTE_META = {
   '/history': { title: 'ประวัติการเบิก–คืน', subtitle: 'ดูประวัติการโอนย้ายทั้งหมดในระบบ' },
   '/report': { title: 'รายงาน PDF', subtitle: 'Export ข้อมูลเป็น PDF' },
   '/dashboard': { title: 'Dashboard แบบเต็ม', subtitle: 'ภาพรวม + กราฟสถิติ (ผู้ดูแลระบบ)' },
-  '/help': { title: 'วิธีใช้งาน', subtitle: 'คู่มือสั้น 3 งานหลัก — ไม่ต้องมีคนสอน' },
   '/settings': { title: 'Settings', subtitle: 'ข้อมูลระบบและผู้ใช้งาน' },
   '/admin-tools': { title: 'เครื่องมือผู้ดูแล', subtitle: 'Backup / Cache / ระบบ' },
   '/audit': { title: 'Audit Log', subtitle: 'บันทึกการใช้งานระบบ (Admin)' },

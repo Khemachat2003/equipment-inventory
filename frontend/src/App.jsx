@@ -9,7 +9,6 @@ const TracePage = lazy(() => import('./pages/TracePage.jsx'));
 const QrPage = lazy(() => import('./pages/QrPage.jsx'));
 const Login = lazy(() => import('./pages/Login.jsx'));
 const Home = lazy(() => import('./pages/Home.jsx'));
-const Help = lazy(() => import('./pages/Help.jsx'));
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const Stock = lazy(() => import('./pages/Stock.jsx'));
 const Asset = lazy(() => import('./pages/Asset.jsx'));
@@ -81,7 +80,6 @@ export default function App() {
         <Route path="/farm" element={<Farm />} />
         <Route path="/history" element={<History />} />
         <Route path="/report" element={<Report />} />
-        <Route path="/help" element={<Help />} />
         <Route path="/scan" element={<ScanPage />} />
         <Route path="/qr" element={<QrPage />} />
 

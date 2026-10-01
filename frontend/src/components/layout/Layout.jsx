@@ -3,9 +3,8 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Icon from '../ui/Icon.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { NAV_GROUPS, getRouteMeta, HELP_NAV, MOBILE_NAV } from '../../navigation.js';
+import { NAV_GROUPS, getRouteMeta, MOBILE_NAV } from '../../navigation.js';
 import { UI_FLAGS } from '../../uiConfig.js';
-import OnboardingTour from '../OnboardingTour.jsx';
 
 export default function Layout() {
   const { user, logout, portalHomeUrl, portalMode } = useAuth();
@@ -144,22 +143,6 @@ export default function Layout() {
                 </div>
               );
             })}
-
-          {/* คู่มือ — แสดงถาวรทุกบทบาท (ผู้ใช้ใหม่กดดูได้เสมอ) */}
-          <div className="pt-1 border-t border-white/10">
-            <NavLink
-              to={HELP_NAV.to}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-                  isActive ? 'bg-[var(--blue)] text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
-                }`
-              }
-            >
-              <Icon name={HELP_NAV.icon} size="sm" />
-              <span>{HELP_NAV.label}</span>
-            </NavLink>
-          </div>
         </nav>
 
         {/* Footer */}
@@ -233,9 +216,6 @@ export default function Layout() {
 
       {/* ปุ่มกลับขึ้นด้านบน — โผล่เฉพาะเวลาสกอลลงพอสมควร (ทุกอุปกรณ์) */}
       <BackToTop />
-
-      {/* บทแนะนำผู้ใช้ใหม่ (แสดงครั้งแรกครั้งเดียว — จำใน localStorage) */}
-      <OnboardingTour />
     </div>
   );
 }

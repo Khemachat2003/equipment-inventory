@@ -8,6 +8,7 @@ export const ICON_CODEPOINTS = {
   'agriculture': 0xea79,
   'analytics': 0xef3e,
   'apartment': 0xea40,
+  'app_registration': 0xef40,
   'archive': 0xe149,
   'arrow_back': 0xe5c4,
   'arrow_forward': 0xe5c8,
@@ -110,4 +111,4 @@ export const ICON_CODEPOINTS = {
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
 };
-// 108/108 icons mapped
+// 109/109 icons mapped
