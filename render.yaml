@@ -5,12 +5,15 @@ services:
     plan: free
     # ติดตั้ง Python deps สำหรับ generate_label.py (ฉลาก PDF) ก่อน build
     # fallback --break-system-packages สำหรับ image ใหม่ที่บังคับ PEP 668
+    # หมายเหตุ: Render native runtime ไม่คง site-packages จาก build → npm start
+    # ยังติดตั้งซ้ำอีกชั้นผ่าน scripts/ensure_python_deps.js ทุกครั้งที่ boot
     buildCommand: |
-      python -m pip install --no-cache-dir -r requirements.txt \
+      (python -m pip install --no-cache-dir -r requirements.txt \
         || python -m pip install --no-cache-dir --break-system-packages -r requirements.txt \
         || pip3 install --no-cache-dir -r requirements.txt \
-        || pip3 install --no-cache-dir --break-system-packages -r requirements.txt
-      python -c "import reportlab, barcode, PIL; print('python deps OK')"
+        || pip3 install --no-cache-dir --break-system-packages -r requirements.txt) \
+        || exit 1
+      python -c "import reportlab, barcode, PIL; print('python deps OK')" || exit 1
       npm run build
     startCommand: npm start
     healthCheckPath: /health
