@@ -3,7 +3,15 @@ services:
     name: equipment-inventory
     runtime: node
     plan: free
-    buildCommand: npm run build
+    # ติดตั้ง Python deps สำหรับ generate_label.py (ฉลาก PDF) ก่อน build
+    # fallback --break-system-packages สำหรับ image ใหม่ที่บังคับ PEP 668
+    buildCommand: |
+      python -m pip install --no-cache-dir -r requirements.txt \
+        || python -m pip install --no-cache-dir --break-system-packages -r requirements.txt \
+        || pip3 install --no-cache-dir -r requirements.txt \
+        || pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+      python -c "import reportlab, barcode, PIL; print('python deps OK')"
+      npm run build
     startCommand: npm start
     healthCheckPath: /health
     envVars:
