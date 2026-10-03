@@ -1,7 +1,0 @@
-fix(deploy): pip install --target ./python_modules ใน render.yaml build (path ใน repo คงอยู่ถึง runtime) + PYTHONPATH/python3 fallback ใน routes/label.js — แก้ /api/label/pdf และ /api/label/a4pdf 500 บน Render
-
-- render.yaml buildCommand: ติดตั้ง deps ลง ./python_modules (คงอยู่ถึง runtime เหมือน node_modules) + verify ด้วย PYTHONPATH ก่อน deploy
-- routes/label.js: ส่ง PYTHONPATH ชี้ ./python_modules, fallback python→python3 บน image ที่ไม่มี python, cleanup tmp ไฟล์ตอน error
-- scripts/ensure_python_deps.js: fast path เช็คผ่าน PYTHONPATH, install ลง ./python_modules ก่อน 4 วิธี แล้วค่อย system 4 วิธี (self-heal ตอน boot)
-- เพิ่ม tests/label-pdf.test.js — integration test เรียก generate_label.py จริงผ่าน HTTP (skip ถ้าไม่มี python deps), suite ผ่าน 22/22
-- .gitignore: ไม่ track python_modules/
