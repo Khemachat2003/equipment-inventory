@@ -6,6 +6,37 @@ const fs = require("fs");
 const os = require("os");
 const { execFile } = require("child_process");
 
+// ── Python runner ──────────────────────────────────────────────
+// deps ถูกติดตั้งลง ./python_modules (path "ใน repo" — ดู render.yaml buildCommand
+// และ scripts/ensure_python_deps.js) → ส่ง PYTHONPATH ให้ python import จากนั้นด้วย
+const PY_MODULES = path.join(__dirname, '..', 'python_modules');
+
+function pythonEnv() {
+  const env = { ...process.env };
+  if (fs.existsSync(PY_MODULES)) {
+    env.PYTHONPATH = PY_MODULES + (env.PYTHONPATH ? path.delimiter + env.PYTHONPATH : '');
+  }
+  return env;
+}
+
+// บาง image (เช่น Render native runtime) มีแค่ python3 ไม่มี python
+// → ลอง python ก่อน ถ้า ENOENT ค่อย fallback เป็น python3
+function runPython(args, timeoutMs, cb) {
+  const env = pythonEnv();
+  const attempt = (cmd) => {
+    execFile(cmd, args, { timeout: timeoutMs, env }, (err, stdout, stderr) => {
+      if (err && err.code === 'ENOENT' && cmd === 'python') return attempt('python3');
+      cb(err, stdout, stderr);
+    });
+  };
+  attempt('python');
+}
+
+// รวม stderr + err.message เป็น detail เดียว (บางทั้ง error ไม่มี stderr เช่น ENOENT)
+function detailOf(err, stderr) {
+  return [stderr && stderr.trim(), err && err.message].filter(Boolean).join(' | ') || 'no output from python';
+}
+
 // -------------------- SINGLE LABEL PDF --------------------
 router.get('/api/label/pdf', async (req, res) => {
   try {
@@ -29,10 +60,11 @@ router.get('/api/label/pdf', async (req, res) => {
       '--output', tmpOut,
     ];
 
-    execFile('python', args, { timeout: 15000 }, (err, stdout, stderr) => {
+    runPython(args, 15000, (err, stdout, stderr) => {
       if (err) {
-        console.error('generate_label.py error:', stderr);
-        return res.status(500).json({ error: 'PDF generation failed', detail: stderr });
+        console.error('generate_label.py error:', detailOf(err, stderr));
+        try { fs.unlinkSync(tmpOut); } catch(_) {}
+        return res.status(500).json({ error: 'PDF generation failed', detail: detailOf(err, stderr) });
       }
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="label_${serial}.pdf"`);
@@ -86,11 +118,12 @@ router.post('/api/label/a4pdf', express.json({ limit: '2mb' }), async (req, res)
       '--output', tmpOut,
     ];
 
-    execFile('python', args, { timeout: 30000 }, (err, stdout, stderr) => {
+    runPython(args, 30000, (err, stdout, stderr) => {
       try { fs.unlinkSync(tmpJson); } catch(_) {}
       if (err) {
-        console.error('generate_label.py (a4) error:', stderr);
-        return res.status(500).json({ error: 'A4 PDF generation failed', detail: stderr });
+        console.error('generate_label.py (a4) error:', detailOf(err, stderr));
+        try { fs.unlinkSync(tmpOut); } catch(_) {}
+        return res.status(500).json({ error: 'A4 PDF generation failed', detail: detailOf(err, stderr) });
       }
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="labels_a4.pdf"');

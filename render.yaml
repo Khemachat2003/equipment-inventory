@@ -3,17 +3,20 @@ services:
     name: equipment-inventory
     runtime: node
     plan: free
-    # ติดตั้ง Python deps สำหรับ generate_label.py (ฉลาก PDF) ก่อน build
-    # fallback --break-system-packages สำหรับ image ใหม่ที่บังคับ PEP 668
-    # หมายเหตุ: Render native runtime ไม่คง site-packages จาก build → npm start
-    # ยังติดตั้งซ้ำอีกชั้นผ่าน scripts/ensure_python_deps.js ทุกครั้งที่ boot
+    # ชั้นหลัก: ติดตั้ง Python deps (generate_label.py — ฉลาก PDF) ลง ./python_modules
+    # (path "ใน repo" → คงอยู่ถึง runtime เหมือน node_modules เพราะ Render native runtime
+    #  ไม่คง system site-packages จาก build phase ให้ runtime)
+    # fallback --break-system-packages สำหรับ image ที่บังคับ PEP 668
+    # ครอบลูป pip ด้วยวงเล็บ + || exit 1 → ถ้า install ไม่ได้จริง build พังทันทีใน log
     buildCommand: |
-      (python -m pip install --no-cache-dir -r requirements.txt \
-        || python -m pip install --no-cache-dir --break-system-packages -r requirements.txt \
-        || pip3 install --no-cache-dir -r requirements.txt \
-        || pip3 install --no-cache-dir --break-system-packages -r requirements.txt) \
+      (python -m pip install --no-cache-dir --upgrade --target ./python_modules -r requirements.txt \
+        || python -m pip install --no-cache-dir --upgrade --break-system-packages --target ./python_modules -r requirements.txt \
+        || pip3 install --no-cache-dir --upgrade --target ./python_modules -r requirements.txt \
+        || pip3 install --no-cache-dir --upgrade --break-system-packages --target ./python_modules -r requirements.txt) \
         || exit 1
-      python -c "import reportlab, barcode, PIL; print('python deps OK')" || exit 1
+      PYTHONPATH="$PWD/python_modules" python -c "import reportlab, barcode, PIL; print('python deps OK (repo target ./python_modules)')" || exit 1
+      # ชั้นสำรองที่ 2: startCommand (npm start) เรียก scripts/ensure_python_deps.js
+      # ซึ่ง self-heal ตอน boot ทุกครั้ง ถ้า ./python_modules หายหรือใช้ไม่ได้
       npm run build
     startCommand: npm start
     healthCheckPath: /health

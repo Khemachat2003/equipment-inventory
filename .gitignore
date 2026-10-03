@@ -8,6 +8,9 @@ ecosystem.config.js
 node_modules/
 *.log
 
+# Python deps ติดตั้งลง repo ตอน build บน Render (ดู render.yaml buildCommand) — ไม่ track
+python_modules/
+
 # React frontend build artifacts (source is in frontend/src)
 frontend/node_modules/
 frontend/dist/
