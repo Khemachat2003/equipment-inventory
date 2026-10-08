@@ -419,7 +419,7 @@ export default function Bundle() {
       )}
 
       {/* Create modal */}
-      {createOpen && <CreateModal onClose={() => setCreateOpen(false)} onSubmit={createBundle} />}
+      {createOpen && <CreateModal onClose={() => setCreateOpen(false)} onSubmit={createBundle} existingIds={bundles.map((b) => b.bundleId)} />}
 
       {/* Deploy modal */}
       {deployOpen && (
@@ -635,14 +635,25 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
   );
 }
 
-function CreateModal({ onClose, onSubmit }) {
-  const [bundleId, setBundleId] = useState('');
+function CreateModal({ onClose, onSubmit, existingIds = [] }) {
+  // ก้อน ⑤ (B2) — เดารหัสชุดถัดไป BDL-XXX ให้อัตโนมัติ (แก้ได้) + กันกรอกรหัสซ้ำกับที่มีอยู่
+  const [bundleId, setBundleId] = useState(() => suggestBundleId(existingIds));
   const [bundleName, setBundleName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('In Stock');
+  const dup = bundleId.trim()
+    ? existingIds.some((x) => (x || '').trim().toUpperCase() === bundleId.trim().toUpperCase())
+    : false;
   return (
     <Modal onClose={onClose} title="สร้างชุดใหม่ (Bundle)">
-      <Field label="รหัสชุด (Bundle ID) *"><input value={bundleId} onChange={(e) => setBundleId(e.target.value.toUpperCase())} placeholder="เช่น BDL-001" className={inp} /></Field>
+      <Field label="รหัสชุด (Bundle ID) *">
+        <input value={bundleId} onChange={(e) => setBundleId(e.target.value.toUpperCase())} placeholder="เช่น BDL-001" className={inp} />
+        <div className="mt-1 flex items-center gap-1 text-[11px] flex-wrap">
+          {dup
+            ? <span className="flex items-center gap-1 font-semibold text-[var(--red)]"><Icon name="warning" size="sm" /> รหัสนี้ถูกใช้แล้ว — ต้องไม่ซ้ำกับชุดเดิม</span>
+            : <span className="flex items-center gap-1 text-[var(--tmuted)]"><Icon name="info" size="sm" /> ระบบเดารหัสถัดไป (BDL-…) ให้แล้ว — แก้ได้ตามต้องการ</span>}
+        </div>
+      </Field>
       <Field label="ชื่อชุดอุปกรณ์ *"><input value={bundleName} onChange={(e) => setBundleName(e.target.value)} placeholder="เช่น ชุดตู้ควบคุมฟาร์ม 1" className={inp} /></Field>
       <Field label="คำอธิบาย"><input value={description} onChange={(e) => setDescription(e.target.value)} className={inp} /></Field>
       <Field label="สถานะเริ่มต้น">
@@ -651,7 +662,12 @@ function CreateModal({ onClose, onSubmit }) {
           <option>Maintenance</option>
         </select>
       </Field>
-      <ModalFooter onClose={onClose} onSubmit={() => onSubmit({ bundleId, bundleName, description, status })} submitLabel="บันทึก" />
+      <ModalFooter
+        onClose={onClose}
+        onSubmit={() => onSubmit({ bundleId: bundleId.trim(), bundleName, description, status })}
+        submitLabel="บันทึก"
+        submitDisabled={!bundleId.trim() || !bundleName.trim() || dup}
+      />
     </Modal>
   );
 }
@@ -705,8 +721,13 @@ function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
 
   const houseName = houses.find((h) => h.houseId === houseId)?.houseName || '';
 
+  // ก้อน ⑤ (B2) — ฟอร์มย้ายชุด 2 ขั้น: 'form' = เลือกปลายทาง → 'confirm' = สรุปก่อนย้าย (หมายเหตุพับไว้)
+  // (DeployModal ถูก mount ใหม่ทุกครั้งที่กด "ย้าย" — step/noteOpen จึงกลับค่าเริ่มต้นเอง ไม่ต้อง reset ผ่าน effect)
+  const [step, setStep] = useState('form');
+  const [noteOpen, setNoteOpen] = useState(false);
+
   return (
-    <Modal onClose={onClose} title="ย้ายชุดอุปกรณ์ไปฟาร์ม">
+    <Modal onClose={onClose} title={step === 'form' ? 'ย้ายชุดอุปกรณ์ไปฟาร์ม' : 'สรุปก่อนย้ายชุด'}>
       {bundle && (
         <div className="px-4 py-3 rounded-xl bg-[var(--blue-l)] border border-[var(--blue-b)] mb-4">
           <div className="text-[12px] font-bold text-[var(--blue)]">Bundle ที่เลือก</div>
@@ -714,6 +735,8 @@ function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
           <div className="text-[12px] text-[var(--tsub)]">{bundle.assetIds?.length || 0} อุปกรณ์จะถูกย้ายพร้อมกัน</div>
         </div>
       )}
+      {step === 'form' ? (
+        <>
       <Field label="เลือกฟาร์มปลายทาง *">
         <select
           value={farmId}
@@ -726,7 +749,6 @@ function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
         {/* เพิ่มฟาร์มใหม่ได้ทันที ไม่ต้องออกจาก modal — เพิ่มแล้ว dropdown refresh + เลือกให้เลย */}
         <FarmInlineAdd mode="trigger" open={farmAddOpen} onOpenChange={setFarmAddOpen} />
       </Field>
-      <FarmInlineAdd mode="panel" open={farmAddOpen} onOpenChange={setFarmAddOpen} onAdded={handleFarmAdded} />
       <Field label={`โรงเรือน${farmId ? ' (ตามฟาร์มที่เลือก)' : ''}`}>
         <select
           value={houseId}
@@ -766,7 +788,37 @@ function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
         houses={houses}
         onAdded={handleHouseAdded}
       />
-      <Field label="หมายเหตุการย้าย"><input value={note} onChange={(e) => setNote(e.target.value)} className={inp} /></Field>
+          <ModalFooter
+            onClose={onClose}
+            onSubmit={() => { setFarmAddOpen(false); setHouseAddOpen(false); setStep('confirm'); }}
+            submitLabel="ถัดไป — สรุปก่อนย้าย"
+            submitDisabled={!farmId}
+          />
+        </>
+      ) : (
+        <>
+          {/* ก้อน ⑤ (B2) — การ์ดสรุปก่อนย้าย: ชุด → ปลายทาง (ฟาร์ม › โรงเรือน) + จำนวนอุปกรณ์ */}
+          <div className="px-4 py-3 rounded-xl border border-[var(--blue-b)] bg-[var(--blue-l)] space-y-2">
+            <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--text)]">
+              <Icon name="folder_open" size="sm" /> {bundle?.bundleName || '-'}
+              <span className="font-mono text-[11px] font-normal text-[var(--tmuted)]">{bundle?.bundleId}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text)] flex-wrap">
+              <Icon name="place" size="sm" className="text-[var(--emerald-d)]" />
+              {farmName || '-'}{houseName ? ` › ${houseId} ${houseName}` : ''}
+            </div>
+            <div className="text-[12px] text-[var(--tsub)]">{bundle?.assetIds?.length || 0} อุปกรณ์จะถูกย้ายตำแหน่งพร้อมกัน</div>
+          </div>
+          {/* หมายเหตุการย้าย — พับไว้ default (เปิดได้เมื่อต้องการใส่) */}
+          <div className="rounded-xl border border-[var(--g200)]">
+            <button onClick={() => setNoteOpen(!noteOpen)} className="w-full flex items-center justify-between px-3.5 py-2.5 text-[12px] font-semibold text-[var(--tsub)]">
+              <span className="flex items-center gap-1.5"><Icon name="description" size="sm" /> หมายเหตุการย้าย (ถ้ามี)</span>
+              <Icon name={noteOpen ? 'expand_less' : 'expand_more'} size="sm" />
+            </button>
+            {noteOpen && (
+              <div className="px-3.5 pb-3"><input value={note} onChange={(e) => setNote(e.target.value)} className={inp} /></div>
+            )}
+          </div>
       <div className="flex gap-2 px-4 py-3 rounded-xl bg-[var(--amber-l)] text-[var(--amber-d)] text-[12px]">
         <Icon name="warning" size="sm" />
         <span>
@@ -777,9 +829,19 @@ function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
       </div>
       <ModalFooter
         onClose={onClose}
-        onSubmit={() => farmId && onDeploy(farmId, farmName, note, houseId, houseName)}
-        submitLabel="ย้ายทั้งชุด"
-        submitDisabled={!farmId}
+        onSubmit={() => onDeploy(farmId, farmName, note, houseId, houseName)}
+        submitLabel="ยืนยันย้ายทั้งชุด"
+      />
+        </>
+      )}
+      <FarmInlineAdd mode="panel" open={farmAddOpen} onOpenChange={setFarmAddOpen} onAdded={handleFarmAdded} />
+      <HouseInlineAdd
+        mode="panel"
+        open={houseAddOpen}
+        onOpenChange={setHouseAddOpen}
+        siteId={farmId}
+        houses={houses}
+        onAdded={handleHouseAdded}
       />
     </Modal>
   );

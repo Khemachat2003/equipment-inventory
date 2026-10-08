@@ -75,6 +75,7 @@ export const ICON_CODEPOINTS = {
   'monitor': 0xef5b,
   'monitor_heart': 0xeaa2,
   'monitoring': 0xf190,
+  'overview': 0xe4a7,
   'password': 0xf042,
   'person': 0xf0d3,
   'pets': 0xe91d,
@@ -91,6 +92,7 @@ export const ICON_CODEPOINTS = {
   'remove': 0xe15b,
   'replay': 0xe042,
   'report': 0xf052,
+  'resize': 0xf707,
   'router': 0xe328,
   'save': 0xe161,
   'search': 0xef7a,
@@ -115,4 +117,4 @@ export const ICON_CODEPOINTS = {
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
 };
-// 113/113 icons mapped
+// 115/115 icons mapped

@@ -13,3 +13,17 @@ export function farmKeyOf(b) {
   if (b.status === 'In Stock') return '';
   return (b.farmId || b.farmName || b.location || '').trim();
 }
+
+// ก้อน ⑤ (B2) — เดารหัสชุดถัดไป "BDL-XXX" จากรหัสชุดที่มีอยู่ (เลขสูงสุด +1 เติมศูนย์ 3 หลัก — ถ้าชนไล่ต่อจนว่าง)
+// รูปแบบอื่นที่ผู้ใช้ตั้งเองไม่ถูกใช้เป็นฐาน — ยังไม่มีชุดหมายเลขเลย → BDL-001
+export function suggestBundleId(existingIds = []) {
+  const used = new Set((existingIds || []).map((x) => (x || '').trim().toUpperCase()));
+  let max = 0;
+  used.forEach((id) => {
+    const m = /^(?:BDL-)?(\d{1,6})$/.exec(id);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  let n = max + 1;
+  while (used.has(`BDL-${String(n).padStart(3, '0')}`)) n += 1;
+  return `BDL-${String(n).padStart(3, '0')}`;
+}

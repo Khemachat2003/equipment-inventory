@@ -2,7 +2,7 @@
 // ก้อน ⑥ (Issue A) — ตรรกะจัดกลุ่มหน้า "ชุดติดตั้งฟาร์ม (Bundle)":
 // ชุดไหนอยู่คลัง / ชุดไหนอยู่ฟาร์มไหน (ใช้เป็นทั้งเกณฑ์จัดกลุ่มโซนและนับ chip ฟาร์ม)
 import { describe, it, expect } from 'vitest';
-import { farmKeyOf, STOCK_KEY } from '../utils/bundleGroups.js';
+import { farmKeyOf, STOCK_KEY, suggestBundleId } from '../utils/bundleGroups.js';
 
 describe('farmKeyOf — ชุดอยู่คลังหรือฟาร์มไหน', () => {
   it('In Stock = คลัง (คีย์ว่าง) เสมอ แม้ farmId หลงเหลืออยู่', () => {
@@ -28,5 +28,28 @@ describe('farmKeyOf — ชุดอยู่คลังหรือฟาร�
 
   it('STOCK_KEY คือค่าพิเศษของ chip "คลัง"', () => {
     expect(STOCK_KEY).toBe('__stock__');
+  });
+});
+
+describe('suggestBundleId — ก้อน ⑤ (B2): เดารหัสชุดถัดไป BDL-XXX', () => {
+  it('ไม่มีชุดเลย → BDL-001', () => {
+    expect(suggestBundleId([])).toBe('BDL-001');
+  });
+
+  it('ไล่จากเลขสูงสุด +1 พร้อมเติมศูนย์ 3 หลัก', () => {
+    expect(suggestBundleId(['BDL-001', 'BDL-002'])).toBe('BDL-003');
+    expect(suggestBundleId(['BDL-005', 'ABC-1', 'BDL-002'])).toBe('BDL-006');
+  });
+
+  it('ตัวพิมพ์เล็ก/ช่องว่างก็นับรวม', () => {
+    expect(suggestBundleId([' bdl-009 '])).toBe('BDL-010');
+  });
+
+  it('รูปแบบอื่นไม่ถูกใช้เป็นฐาน แต่ก็ไม่ชนของเดิม', () => {
+    expect(suggestBundleId(['ZZZ-1', 'ZZZ-2'])).toBe('BDL-001');
+  });
+
+  it('ไล่หาเลขที่ว่างถ้าตัวถัดไปถูกใช้ไปแล้ว', () => {
+    expect(suggestBundleId(['BDL-001', 'BDL-002', 'BDL-003'])).toBe('BDL-004');
   });
 });
