@@ -4,18 +4,19 @@ import { NAV_GROUPS, MOBILE_NAV, ROUTE_META, getRouteMeta } from '../navigation.
 import { UI_FLAGS } from '../uiConfig.js';
 
 describe('navigation — โครงเมนูใหม่ (UX simplify)', () => {
-  it('งานประจำวันมี 3 ปุ่มพอดี: หน้าแรก / เบิก–คืนของ / ย้าย–โอนอุปกรณ์', () => {
+  it('งานประจำวัน 4 ปุ่ม: หน้าแรก / เบิก–คืนของ / ย้าย–โอนอุปกรณ์ / ชุดติดตั้งฟาร์ม (Bundle ขึ้นเมนูหลัก)', () => {
     const main = NAV_GROUPS.find((g) => g.label === 'งานประจำวัน');
-    expect(main.items.map((i) => i.to)).toEqual(['/', '/stock', '/scan']);
+    expect(main.items.map((i) => i.to)).toEqual(['/', '/stock', '/scan', '/bundle']);
   });
 
-  it('กลุ่ม "เพิ่มเติม" ถูกพับเก็บไว้ (collapsed) และมีหน้าเดิมครบทุกหน้า', () => {
+  it('กลุ่ม "เพิ่มเติม" ถูกพับเก็บไว้ (collapsed) และมีหน้าเดิมครบทุกหน้า (ยกเว้น /bundle ที่ขึ้นงานประจำวันแล้ว)', () => {
     const more = NAV_GROUPS.find((g) => g.label === 'เพิ่มเติม');
     expect(more.collapsed).toBe(true);
     const tos = more.items.map((i) => i.to);
-    ['/farm', '/asset', '/bundle', '/qr', '/history', '/report', '/dashboard'].forEach((p) =>
+    ['/farm', '/asset', '/qr', '/history', '/report', '/dashboard'].forEach((p) =>
       expect(tos).toContain(p)
     );
+    expect(tos).not.toContain('/bundle');
   });
 
   it('/dashboard (Dashboard แบบเต็ม) เป็นของ admin เท่านั้น', () => {

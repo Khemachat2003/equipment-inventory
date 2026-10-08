@@ -7,14 +7,12 @@ import StatPill from '../components/ui/StatPill.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
+import { suggestSiteId, suggestHouseId } from '../utils/farmId.js';
 
 const TYPE_ICONS = { 'สัตว์ปีก': 'egg', 'สัตว์บก': 'pets', 'สุกร': 'agriculture', 'อื่นๆ': 'category', 'ไม่ระบุ': 'help' };
 const FARM_TYPES = ['สัตว์ปีก', 'สัตว์บก', 'สุกร', 'อื่นๆ'];
 
 export default function Farm() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
 
   const [assets, setAssets] = useState([]);
@@ -23,8 +21,7 @@ export default function Farm() {
   const [currentFarm, setCurrentFarm] = useState('ALL');
   const [assetSearch, setAssetSearch] = useState('');
   const [transfer, setTransfer] = useState(null);
-  const [addSiteOpen, setAddSiteOpen] = useState(false);
-  const [addHouseOpen, setAddHouseOpen] = useState(false);
+  const [addLocOpen, setAddLocOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -132,16 +129,13 @@ export default function Farm() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {isAdmin && (
-          <div className="flex gap-2">
-            <button onClick={() => setAddSiteOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]">
-              <Icon name="add" size="sm" /> ฟาร์ม
-            </button>
-            <button onClick={() => setAddHouseOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]">
-              <Icon name="home" size="sm" /> โรงเรือน
-            </button>
-          </div>
-        )}
+        {/* เพิ่มฟาร์ม/โรงเรือน — ทุกคนที่ล็อกอินเพิ่มได้ (เดิม gate ไว้เฉพาะ admin ทำให้ user ติดขั้นตอนโอนย้าย) */}
+        {/* เพิ่มฟาร์ม/โรงเรือน — ปุ่มเดียว แผงเดียวทำต่อเนื่อง (เดิม 2 ปุ่ม 2 modal + alert) */}
+        <div className="flex gap-2">
+          <button onClick={() => setAddLocOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)]">
+            <Icon name="add" size="sm" /> เพิ่มฟาร์ม / โรงเรือน
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
@@ -365,8 +359,7 @@ export default function Farm() {
         />
       )}
 
-      {addSiteOpen && <AddFarmSiteModal isAdmin={isAdmin} onClose={() => setAddSiteOpen(false)} onDone={load} />}
-      {addHouseOpen && <AddFarmHouseModal isAdmin={isAdmin} onClose={() => setAddHouseOpen(false)} onDone={load} />}
+      {addLocOpen && <AddFarmOrHouseModal onClose={() => setAddLocOpen(false)} onDone={load} />}
     </div>
   );
 }
@@ -385,83 +378,190 @@ function FarmItem({ icon, label, count, active, onClick, bundle }) {
 
 
 
-// ---- Add Farm Site / House (admin) ----
-function AddFarmSiteModal({ isAdmin, onClose, onDone }) {
-  const [siteId, setSiteId] = useState('');
+// ---- เพิ่มฟาร์ม / โรงเรือน — แผงเดียวทำต่อเนื่อง 2 ชั้น (ล็อกอินแล้วเพิ่มได้ทุกคน — backend เปิดสิทธิ์แล้ว) ----
+// เดิม: 2 ปุ่มเปิด 2 modal แยก + แจ้งผลด้วย alert() → รวมเป็นแผงเดียว:
+//   ① ชั้นเพิ่มฟาร์ม (ชื่อ + รหัส auto จากชื่อ + ประเภท) — ข้อมูลเพิ่ม (จังหวัด/ผู้จัดการ/หมายเหตุ) พับเก็บ
+//   ② บันทึกฟาร์มสำเร็จ → แผงชวน "เพิ่มโรงเรือนต่อ" พร้อมเลือกฟาร์มใหม่ให้เลย (รหัสโรงเรือน auto SITE-H01 ไล่เลข)
+//      หรือกด "มีฟาร์มอยู่แล้ว" ข้ามไปเพิ่มโรงเรือนกับฟาร์มเดิมได้ทันที
+// ผลสำเร็จ/ข้อผิดพลาด (รวม 409 กันเพิ่มซ้ำจาก backend) แสดงในแผงเอง ไม่เด้ง alert — backend เดิมทุก endpoint
+function AddFarmOrHouseModal({ onClose, onDone }) {
+  const [step, setStep] = useState('site'); // 'site' = ชั้นเพิ่มฟาร์ม | 'house' = ชั้นเพิ่มโรงเรือน
+  const [flash, setFlash] = useState('');   // แถบสำเร็จในแผง
+  const [err, setErr] = useState('');       // แถบข้อผิดพลาดในแผง
+  // ── ชั้นฟาร์ม ──
   const [siteName, setSiteName] = useState('');
   const [farmType, setFarmType] = useState('สัตว์ปีก');
+  const [siteId, setSiteId] = useState('');
+  const [idTouched, setIdTouched] = useState(false);
   const [province, setProvince] = useState('');
   const [manager, setManager] = useState('');
   const [note, setNote] = useState('');
-  const busy = useBusy();
-
-  async function submit() {
-    if (!siteId || !siteName) return alert('กรุณากรอกรหัสและชื่อฟาร์ม');
-    if (!isAdmin) return alert('ไม่มีสิทธิ์');
-    await busy.run('กำลังเพิ่มฟาร์ม...', async () => {
-      try {
-        const { data } = await axios.post('/api/add-farm-site', { siteId, siteName, farmType, province, manager, note });
-        if (data.success) { alert('เพิ่มฟาร์มสำเร็จ'); onDone && onDone(); onClose(); }
-        else alert('เกิดข้อผิดพลาด: ' + (data.error || 'เพิ่มฟาร์มไม่สำเร็จ'));
-      } catch (e) {
-        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || 'ไม่สามารถเชื่อมต่อได้'));
-      }
-    });
-  }
-
-  return (
-    <Modal onClose={onClose} title="เพิ่มฟาร์ม" submitLabel="บันทึกฟาร์ม" onSubmit={submit} saving={busy.busy} busyLabel={busy.busyLabel}>
-      <F2 label="รหัสฟาร์ม (Site ID) *"><input value={siteId} onChange={(e) => setSiteId(e.target.value.toUpperCase())} className={inp} /></F2>
-      <F2 label="ชื่อฟาร์ม *"><input value={siteName} onChange={(e) => setSiteName(e.target.value)} className={inp} /></F2>
-      <F2 label="ประเภทฟาร์ม"><select value={farmType} onChange={(e) => setFarmType(e.target.value)} className={inp}>{FARM_TYPES.map((t) => <option key={t}>{t}</option>)}</select></F2>
-      <F2 label="จังหวัด"><input value={province} onChange={(e) => setProvince(e.target.value)} className={inp} /></F2>
-      <F2 label="ผู้จัดการฟาร์ม"><input value={manager} onChange={(e) => setManager(e.target.value)} className={inp} /></F2>
-      <F2 label="หมายเหตุ"><input value={note} onChange={(e) => setNote(e.target.value)} className={inp} /></F2>
-    </Modal>
-  );
-}
-
-function AddFarmHouseModal({ isAdmin, onClose, onDone }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  // ── ชั้นโรงเรือน ──
   const [sites, setSites] = useState([]);
+  const [houses, setHouses] = useState([]);
+  const [hSiteId, setHSiteId] = useState('');
   const [houseId, setHouseId] = useState('');
-  const [siteId, setSiteId] = useState('');
   const [houseName, setHouseName] = useState('');
   const [houseType, setHouseType] = useState('');
   const [capacity, setCapacity] = useState('');
-  const [note, setNote] = useState('');
+  const [hNote, setHNote] = useState('');
+  const [hMoreOpen, setHMoreOpen] = useState(false);
   const busy = useBusy();
 
   useEffect(() => {
     axios.get('/api/farm-sites').then(({ data }) => setSites(data || [])).catch(() => {});
   }, []);
 
-  async function submit() {
-    if (!houseId || !siteId || !houseName) return alert('กรุณากรอกข้อมูลให้ครบ');
-    if (!isAdmin) return alert('ไม่มีสิทธิ์');
+  function onSiteName(v) {
+    setSiteName(v);
+    if (!idTouched) setSiteId(suggestSiteId(v)); // เดารหัสจากชื่อ เช่น "Farm Bangpa" → FARMBANGPA
+  }
+
+  // เลือกฟาร์ม (ชั้นโรงเรือน) → โหลดโรงเรือนที่มีอยู่ เพื่อเดารหัสถัดไป (SITE-H01, H02, ...)
+  useEffect(() => {
+    setHouses([]);
+    setHouseId('');
+    if (!hSiteId) return;
+    axios.get(`/api/farm-houses/${encodeURIComponent(hSiteId)}`)
+      .then(({ data }) => {
+        const list = data || [];
+        setHouses(list);
+        setHouseId(suggestHouseId(hSiteId, list.map((h) => h.houseId)));
+      })
+      .catch(() => setHouses([]));
+  }, [hSiteId]);
+
+  // เพิ่มโรงเรือนสำเร็จ → โหลดรายการใหม่ + เดารหัสถัดไปให้เพิ่มต่อได้ทันที
+  function refreshHouses(sid) {
+    axios.get(`/api/farm-houses/${encodeURIComponent(sid)}`)
+      .then(({ data }) => {
+        const list = data || [];
+        setHouses(list);
+        setHouseId(suggestHouseId(sid, list.map((h) => h.houseId)));
+      })
+      .catch(() => {});
+  }
+
+  async function submitSite() {
+    if (!siteId.trim() || !siteName.trim()) { setErr('กรุณากรอกชื่อฟาร์มและรหัสฟาร์ม'); return; }
+    setErr('');
+    await busy.run('กำลังเพิ่มฟาร์ม...', async () => {
+      try {
+        const { data } = await axios.post('/api/add-farm-site', { siteId: siteId.trim().toUpperCase(), siteName: siteName.trim(), farmType, province, manager, note });
+        if (data.success) {
+          const newId = siteId.trim().toUpperCase();
+          onDone && onDone(); // รีเฟรชข้อมูลหน้า (ฟาร์มใหม่โชว์ใน sidebar ทันที)
+          setSites((prev) => (prev.some((s) => s.siteId === newId) ? prev : [...prev, { siteId: newId, siteName: siteName.trim() }]));
+          setFlash(`เพิ่มฟาร์ม "${siteName.trim()}" สำเร็จ — เพิ่มโรงเรือนต่อเลยไหม?`);
+          setHSiteId(newId); // เลือกฟาร์มใหม่ให้เลย → โหลดโรงเรือน + เดารหัส H01
+          setHouseName('');
+          setStep('house');
+        } else {
+          setErr(data.error || 'เพิ่มฟาร์มไม่สำเร็จ');
+        }
+      } catch (e) {
+        setErr(e.response?.data?.error || 'ไม่สามารถเชื่อมต่อได้');
+      }
+    });
+  }
+
+  async function submitHouse() {
+    if (!hSiteId || !houseName.trim() || !houseId.trim()) { setErr('กรุณาเลือกฟาร์มและกรอกชื่อ/รหัสโรงเรือน'); return; }
+    setErr('');
     await busy.run('กำลังเพิ่มโรงเรือน...', async () => {
       try {
-        const { data } = await axios.post('/api/add-farm-house', { houseId, siteId, houseName, houseType, capacity, note });
-        if (data.success) { alert('เพิ่มโรงเรือนสำเร็จ'); onDone && onDone(); onClose(); }
-        else alert('เกิดข้อผิดพลาด: ' + (data.error || 'เพิ่มโรงเรือนไม่สำเร็จ'));
+        const { data } = await axios.post('/api/add-farm-house', { houseId: houseId.trim().toUpperCase(), siteId: hSiteId, houseName: houseName.trim(), houseType, capacity, note: hNote });
+        if (data.success) {
+          onDone && onDone();
+          setFlash(`เพิ่มโรงเรือน "${houseName.trim()}" สำเร็จ — เพิ่มต่อได้เลย หรือปิดหน้าต่างนี้ได้`);
+          setHouseName('');
+          refreshHouses(hSiteId);
+        } else {
+          setErr(data.error || 'เพิ่มโรงเรือนไม่สำเร็จ');
+        }
       } catch (e) {
-        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || 'ไม่สามารถเชื่อมต่อได้'));
+        setErr(e.response?.data?.error || 'ไม่สามารถเชื่อมต่อได้');
       }
     });
   }
 
   return (
-    <Modal onClose={onClose} title="เพิ่มโรงเรือน" submitLabel="บันทึกโรงเรือน" onSubmit={submit} saving={busy.busy} busyLabel={busy.busyLabel}>
-      <F2 label="รหัสโรงเรือน *"><input value={houseId} onChange={(e) => setHouseId(e.target.value.toUpperCase())} className={inp} /></F2>
-      <F2 label="ฟาร์ม *">
-        <select value={siteId} onChange={(e) => setSiteId(e.target.value)} className={inp}>
-          <option value="">— เลือกฟาร์ม —</option>
-          {sites.map((s) => <option key={s.siteId} value={s.siteId}>{s.siteName} ({s.siteId})</option>)}
-        </select>
-      </F2>
-      <F2 label="ชื่อโรงเรือน *"><input value={houseName} onChange={(e) => setHouseName(e.target.value)} className={inp} /></F2>
-      <F2 label="ประเภทโรงเรือน"><input value={houseType} onChange={(e) => setHouseType(e.target.value)} placeholder="เช่น เปิด ระบบปิด" className={inp} /></F2>
-      <F2 label="ความจุ"><input value={capacity} onChange={(e) => setCapacity(e.target.value)} className={inp} /></F2>
-      <F2 label="หมายเหตุ"><input value={note} onChange={(e) => setNote(e.target.value)} className={inp} /></F2>
+    <Modal
+      onClose={onClose}
+      title={step === 'site' ? 'เพิ่มฟาร์ม / โรงเรือน' : 'เพิ่มโรงเรือน'}
+      submitLabel={step === 'site' ? 'บันทึกฟาร์ม' : 'บันทึกโรงเรือน'}
+      onSubmit={step === 'site' ? submitSite : submitHouse}
+      saving={busy.busy}
+      busyLabel={busy.busyLabel}
+    >
+      {/* ตัวบอกขั้น 1-2 */}
+      <div className="flex items-center gap-2 text-[12px]">
+        <span className={`px-2.5 py-1 rounded-full font-semibold border ${step === 'site' ? 'bg-[var(--blue-l)] text-[var(--blue)] border-[var(--blue)]' : 'bg-[var(--surface2)] text-[var(--tsub)] border-[var(--g200)]'}`}>1 · ฟาร์ม</span>
+        <Icon name="chevron_right" size="xs" className="text-[var(--tmuted)]" />
+        <span className={`px-2.5 py-1 rounded-full font-semibold border ${step === 'house' ? 'bg-[var(--blue-l)] text-[var(--blue)] border-[var(--blue)]' : 'bg-[var(--surface2)] text-[var(--tsub)] border-[var(--g200)]'}`}>2 · โรงเรือน</span>
+      </div>
+      {/* แถบสำเร็จ / ข้อผิดพลาด — แสดงในแผง (แทน alert) */}
+      {flash && (
+        <div className="flex items-start gap-1.5 px-3 py-2 rounded-lg bg-[var(--emerald-l)] border border-[var(--emerald-b)] text-[12px] font-medium text-[var(--emerald-d)]">
+          <Icon name="check_circle" size="sm" /> <span>{flash}</span>
+        </div>
+      )}
+      {err && (
+        <div className="flex items-start gap-1.5 px-3 py-2 rounded-lg bg-[var(--red-l)] text-[12px] font-medium text-[var(--red)]">
+          <Icon name="warning" size="sm" /> <span>{err}</span>
+        </div>
+      )}
+
+      {step === 'site' ? (
+        <>
+          <F2 label="ชื่อฟาร์ม *"><input value={siteName} onChange={(e) => onSiteName(e.target.value)} placeholder="เช่น ฟาร์มโคนมบางแพ" className={inp} /></F2>
+          <F2 label="รหัสฟาร์ม (Site ID) * — เดาให้จากชื่อ แก้ได้">
+            <input value={siteId} onChange={(e) => { setSiteId(e.target.value.toUpperCase()); setIdTouched(true); }} placeholder="ตัวอังกฤษ/ตัวเลข เช่น FARM01" className={inp} />
+          </F2>
+          <F2 label="ประเภทฟาร์ม"><select value={farmType} onChange={(e) => setFarmType(e.target.value)} className={inp}>{FARM_TYPES.map((t) => <option key={t}>{t}</option>)}</select></F2>
+          <button type="button" onClick={() => setMoreOpen((v) => !v)} className="flex items-center gap-1 text-[12px] font-semibold text-[var(--blue)]">
+            <Icon name={moreOpen ? 'expand_less' : 'expand_more'} size="sm" /> ข้อมูลฟาร์มเพิ่ม (จังหวัด · ผู้จัดการ · หมายเหตุ)
+          </button>
+          {moreOpen && (
+            <>
+              <F2 label="จังหวัด"><input value={province} onChange={(e) => setProvince(e.target.value)} className={inp} /></F2>
+              <F2 label="ผู้จัดการฟาร์ม"><input value={manager} onChange={(e) => setManager(e.target.value)} className={inp} /></F2>
+              <F2 label="หมายเหตุ"><input value={note} onChange={(e) => setNote(e.target.value)} className={inp} /></F2>
+            </>
+          )}
+          {/* มีฟาร์มอยู่แล้ว → ข้ามไปชั้นเพิ่มโรงเรือนได้ทันที */}
+          <button type="button" onClick={() => { setFlash(''); setErr(''); setStep('house'); }} className="text-[12px] font-semibold text-[var(--blue)] hover:underline self-start">
+            มีฟาร์มอยู่แล้ว — ข้ามไปเพิ่มโรงเรือนเลย
+          </button>
+        </>
+      ) : (
+        <>
+          <F2 label="ฟาร์ม *">
+            <select value={hSiteId} onChange={(e) => setHSiteId(e.target.value)} className={inp}>
+              <option value="">— เลือกฟาร์ม —</option>
+              {sites.map((s) => <option key={s.siteId} value={s.siteId}>{s.siteName} ({s.siteId})</option>)}
+            </select>
+          </F2>
+          <F2 label="ชื่อโรงเรือน *"><input value={houseName} onChange={(e) => setHouseName(e.target.value)} placeholder="เช่น โรงเรือน 1" className={inp} /></F2>
+          <F2 label={`รหัสโรงเรือน — auto จากฟาร์ม แก้ได้${houses.length ? ` (ปัจจุบันมี ${houses.length} โรงเรือน)` : ''}`}>
+            <input value={houseId} onChange={(e) => setHouseId(e.target.value.toUpperCase())} placeholder="เช่น SITE-H01" className={inp} />
+          </F2>
+          <button type="button" onClick={() => setHMoreOpen((v) => !v)} className="flex items-center gap-1 text-[12px] font-semibold text-[var(--blue)]">
+            <Icon name={hMoreOpen ? 'expand_less' : 'expand_more'} size="sm" /> ข้อมูลโรงเรือนเพิ่ม (ประเภท · ความจุ · หมายเหตุ)
+          </button>
+          {hMoreOpen && (
+            <>
+              <F2 label="ประเภทโรงเรือน"><input value={houseType} onChange={(e) => setHouseType(e.target.value)} placeholder="เช่น เปิด ระบบปิด" className={inp} /></F2>
+              <F2 label="ความจุ"><input value={capacity} onChange={(e) => setCapacity(e.target.value)} className={inp} /></F2>
+              <F2 label="หมายเหตุ"><input value={hNote} onChange={(e) => setHNote(e.target.value)} className={inp} /></F2>
+            </>
+          )}
+          <button type="button" onClick={() => setStep('site')} className="text-[12px] font-semibold text-[var(--tsub)] hover:underline self-start">
+            ← ย้อนกลับไปเพิ่มฟาร์มอีก
+          </button>
+        </>
+      )}
     </Modal>
   );
 }

@@ -273,7 +273,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
 
             {/* ขั้นสูง — พับเก็บ มี default ให้ครบ ไม่ต้องแตะก็เพิ่มได้ */}
             <button onClick={() => setAdvanced(!advanced)} className="text-[12px] font-semibold text-[var(--blue)] flex items-center gap-1">
-              <Icon name="chevron_right" size="xs" className={advanced ? 'rotate-90' : ''} /> ขั้นสูง (สถานะ / ตำแหน่ง / ผู้รับผิดชอบ)
+              <Icon name="chevron_right" size="xs" className={advanced ? 'rotate-90' : ''} /> รายละเอียดเพิ่ม (สถานะ · ตำแหน่ง · ผู้รับผิดชอบ)
             </button>
             {advanced && (
               <div className="space-y-3 pl-3 border-l-2 border-[var(--g100)]">

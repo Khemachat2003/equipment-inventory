@@ -5,7 +5,9 @@ import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
+import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 import { buildLocation, buildBundleLocation } from '../utils/location.js';
+import { FarmInlineAdd, HouseInlineAdd } from '../components/InlineFarmAdd.jsx';
 
 const BTONES = {
   'In Stock': 'blue',
@@ -44,6 +46,14 @@ export default function Bundle() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // เพิ่มฟาร์มใหม่จากฟอร์มย่อใน DeployModal → refresh รายการฟาร์ม (dropdown อัปเดตทันที)
+  async function refreshFarms() {
+    try {
+      const { data } = await axios.get('/api/farms');
+      setFarms(data || []);
+    } catch (e) { /* ignore */ }
+  }
 
   // Auto-open จาก Farm Monitor (?open=bundleId)
   useEffect(() => {
@@ -89,14 +99,14 @@ export default function Bundle() {
   }
 
   async function createBundle(data) {
-    await busy.run('กำลังสร้าง Bundle...', async () => {
+    await busy.run('กำลังสร้างชุดใหม่...', async () => {
       try {
         await axios.post('/api/bundles', data);
         await load();
         setCreateOpen(false);
-        alert('สร้าง Bundle สำเร็จ');
+        showToast('สร้างชุดใหม่สำเร็จ', { actionLabel: 'เปิดดูชุดนี้', onAction: () => openDetail(data.bundleId) });
       } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
@@ -109,7 +119,7 @@ export default function Bundle() {
         await load();
         await openDetail(bundleId);
       } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
@@ -123,23 +133,23 @@ export default function Bundle() {
         await load();
         setDeployOpen(null);
         if (detail) await openDetail(bundleId);
-        alert(data.message || 'ย้ายสำเร็จ');
+        showToast(data.message || 'ย้ายชุดไปฟาร์มแล้ว', { actionLabel: 'เปิดดูชุดนี้', onAction: () => openDetail(bundleId) });
       } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
 
   async function recall(bundleId) {
-    if (!confirm('คืน Bundle กลับ Stock?')) return;
-    await busy.run('กำลังคืนชุดกลับ Stock...', async () => {
+    if (!confirm('คืนชุดนี้กลับเข้าคลัง?')) return;
+    await busy.run('กำลังคืนชุดกลับเข้าคลัง...', async () => {
       try {
         const { data } = await axios.post(`/api/bundles/${bundleId}/recall`);
         await load();
         if (detail) await openDetail(bundleId);
-        alert(data.message || 'คืนสำเร็จ');
+        showToast(data.message || 'คืนชุดเข้าคลังแล้ว', { actionLabel: 'เปิดดูชุดนี้', onAction: () => openDetail(bundleId) });
       } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
@@ -152,9 +162,9 @@ export default function Bundle() {
         await openDetail(bundleId);
         setAddAssetOpen(null);
         setPendingAssets([]);
-        alert(data.message || 'เพิ่มสำเร็จ');
+        showToast(data.message || 'เพิ่มอุปกรณ์เข้าชุดแล้ว', { actionLabel: 'เปิดดูชุดนี้', onAction: () => openDetail(bundleId) });
       } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
@@ -178,13 +188,14 @@ export default function Bundle() {
   return (
     <div className="space-y-4">
       <BusyOverlay label={busy.busyLabel} />
+      <ToastHost />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]">
             <Icon name="download" size="sm" /> CSV
           </button>
           <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)]">
-            <Icon name="add" size="sm" /> สร้าง Bundle
+            <Icon name="add" size="sm" /> สร้างชุดใหม่ (Bundle)
           </button>
         </div>
       </div>
@@ -192,8 +203,8 @@ export default function Bundle() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="ชุดทั้งหมด" value={stats.all} icon="folder_open" tone="blue" />
-        <StatCard label="อยู่ที่ Stock" value={stats.inStock} icon="inventory_2" tone="green" />
-        <StatCard label="Deploy แล้ว" value={stats.deployed} icon="local_shipping" tone="amber" />
+        <StatCard label="อยู่ในคลัง (In Stock)" value={stats.inStock} icon="inventory_2" tone="green" />
+        <StatCard label="ติดตั้งที่ฟาร์มแล้ว (Deployed)" value={stats.deployed} icon="local_shipping" tone="amber" />
         <StatCard label="อุปกรณ์ในชุด" value={stats.devices} icon="devices_other" tone="red" />
       </div>
 
@@ -201,14 +212,14 @@ export default function Bundle() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative max-w-xs flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)]"><Icon name="search" size="sm" /></span>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา Bundle..."
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาชุดอุปกรณ์..."
             className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px]" />
         </div>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-9 px-3 rounded-lg border border-[var(--g200)] text-[13px]">
           <option value="">ทุกสถานะ</option>
-          <option>In Stock</option>
-          <option>Deployed</option>
-          <option>Maintenance</option>
+          <option value="In Stock">อยู่ในคลัง (In Stock)</option>
+          <option value="Deployed">ติดตั้งที่ฟาร์มแล้ว (Deployed)</option>
+          <option value="Maintenance">ซ่อมบำรุง (Maintenance)</option>
         </select>
         <select value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} className="h-9 px-3 rounded-lg border border-[var(--g200)] text-[13px]">
           <option value="">ทุกฟาร์ม</option>
@@ -258,6 +269,7 @@ export default function Bundle() {
           farms={farms}
           onClose={() => setDeployOpen(null)}
           onDeploy={(farmId, farmName, note, houseId, houseName) => deploy(deployOpen, farmId, farmName, note, houseId, houseName)}
+          onFarmAdded={refreshFarms}
         />
       )}
 
@@ -337,8 +349,8 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
       <div className="flex items-center gap-2 pt-2 border-t border-[var(--g100)]">
         <button onClick={onDetail} className="flex items-center justify-center gap-1 flex-1 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="search" size="xs" /> รายละเอียด</button>
         {b.status === 'In Stock'
-          ? <button onClick={onDeploy} className="px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold">ส่งฟาร์ม</button>
-          : <button onClick={onRecall} className="px-3 py-1.5 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold">คืน Stock</button>}
+          ? <button onClick={onDeploy} className="px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold">ย้ายไปฟาร์ม (Deploy)</button>
+          : <button onClick={onRecall} className="px-3 py-1.5 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold">คืนเข้าคลัง (Recall)</button>}
       </div>
     </div>
   );
@@ -374,8 +386,8 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
           </div>
           <div className="flex items-center gap-2">
             {b.status === 'In Stock'
-              ? <button onClick={onDeploy} className="px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ส่งฟาร์ม</button>
-              : <button onClick={onRecall} className="px-3.5 py-2 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold">คืน Stock</button>}
+              ? <button onClick={onDeploy} className="px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ย้ายไปฟาร์ม (Deploy)</button>
+              : <button onClick={onRecall} className="px-3.5 py-2 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold">คืนเข้าคลัง (Recall)</button>}
             <button onClick={onAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--emerald)] text-white text-[12px] font-semibold"><Icon name="add" size="sm" /> เพิ่มอุปกรณ์</button>
           </div>
         </div>
@@ -453,8 +465,8 @@ function CreateModal({ onClose, onSubmit }) {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('In Stock');
   return (
-    <Modal onClose={onClose} title="สร้าง Bundle ใหม่">
-      <Field label="Bundle ID *"><input value={bundleId} onChange={(e) => setBundleId(e.target.value.toUpperCase())} placeholder="เช่น BDL-001" className={inp} /></Field>
+    <Modal onClose={onClose} title="สร้างชุดใหม่ (Bundle)">
+      <Field label="รหัสชุด (Bundle ID) *"><input value={bundleId} onChange={(e) => setBundleId(e.target.value.toUpperCase())} placeholder="เช่น BDL-001" className={inp} /></Field>
       <Field label="ชื่อชุดอุปกรณ์ *"><input value={bundleName} onChange={(e) => setBundleName(e.target.value)} placeholder="เช่น ชุดตู้ควบคุมฟาร์ม 1" className={inp} /></Field>
       <Field label="คำอธิบาย"><input value={description} onChange={(e) => setDescription(e.target.value)} className={inp} /></Field>
       <Field label="สถานะเริ่มต้น">
@@ -468,17 +480,44 @@ function CreateModal({ onClose, onSubmit }) {
   );
 }
 
-function DeployModal({ bundle, farms, onClose, onDeploy }) {
+function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
   const [farmId, setFarmId] = useState('');
   const [houseId, setHouseId] = useState('');
   const [houses, setHouses] = useState([]);
   const [loadingHouses, setLoadingHouses] = useState(false);
   const [note, setNote] = useState('');
-  const farmName = farms.find((f) => f.farmId === farmId)?.farmName || '';
+  const [houseAddOpen, setHouseAddOpen] = useState(false);
+  const [farmAddOpen, setFarmAddOpen] = useState(false);
+  // ฟาร์มที่เพิ่งสร้างจากฟอร์มย่อ — เติมใน dropdown ทันที ก่อน parent refresh มาสมบูรณ์
+  const [extraFarms, setExtraFarms] = useState([]);
+  const allFarms = [
+    ...(farms || []),
+    ...extraFarms.filter((f) => !(farms || []).some((x) => x.farmId === f.farmId)),
+  ];
+  const farmName = allFarms.find((f) => f.farmId === farmId)?.farmName || '';
+
+  // เพิ่มฟาร์มใหม่จากฟอร์มย่อ → เติมเข้า dropdown + เลือกให้เลย + แจ้ง parent refresh
+  function handleFarmAdded(site) {
+    const f = { farmId: site.siteId, farmName: site.siteName, farmType: site.farmType || '' };
+    setExtraFarms((prev) => (prev.some((x) => x.farmId === f.farmId) ? prev : [...prev, f]));
+    setFarmId(site.siteId);
+    onFarmAdded && onFarmAdded();
+  }
+
+  // เพิ่มโรงเรือนใหม่จากฟอร์มย่อ → เลือกให้เลย + refresh รายการโรงเรือนของฟาร์มนี้
+  async function handleHouseAdded(house) {
+    if (house?.houseId) setHouseId(house.houseId);
+    setHouseAddOpen(false);
+    try {
+      const { data } = await axios.get(`/api/farm-houses/${encodeURIComponent(farmId)}`);
+      setHouses(data || []);
+    } catch (e) { /* ignore */ }
+  }
 
   // โหลดโรงเรือนของฟาร์มที่เลือก — เปลี่ยนฟาร์มแล้วต้องล้างโรงเรือนเดิมเสมอ
   useEffect(() => {
     setHouseId('');
+    setHouseAddOpen(false); // เปลี่ยนฟาร์ม → ปิดฟอร์มย่อเพิ่มโรงเรือน (รหัส auto ของฟาร์มเก่าไม่ valid แล้ว) — เหมือน TransferModal
     if (!farmId) { setHouses([]); return; }
     setLoadingHouses(true);
     axios
@@ -506,9 +545,12 @@ function DeployModal({ bundle, farms, onClose, onDeploy }) {
           className={inp}
         >
           <option value="">— เลือกฟาร์ม —</option>
-          {farms.map((f) => <option key={f.farmId} value={f.farmId}>{f.farmName} ({f.farmType})</option>)}
+          {allFarms.map((f) => <option key={f.farmId} value={f.farmId}>{f.farmName} ({f.farmType})</option>)}
         </select>
+        {/* เพิ่มฟาร์มใหม่ได้ทันที ไม่ต้องออกจาก modal — เพิ่มแล้ว dropdown refresh + เลือกให้เลย */}
+        <FarmInlineAdd mode="trigger" open={farmAddOpen} onOpenChange={setFarmAddOpen} />
       </Field>
+      <FarmInlineAdd mode="panel" open={farmAddOpen} onOpenChange={setFarmAddOpen} onAdded={handleFarmAdded} />
       <Field label={`โรงเรือน${farmId ? ' (ตามฟาร์มที่เลือก)' : ''}`}>
         <select
           value={houseId}
@@ -523,13 +565,31 @@ function DeployModal({ bundle, farms, onClose, onDeploy }) {
             </option>
           ))}
         </select>
+        <HouseInlineAdd
+          mode="trigger"
+          open={houseAddOpen}
+          onOpenChange={setHouseAddOpen}
+          siteId={farmId}
+          houses={houses}
+        />
         {farmId && !loadingHouses && houses.length === 0 && (
           <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-[var(--tmuted)]">
             <Icon name="info" size="sm" />
-            <span>ฟาร์มนี้ยังไม่มีโรงเรือนลงทะเบียน — ติดต่อผู้ดูแลเพื่อเพิ่มที่หน้า Farm</span>
+            <span>ฟาร์มนี้ยังไม่มีโรงเรือนลงทะเบียน</span>
+            <button onClick={() => setHouseAddOpen(true)} className="font-semibold text-[var(--blue)] hover:underline whitespace-nowrap">
+              + เพิ่มโรงเรือนทันที
+            </button>
           </div>
         )}
       </Field>
+      <HouseInlineAdd
+        mode="panel"
+        open={houseAddOpen}
+        onOpenChange={setHouseAddOpen}
+        siteId={farmId}
+        houses={houses}
+        onAdded={handleHouseAdded}
+      />
       <Field label="หมายเหตุการย้าย"><input value={note} onChange={(e) => setNote(e.target.value)} className={inp} /></Field>
       <div className="flex gap-2 px-4 py-3 rounded-xl bg-[var(--amber-l)] text-[var(--amber-d)] text-[12px]">
         <Icon name="warning" size="sm" />

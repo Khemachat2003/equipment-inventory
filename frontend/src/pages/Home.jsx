@@ -10,6 +10,7 @@ import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
+import TransferModal from '../components/TransferModal.jsx';
 
 const IMAGE_URL = (code, ext) =>
   `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext || 'jpg'}?v=4`;
@@ -32,6 +33,7 @@ export default function Home() {
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
+  const [transfer, setTransfer] = useState(null); // ปุ่ม "ย้าย" เปิดฟอร์มโอนย้ายทันทีบนหน้าแรก (ไม่ต้องเด้งไป /scan ก่อน)
   const [dataVersion, setDataVersion] = useState(0); // เพิ่มของเสร็จ → โหลดสถิติใหม่
 
   useEffect(() => {
@@ -181,7 +183,7 @@ export default function Home() {
                 <HeroKpi icon="qr_code_2" glow="rgba(124,58,237,.30)" label="Serial ทั้งหมด" value={derived.totalAssets} unit="ชิ้น" />
                 <HeroKpi icon="check_circle" glow="rgba(0,200,150,.28)" label="พร้อมใช้งาน" value={derived.readyCount} unit="ชิ้น" />
                 <HeroKpi icon="build" glow="rgba(224,49,49,.28)" label="ส่งซ่อม/ชำรุด" value={derived.repairCount} unit="ชิ้น" />
-                <HeroKpi icon="grid_on" glow="rgba(27,108,168,.35)" label="อยู่ใน Bundle" value={derived.bundleAssets} unit="ชิ้น" />
+                <HeroKpi icon="grid_on" glow="rgba(27,108,168,.35)" label="อยู่ในชุด (Bundle)" value={derived.bundleAssets} unit="ชิ้น" />
               </>
             )}
           </div>
@@ -226,8 +228,8 @@ export default function Home() {
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <button
-                          onClick={() => navigate(`/scan?serial=${encodeURIComponent(a.serialNumber || a.assetId || '')}`)}
-                          title="ย้าย/โอนอุปกรณ์"
+                          onClick={() => setTransfer({ serial: a.serialNumber || a.assetId || '', current: { status: a.status, location: a.location, siteName: a.siteName, user: a.user } })}
+                          title="ย้าย/โอนอุปกรณ์ — เปิดฟอร์มทันที"
                           className="h-8 px-2.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold hover:bg-[var(--blue-d)] flex items-center gap-1"
                         >
                           <Icon name="local_shipping" size="sm" /> ย้าย
@@ -549,6 +551,17 @@ export default function Home() {
           open
           onClose={() => setAddOpen(false)}
           onDone={() => { setAddOpen(false); setDataVersion((v) => v + 1); }}
+        />
+      )}
+
+      {/* ย้าย/โอนอุปกรณ์ — ปุ่ม "ย้าย" ในผลค้นหาเปิดฟอร์มทันทีบนหน้าแรก (ตัดคลิกเปล่าไป /scan) */}
+      {transfer && (
+        <TransferModal
+          open
+          serial={transfer.serial}
+          current={transfer.current}
+          onClose={() => setTransfer(null)}
+          onSuccess={() => setDataVersion((v) => v + 1)}
         />
       )}
     </div>
