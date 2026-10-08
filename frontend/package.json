@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "icons": "python ../scripts/make_icon_subset.py",
     "lint": "oxlint",
     "test": "vitest run",
     "preview": "vite preview"

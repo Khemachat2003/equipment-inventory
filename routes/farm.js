@@ -2,8 +2,13 @@
 const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
-const { getSheetsClient, cache, SPREADSHEET_ID } = require("../services/sheets");
+// เรียกผ่าน sheetsSvc.xxx (property access) แทนการ destructure getSheetsClient ไว้ล่วงหน้า
+// → tests สามารถ monkey-patch services/sheets.getSheetsClient ก่อนเรียก handler ได้
+const sheetsSvc = require("../services/sheets");
+const { cache, SPREADSHEET_ID } = sheetsSvc;
+const { logAudit } = require("../services/audit");
 const { requireLogin, validate } = require("../middleware/auth");
+const { findSiteDuplicate, findHouseDuplicate } = require("../services/farmGuard");
 
 // -------------------- GET FARM SITES --------------------
 router.get("/api/farm-sites", requireLogin, async (req, res) => {
@@ -12,7 +17,7 @@ router.get("/api/farm-sites", requireLogin, async (req, res) => {
   if (sites) return res.json(sites);
 
   try {
-    const sheets = await getSheetsClient();
+    const sheets = await sheetsSvc.getSheetsClient();
     const r = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "Farm_Sites!A2:F",
@@ -45,7 +50,7 @@ router.get("/api/farms", requireLogin, async (req, res) => {
 
   try {
     if (!sites) {
-      const sheets = await getSheetsClient();
+      const sheets = await sheetsSvc.getSheetsClient();
       const r = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: "Farm_Sites!A2:F",
@@ -82,7 +87,7 @@ router.get("/api/farm-houses/:siteId", requireLogin, async (req, res) => {
     let houses = cache.get(cacheKey);
     if (houses) return res.json(houses);
 
-    const sheets = await getSheetsClient();
+    const sheets = await sheetsSvc.getSheetsClient();
     const r = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "Farm_Houses!A2:F",
@@ -118,13 +123,28 @@ router.post("/api/add-farm-site",
     body("note").optional().isString(),
   ],
   validate,
+  // สิทธิ์: ผู้ใช้ที่ล็อกอินทุกคนเพิ่มฟาร์มได้ (เดิมจำกัด admin → คนอื่นโดน 403 จนติดขั้นตอนโอนย้าย)
+  // สิทธิ์เข้าถึงคุมด้วย requireLogin ด้านบนแล้ว
   async (req, res) => {
-    if (req.session.user.role !== "admin") {
-      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
-    }
     try {
       const { siteId, siteName, farmType, province, manager, note } = req.body;
-      const sheets = await getSheetsClient();
+      const sheets = await sheetsSvc.getSheetsClient();
+
+      // ── กันเพิ่มซ้ำ: siteId หรือ siteName ที่มีอยู่แล้ว → 409
+      // (อ่านชีตตรง ๆ ไม่ใช้ cache เพื่อให้เห็นข้อมูลล่าสุดเสมอ — cache จะถูกล้างหลัง append)
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Farm_Sites!A2:F",
+      });
+      const existing = (r.data.values || []).map((row) => ({
+        siteId: row[0] || "",
+        siteName: row[1] || "",
+      }));
+      const dup = findSiteDuplicate(existing, { siteId, siteName });
+      if (dup) {
+        return res.status(dup.code).json({ success: false, error: dup.error });
+      }
+
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
         range: "Farm_Sites!A:F",
@@ -134,7 +154,18 @@ router.post("/api/add-farm-site",
         },
       });
       cache.del("farmSites");
-      res.json({ success: true });
+
+      // ✅ บันทึก Audit Log (ต้องอยู่ก่อน res.json) — เดิมเพิ่มฟาร์มไม่มี audit เลย
+      await logAudit(
+        "เพิ่มฟาร์ม",
+        "Farm",
+        `Site ID: ${siteId}, ชื่อ: ${siteName}, ประเภท: ${farmType || "-"}`,
+        req.session.user.username,
+        req.ip || "-"
+      );
+
+      // site แนบกลับไปให้ frontend ใช้ "เลือกฟาร์มใหม่ทันที" หลังเพิ่มเสร็จ (inline add)
+      res.json({ success: true, site: { siteId, siteName, farmType: farmType || "" } });
     } catch (error) {
       console.error("Add farm site error:", error);
       res.status(500).json({ success: false, error: error.message });
@@ -154,13 +185,27 @@ router.post("/api/add-farm-house",
     body("note").optional().isString(),
   ],
   validate,
+  // สิทธิ์: ผู้ใช้ที่ล็อกอินทุกคนเพิ่มโรงเรือนได้ (เดิมจำกัด admin) — คุมด้วย requireLogin ด้านบน
   async (req, res) => {
-    if (req.session.user.role !== "admin") {
-      return res.status(403).json({ error: "ไม่มีสิทธิ์" });
-    }
     try {
       const { houseId, siteId, houseName, houseType, capacity, note } = req.body;
-      const sheets = await getSheetsClient();
+      const sheets = await sheetsSvc.getSheetsClient();
+
+      // ── กันเพิ่มซ้ำ: houseId ที่มีอยู่แล้ว "ในฟาร์มเดิม" → 409
+      // (รหัสเดียวกันแต่คนละฟาร์มไม่นับซ้ำ — โรงเรือนเป็นลูกของฟาร์ม)
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Farm_Houses!A2:F",
+      });
+      const existing = (r.data.values || []).map((row) => ({
+        houseId: row[0] || "",
+        siteId: row[1] || "",
+      }));
+      const dup = findHouseDuplicate(existing, { siteId, houseId });
+      if (dup) {
+        return res.status(dup.code).json({ success: false, error: dup.error });
+      }
+
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
         range: "Farm_Houses!A:F",
@@ -170,7 +215,18 @@ router.post("/api/add-farm-house",
         },
       });
       cache.del(`farmHouses_${siteId}`);
-      res.json({ success: true });
+
+      // ✅ บันทึก Audit Log (ต้องอยู่ก่อน res.json)
+      await logAudit(
+        "เพิ่มโรงเรือน",
+        "Farm",
+        `House ID: ${houseId}, ชื่อ: ${houseName}, ฟาร์ม: ${siteId}`,
+        req.session.user.username,
+        req.ip || "-"
+      );
+
+      // house แนบกลับไปให้ frontend "เลือกโรงเรือนใหม่ทันที" หลังเพิ่มเสร็จ (inline add)
+      res.json({ success: true, house: { houseId, siteId, houseName, houseType: houseType || "" } });
     } catch (error) {
       console.error("Add farm house error:", error);
       res.status(500).json({ success: false, error: error.message });

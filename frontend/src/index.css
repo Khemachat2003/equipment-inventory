@@ -11,7 +11,7 @@
   font-style: normal;
   font-weight: 100 700;
   font-display: block;
-  src: url('/fonts/material-symbols-rounded.subset.woff2?v=6') format('woff2');
+  src: url('/fonts/material-symbols-rounded.subset.woff2?v=7') format('woff2');
 }
 
 /* กัน FOUT: font ยังโหลดไม่เสร็จ → ซ่อนช่อง icon ไว้ (ไม่ให้เห็นชื่อ icon แวบ)
@@ -55,4 +55,21 @@ a {
   line-height: 1;
   vertical-align: middle;
   user-select: none;
+}
+
+/* ── Full font (fallback เฉพาะ icon ที่ยังไม่อยู่ใน subset) ──
+   เบราว์เซอร์จะโหลดไฟล์นี้เมื่อมีการ render .msi-full เท่านั้น (lazy ตามการใช้งาน)
+   → เพิ่ม icon ใหม่แล้วแสดงทันที แม้ subset ยังไม่ได้ regen
+   หมายเหตุ: ต้องชี้ family เดียว เพราะ subset มีตัวอักษร a-z อยู่แล้ว (จาก --text ตอน subset)
+   ถ้าใช้ font stack ปกติ ตัวอักษรชื่อ icon จะถูก render ด้วย subset แทนที่จะ fallback */
+@font-face {
+  font-family: 'Material Symbols Full';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('../../fonts/material-symbols-rounded-full.woff2') format('woff2');
+}
+
+.msi.msi-full {
+  font-family: 'Material Symbols Full';
 }

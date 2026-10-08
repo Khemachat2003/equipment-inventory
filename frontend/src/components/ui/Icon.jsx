@@ -1,7 +1,10 @@
 // Material Symbols icon component
 // Usage: <Icon name="inventory_2" size="md" weight="regular" />
 // แสดงผลผ่าน codepoint (ICON_CODEPOINTS) — subset font ถูกตัด GSUB ligature ทิ้ง
-// → ใช้ codepoint ตรงๆ เพื่อให้ icon แสดงได้เสมอ (ชื่อที่ไม่มี => fallback แสดงชื่อ)
+// → ใช้ codepoint ตรงๆ เพื่อให้ icon แสดงได้เสมอ
+// ชื่อที่ยังไม่อยู่ใน subset → fallback เป็น .msi-full (full font โหลดเฉพาะเมื่อมีการใช้จริง)
+//   render จากชื่อ (ligature) → icon แสดงได้ทันทีแม้ยังไม่ได้ regen subset
+//   (vite-plugin-icon-sync จะ regen subset ให้เองทั้งตอน dev และ build)
 import { ICON_CODEPOINTS } from '/src/data/iconCodepoints.js';
 
 export default function Icon({
@@ -20,13 +23,17 @@ export default function Icon({
 
   const px = sizeMap[size] ?? 24;
   const cp = ICON_CODEPOINTS[name];
-  if (import.meta.env.DEV && cp === undefined) {
-    console.warn(`[Icon] ไม่มี codepoint สำหรับ "${name}" — รัน scripts/make_icon_subset.py เพื่อ regen subset`);
+  const unmapped = cp === undefined;
+  if (import.meta.env.DEV && unmapped) {
+    console.warn(
+      `[Icon] "${name}" ยังไม่อยู่ใน icon subset — แสดงผ่าน full font (fallback) อยู่\n` +
+        '  ทางแก้ถาวร: รัน python scripts/make_icon_subset.py (หรือปล่อย vite-plugin-icon-sync จัดการตอน dev/build) เพื่อใส่ icon นี้ลง subset ให้โหลดเร็วขึ้น'
+    );
   }
 
   return (
     <span
-      className={`msi ${className}`}
+      className={`msi ${unmapped ? 'msi-full ' : ''}${className}`}
       style={{
         fontSize: px,
         color: color,
@@ -35,7 +42,7 @@ export default function Icon({
       aria-hidden="true"
       {...props}
     >
-      {cp !== undefined ? String.fromCodePoint(cp) : name}
+      {unmapped ? name : String.fromCodePoint(cp)}
     </span>
   );
 }

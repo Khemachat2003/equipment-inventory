@@ -26,3 +26,9 @@ frontend/.oxlintrc.json
 frontend/public/fonts/*
 !frontend/public/fonts/
 !frontend/public/fonts/material-symbols-rounded.subset.woff2
+
+# skip-cache ของ vite-plugin-icon-sync (generate โดย scripts/make_icon_subset.py)
+frontend/.icon-skip-cache.json
+
+# Python bytecode cache
+__pycache__/

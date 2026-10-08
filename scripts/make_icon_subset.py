@@ -8,6 +8,7 @@
 - เขียนผลไปที่ frontend/public/fonts/material-symbols-rounded.subset.woff2
 ต้องติดตั้ง: pip install fonttools brotli (ดู requirements.txt)
 """
+import json
 import re
 import subprocess
 import sys
@@ -65,6 +66,22 @@ def main() -> int:
     skipped = sorted(names - valid_names)
     if skipped:
         print(f"⚠️  ตัดชื่อที่ไม่มี glyph ในฟอนต์ออก ({len(skipped)}): {', '.join(skipped)}")
+    # ── skip-cache: ชื่อที่ scan เจอแต่ไม่ใช่ glyph จริงของฟอนต์ (เช่น 'axios', 'blue') ──
+    # vite-plugin-icon-sync อ่านไฟล์นี้เพื่อเช็คว่า "มี icon ใหม่ที่ต้อง regen ไหม"
+    # โดยไม่ต้อง parse ฟอนต์ใน Node และไม่เกิด regen ต่อไม่รู้จบจาก string ที่ไม่ใช่ icon
+    skip_cache = ROOT / "frontend" / ".icon-skip-cache.json"
+    prev_skipped = set()
+    if skip_cache.exists():
+        try:
+            prev_skipped = set(json.loads(skip_cache.read_text(encoding="utf-8")))
+        except Exception as exc:
+            print(f"⚠️  อ่าน skip-cache เดิมไม่ได้ ({exc}) — เขียนใหม่ทับ")
+    merged_skipped = sorted(prev_skipped | set(skipped))
+    skip_cache.parent.mkdir(parents=True, exist_ok=True)
+    skip_cache.write_text(
+        json.dumps(merged_skipped, ensure_ascii=False, indent=1) + "\n",
+        encoding="utf-8",
+    )
     names = valid_names
     # glyph name ตรงกับ glyph name ใน full font (เช่น 'inventory_2')
     # → ระบุ --glyphs ตรงๆ เพื่อให้ ligature glyph ถูกเก็บมาด้วย

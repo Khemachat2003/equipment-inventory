@@ -42,6 +42,8 @@ export const ICON_CODEPOINTS = {
   'egg': 0xeacc,
   'error': 0xf8b6,
   'event': 0xe878,
+  'expand_less': 0xe5ce,
+  'expand_more': 0xe5cf,
   'fact_check': 0xf0c5,
   'factory': 0xebbc,
   'folder_open': 0xe2c8,
@@ -93,6 +95,7 @@ export const ICON_CODEPOINTS = {
   'save': 0xe161,
   'search': 0xef7a,
   'search_off': 0xea76,
+  'select': 0xf74d,
   'sensors': 0xe51e,
   'settings': 0xe8b8,
   'settings_input_component': 0xe8c1,
@@ -112,4 +115,4 @@ export const ICON_CODEPOINTS = {
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
 };
-// 110/110 icons mapped
+// 113/113 icons mapped

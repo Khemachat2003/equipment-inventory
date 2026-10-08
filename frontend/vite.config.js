@@ -1,12 +1,13 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
+import iconSync from './vite-plugin-icon-sync.js'
 
 // Build output goes into ./dist (separate from the backend's public/).
 // SPA ถูก mount ที่ root "/" — base จึงเป็น "/" (asset path = /assets/...)
 export default defineConfig({
   base: '/',
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), iconSync()],
   // Vitest (จัดการโดย npm run test) — ใช้ jsdom สำหรับ render component
   test: {
     environment: 'jsdom',
