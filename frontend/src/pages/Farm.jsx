@@ -8,6 +8,7 @@ import TransferModal from '../components/TransferModal.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { suggestSiteId, suggestHouseId } from '../utils/farmId.js';
+import { buildLocation } from '../utils/location.js';
 
 const TYPE_ICONS = { 'สัตว์ปีก': 'egg', 'สัตว์บก': 'pets', 'สุกร': 'agriculture', 'อื่นๆ': 'category', 'ไม่ระบุ': 'help' };
 const FARM_TYPES = ['สัตว์ปีก', 'สัตว์บก', 'สุกร', 'อื่นๆ'];
@@ -22,6 +23,10 @@ export default function Farm() {
   const [assetSearch, setAssetSearch] = useState('');
   const [transfer, setTransfer] = useState(null);
   const [addLocOpen, setAddLocOpen] = useState(false);
+  // ⑦a — ช่องค้นหา-first "ของชิ้นนี้อยู่ที่ไหน?" (ค้นทุกฟาร์ม ตอบเป็นการ์ดตำแหน่ง ไม่ขึ้นกับฟาร์มที่เลือกอยู่)
+  const [findQ, setFindQ] = useState('');
+  // ⑦b — มุมมองหน้า: 'overview' = การ์ดภาพรวมฟาร์ม (default) | 'detail' = ตารางรายชิ้น (โครงเดิม)
+  const [view, setView] = useState('overview');
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -126,6 +131,61 @@ export default function Farm() {
     navigate(`/bundle?open=${encodeURIComponent(bundleId)}`);
   }
 
+  // ⑦a — ผลค้นหาแบบ global (ทุกฟาร์ม): อุปกรณ์รายชิ้น + ชุด — พิมพ์ 2 ตัวขึ้นไปถึงค้น
+  const find = useMemo(() => {
+    const q = findQ.toLowerCase().trim();
+    if (q.length < 2) return { assets: [], bundles: [], active: false };
+    const fa = assets.filter((a) =>
+      [a.assetId, a.code, a.name, a.serialNumber].some((v) => (v || '').toLowerCase().includes(q)));
+    const fb = bundles.filter((b) =>
+      [b.bundleId, b.bundleName].some((v) => (v || '').toLowerCase().includes(q)));
+    return { assets: fa, bundles: fb, active: true };
+  }, [findQ, assets, bundles]);
+
+  // ⑦b — สรุปต่อฟาร์ม (จากข้อมูลที่โหลดอยู่แล้ว ไม่เพิ่ม request):
+  // อุปกรณ์ = ตัวเดี่ยว + สมาชิกชุดที่ deploy มาฟาร์มนี้ (กฎเดียวกับตาราง) · ชุด = ชุดที่ deploy · โรงเรือน = houseName/houseId ไม่ซ้ำ
+  const farmOverview = useMemo(() => {
+    const bundleFarm = {};
+    bundles.forEach((b) => {
+      if (b.status === 'Deployed' && (b.location || '').trim()) bundleFarm[b.bundleId] = b.location.trim();
+    });
+    const types = {};
+    const assetsOf = {};
+    const bundleCount = {};
+    const houses = {};
+    const stats = {};
+    assets.forEach((a) => {
+      const inDeployed = !!a.bundleId && !!bundleFarm[a.bundleId];
+      const f = inDeployed ? bundleFarm[a.bundleId] : (a.siteName || '').trim();
+      if (!f) return;
+      assetsOf[f] = (assetsOf[f] || 0) + 1;
+      if (inDeployed) bundleCount[f] = (bundleCount[f] || 0) + 1;
+      if (!inDeployed && a.farmType && a.farmType !== '-') types[f] = types[f] || a.farmType;
+      const h = (a.houseName || a.houseId || '').trim();
+      if (h) { if (!houses[f]) houses[f] = new Set(); houses[f].add(h); }
+      const isOk = !!a.status && a.status.includes('ใช้งานได้');
+      const isRep = !!a.status && a.status.includes('ซ่อม');
+      if (isOk || isRep) {
+        if (!stats[f]) stats[f] = { ok: 0, rep: 0 };
+        if (isOk) stats[f].ok++;
+        if (isRep) stats[f].rep++;
+      }
+    });
+    // ฟาร์มที่มีชุด deploy แต่ยังไม่มีสมาชิกเลย → โผล่การ์ดเปล่า ๆ ให้เห็นว่าฟาร์มนี้มีชุดอยู่
+    Object.keys(bundleFarm).forEach((bid) => { if (!assetsOf[bundleFarm[bid]]) assetsOf[bundleFarm[bid]] = 0; });
+    return Object.keys(assetsOf)
+      .map((f) => ({
+        name: f,
+        type: types[f] || (f === 'ไม่ระบุไซต์' ? 'ไม่ระบุ' : 'อื่นๆ'),
+        assets: assetsOf[f],
+        bundles: bundleCount[f] || 0,
+        houses: houses[f] ? houses[f].size : 0,
+        ok: stats[f]?.ok || 0,
+        rep: stats[f]?.rep || 0,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'th'));
+  }, [assets, bundles]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -136,8 +196,100 @@ export default function Farm() {
             <Icon name="add" size="sm" /> เพิ่มฟาร์ม / โรงเรือน
           </button>
         </div>
+        {/* ⑦b — สวิตช์มุมมอง: การ์ดภาพรวมฟาร์ม (default) / ตารางรายชิ้น (โครงเดิม) */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--surface2)] border border-[var(--g200)]">
+          <button
+            onClick={() => setView('overview')}
+            className={`flex items-center gap-1 px-3 h-8 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors ${view === 'overview' ? 'bg-white text-[var(--blue)] shadow-sm' : 'text-[var(--tsub)] hover:text-[var(--text)]'}`}
+          >
+            <Icon name="grid_on" size="xs" /> ภาพรวมฟาร์ม
+          </button>
+          <button
+            onClick={() => setView('detail')}
+            className={`flex items-center gap-1 px-3 h-8 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors ${view === 'detail' ? 'bg-white text-[var(--blue)] shadow-sm' : 'text-[var(--tsub)] hover:text-[var(--text)]'}`}
+          >
+            <Icon name="table_view" size="xs" /> ตารางรายชิ้น
+          </button>
+        </div>
       </div>
 
+      {/* ⑦a — ค้นหา-first "ของชิ้นนี้อยู่ที่ไหน?" — จุดขายหลักของหน้า: พิมพ์แล้วตอบตำแหน่งทันที (ทุกฟาร์ม) */}
+      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 sm:p-5">
+        <div className="flex items-baseline gap-2 mb-2.5 flex-wrap">
+          <span className="flex items-center gap-1.5 text-[14px] font-bold text-[var(--text)]"><Icon name="search" size="sm" className="text-[var(--blue)]" /> ของชิ้นนี้อยู่ที่ไหน?</span>
+          <span className="text-[12px] text-[var(--tmuted)]">พิมพ์ชื่อ / รหัส / Serial — ค้นได้ทั้งรายชิ้นและทั้งชุด จากทุกฟาร์ม</span>
+        </div>
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--tmuted)]"><Icon name="search" size="sm" /></span>
+          <input
+            value={findQ}
+            onChange={(e) => setFindQ(e.target.value)}
+            placeholder="เช่น SN-SENS-0001 · เซนเซอร์อุณหภูมิ · BDL-0001"
+            className="w-full h-11 pl-10 pr-9 rounded-xl border border-[var(--g200)] bg-[var(--surface2)] text-[14px] focus:outline-none focus:border-[var(--blue)]"
+          />
+          {findQ && (
+            <button onClick={() => setFindQ('')} title="ล้างคำค้น" className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--g100)]"><Icon name="close" size="xs" /></button>
+          )}
+        </div>
+        {find.active && (
+          <div className="mt-3 space-y-2">
+            <div className="text-[12px] font-semibold text-[var(--tsub)]">
+              พบ {find.assets.length + find.bundles.length} รายการ (อุปกรณ์ {find.assets.length} · ชุด {find.bundles.length})
+            </div>
+            {find.bundles.length > 0 && (
+              <div className="space-y-2">
+                {find.bundles.slice(0, 4).map((b) => <FindBundleCard key={b.bundleId} b={b} onOpen={openBundle} />)}
+                {find.bundles.length > 4 && <div className="text-[12px] text-[var(--tmuted)] pl-1">+ อีก {find.bundles.length - 4} ชุด — พิมพ์คำให้เจาะจงขึ้นเพื่อลดผล</div>}
+              </div>
+            )}
+            {find.assets.length > 0 && (
+              <div className="space-y-2">
+                {find.assets.slice(0, 8).map((a) => (
+                  <FindAssetCard
+                    key={(a.serialNumber || '') + (a.assetId || '')}
+                    a={a}
+                    onTransfer={(x) => setTransfer({
+                      serial: x.serialNumber,
+                      current: { status: x.status, location: x.location, siteName: x.siteName, user: x.user },
+                    })}
+                  />
+                ))}
+                {find.assets.length > 8 && <div className="text-[12px] text-[var(--tmuted)] pl-1">+ อีก {find.assets.length - 8} ชิ้น — พิมพ์คำให้เจาะจงขึ้นเพื่อลดผล</div>}
+              </div>
+            )}
+            {find.assets.length === 0 && find.bundles.length === 0 && (
+              <div className="text-center py-4 text-[13px] text-[var(--tmuted)]">
+                <div className="flex justify-center mb-1"><Icon name="search_off" size="md" /></div>
+                <div>ไม่พบของที่ตรงกับ "{findQ.trim()}"</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {view === 'overview' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {farmOverview.map((f) => (
+            <FarmOverviewCard
+              key={f.name}
+              name={f.name}
+              type={f.type}
+              assets={f.assets}
+              bundles={f.bundles}
+              houses={f.houses}
+              ok={f.ok}
+              rep={f.rep}
+              onOpen={(n) => { setCurrentFarm(n); setView('detail'); }}
+            />
+          ))}
+          {farmOverview.length === 0 && (
+            <div className="col-span-full text-center py-12 text-[var(--tmuted)] text-[13px]">
+              <div className="flex justify-center mb-2"><Icon name="factory" size="2xl" /></div>
+              ยังไม่มีฟาร์ม — เพิ่มฟาร์มแรกได้จากปุ่มด้านบน
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
         {/* Farm sidebar — จอใหญ่เท่านั้น */}
         <div className="hidden lg:block rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden lg:max-h-[78vh] lg:sticky lg:top-[var(--topbar-h)]">
@@ -348,6 +500,7 @@ export default function Farm() {
           </div>
         </div>
       </div>
+      )}
 
       {transfer && (
         <TransferModal
@@ -360,6 +513,86 @@ export default function Farm() {
       )}
 
       {addLocOpen && <AddFarmOrHouseModal onClose={() => setAddLocOpen(false)} onDone={load} />}
+    </div>
+  );
+}
+
+// ⑦b — การ์ดภาพรวมฟาร์ม (มุมมอง default ของหน้า): ชื่อ+ประเภท · N อุปกรณ์ · N ชุด · N โรงเรือน · ใช้งาน/ซ่อม
+// กดการ์ด → เข้ามุมมองรายชิ้นของฟาร์มนั้น (ตารางเดิมกลายเป็นชั้นลึก)
+function FarmOverviewCard({ name, type, assets, bundles, houses, ok, rep, onOpen }) {
+  return (
+    <button onClick={() => onOpen(name)} className="text-left rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 hover:border-[var(--blue-b)] hover:shadow-md transition-shadow space-y-3">
+      <div className="flex items-center gap-2.5">
+        <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--emerald-l)] text-[var(--emerald-d)] flex-shrink-0"><Icon name={TYPE_ICONS[type] || 'help'} size="md" /></span>
+        <div className="min-w-0">
+          <div className="text-[14px] font-bold text-[var(--text)] truncate">{name}</div>
+          <div className="text-[11px] text-[var(--tmuted)]">{type}</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-lg bg-[var(--surface2)] py-1.5"><div className="text-[15px] font-bold text-[var(--text)]">{assets}</div><div className="text-[10px] text-[var(--tmuted)]">อุปกรณ์</div></div>
+        <div className="rounded-lg bg-[var(--surface2)] py-1.5"><div className="text-[15px] font-bold text-[var(--text)]">{bundles}</div><div className="text-[10px] text-[var(--tmuted)]">ชุด</div></div>
+        <div className="rounded-lg bg-[var(--surface2)] py-1.5"><div className="text-[15px] font-bold text-[var(--text)]">{houses}</div><div className="text-[10px] text-[var(--tmuted)]">โรงเรือน</div></div>
+      </div>
+      <div className="flex items-center gap-3 text-[11px] font-medium">
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--emerald)' }} /> ใช้งานได้ {ok}</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--amber)' }} /> ซ่อม {rep}</span>
+      </div>
+    </button>
+  );
+}
+
+// ⑦a — การ์ดตอบรายชิ้น: ตำแหน่งเต็ม (ฟาร์ม › โรงเรือน › จุดติดตั้ง) + สถานะ + ปุ่มต่อ (ประวัติ/ฉลาก/ย้าย)
+// ตำแหน่งอ่านจาก buildLocation() เดิมของระบบ — จัดกรณี "อยู่ในชุด" (ฟาร์มอ่านจาก Location) และคลังกลางให้แล้ว
+function FindAssetCard({ a, onTransfer }) {
+  const loc = buildLocation({ siteName: a.siteName, houseName: a.houseName, houseId: a.houseId, location: a.location, bundleId: a.bundleId });
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 rounded-xl border border-[var(--g200)] bg-[var(--surface2)] hover:border-[var(--blue-b)]">
+      <div className="flex-1 min-w-[230px]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-[13px] font-bold text-[var(--text)]">{a.serialNumber || a.assetId}</span>
+          <StatusBadge status={a.status} />
+          {a.bundleId && (
+            <span className="inline-flex max-w-full items-center gap-1 rounded bg-[var(--blue-l)] px-1.5 py-px text-[10px] font-medium text-[var(--blue)] border border-[var(--blue-b)]">
+              <Icon name="inventory_2" size="xs" className="flex-shrink-0" />
+              <span className="truncate">{a.bundleName || a.bundleId}</span>
+            </span>
+          )}
+        </div>
+        <div className="text-[12px] text-[var(--tsub)]">{a.name}</div>
+        <div className="mt-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text)] flex-wrap">
+          <Icon name="place" size="sm" className="text-[var(--emerald-d)]" />
+          {loc.full ? <span>{loc.full}</span> : <span className="font-normal text-[var(--tmuted)]">ไม่ระบุตำแหน่ง</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดูประวัติ" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="description" size="sm" /></a>
+        <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ฉลาก QR" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="qr_code" size="sm" /></a>
+        <button onClick={() => onTransfer(a)} title="ย้าย" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="local_shipping" size="sm" /></button>
+      </div>
+    </div>
+  );
+}
+
+// ⑦a — การ์ดตอบระดับชุด: ชุดอยู่ที่ไหน + กี่ชิ้น + ปุ่มดูชุด
+function FindBundleCard({ b, onOpen }) {
+  const atStock = b.status === 'In Stock';
+  const loc = (b.location || '').trim();
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 rounded-xl border border-[var(--blue-b)] bg-[var(--blue-l)]">
+      <div className="flex-1 min-w-[230px]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1 text-[13px] font-bold text-[var(--text)]"><Icon name="folder_open" size="sm" /> {b.bundleName || b.bundleId}</span>
+          <span className="font-mono text-[11px] text-[var(--tmuted)]">{b.bundleId}</span>
+          <StatusBadge status={b.status} />
+        </div>
+        <div className="mt-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text)] flex-wrap">
+          <Icon name="place" size="sm" className="text-[var(--emerald-d)]" />
+          {atStock ? 'อยู่ในคลังกลาง' : (loc || 'ไม่ระบุตำแหน่ง')}
+          <span className="text-[12px] font-normal text-[var(--tmuted)]">· {(b.assetIds || []).length} ชิ้น</span>
+        </div>
+      </div>
+      <button onClick={() => onOpen(b.bundleId)} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--blue)] text-white text-[11px] font-semibold whitespace-nowrap"><Icon name="folder_open" size="xs" /> ดูชุด</button>
     </div>
   );
 }
