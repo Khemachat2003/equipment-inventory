@@ -30,6 +30,17 @@ const STATUS_MAP = {
 const FALLBACK_STATUS = STATUS_MAP['ใช้งานได้'];
 
 const TMPL_KEY = 'ems_label_templates_v2';
+// จำค่าที่ใช้ล่าสุด (โหมด/ขนาด/สี) — เปิดหน้ามากดพิมพ์ได้เลย ไม่ต้องตั้งใหม่ทุกครั้ง
+const LAST_KEY = 'ems_label_last_v1';
+
+// จำนวนดวงต่อแผ่น A4 จากขนาด label + ขอบกระดาษ + ช่องว่าง (สูตรเดียวกับ A4Preview/PrintSheet)
+function a4Layout(lw, lh, pm, gapX, gapY) {
+  const innerW = A4W_MM - pm * 2;
+  const innerH = A4H_MM - pm * 2;
+  const cols = Math.max(1, Math.floor((innerW + gapX) / (lw + gapX)));
+  const rows = Math.max(1, Math.floor((innerH + gapY) / (lh + gapY)));
+  return { cols, rows, perPage: cols * rows };
+}
 
 const mmToPx = (mm, sc = 1) => (mm / MM2IN) * SCREEN_DPI * sc;
 
@@ -70,6 +81,8 @@ export default function QrPage() {
   const [templates, setTemplates] = useState([]);
   const [tmplName, setTmplName] = useState('');
   const [loaded, setLoaded] = useState(false);
+  // "ปรับแบบฉลาก" (โหมด/mm/margin/gap/สี/เทมเพลต) พับเก็บไว้ default — โค้ดเดิมไม่ลบ
+  const [advOpen, setAdvOpen] = useState(false);
   const busy = useBusy();
 
   const nameOf = useMemo(() => {
@@ -121,6 +134,30 @@ export default function QrPage() {
     try { setTemplates(JSON.parse(localStorage.getItem(TMPL_KEY) || '[]')); } catch { setTemplates([]); }
   }, []);
 
+  // โหลดค่าที่ใช้ล่าสุด (ถ้ามี) — เปิดหน้ามาพร้อมพิมพ์ได้เลย
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(LAST_KEY) || 'null');
+      if (!s) return;
+      if (s.mode) setMode(s.mode);
+      if (s.lW) setLW(Number(s.lW));
+      if (s.lH) setLH(Number(s.lH));
+      if (s.lMargin != null) setLMargin(Number(s.lMargin));
+      if (s.pm != null) setPm(Number(s.pm));
+      if (s.gapX != null) setGapX(Number(s.gapX));
+      if (s.gapY != null) setGapY(Number(s.gapY));
+      if (s.bgColor) setBgColor(s.bgColor);
+      if (s.showBadge != null) setShowBadge(!!s.showBadge);
+    } catch { /* ignore */ }
+  }, []);
+
+  // บันทึกค่าที่ใช้ล่าสุดอัตโนมัติทุกครั้งที่เปลี่ยน
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAST_KEY, JSON.stringify({ mode, lW, lH, lMargin, pm, gapX, gapY, bgColor, showBadge }));
+    } catch { /* ignore */ }
+  }, [mode, lW, lH, lMargin, pm, gapX, gapY, bgColor, showBadge]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return assets.filter((a) => {
@@ -131,6 +168,7 @@ export default function QrPage() {
   }, [assets, search, statusFilter]);
 
   const firstSerial = selected.size ? [...selected][0] : null;
+  const layout = a4Layout(lW, lH, pm, gapX, gapY);
 
   function toggleSn(serial) {
     setSelected((prev) => {
@@ -384,12 +422,67 @@ export default function QrPage() {
 
         {/* ── RIGHT / ตัวควบคุม + Preview ── */}
         <div className="space-y-4">
+          {/* ขั้น 2 — เลือกขนาดฉลาก (ปุ่มใหญ่ 3 ปุ่ม + คำนวณดวง/แผ่น A4 ให้) */}
+          <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--tmuted)] mb-2.5">ขนาดฉลาก</div>
+            <div className="grid grid-cols-3 gap-2">
+              {[['small', 'เล็ก'], ['medium', 'กลาง'], ['large', 'ใหญ่']].map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => applyPreset(id)}
+                  className={`px-2 py-3 rounded-xl border-2 text-center transition-colors ${
+                    lW === PRESETS[id][0] && lH === PRESETS[id][1]
+                      ? 'bg-[var(--blue-l)] border-[var(--blue)] text-[var(--blue)]'
+                      : 'bg-white border-[var(--g200)] text-[var(--tsub)] hover:bg-[var(--surface2)]'
+                  }`}
+                >
+                  <div className="text-[13px] font-bold">{label}</div>
+                  <div className="text-[11px] opacity-70">{PRESETS[id][0]}×{PRESETS[id][1]}</div>
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 px-3 py-2 rounded-lg bg-[var(--surface2)] border border-[var(--g100)] text-[12px] text-[var(--tsub)]">
+              {mode === 'a4' ? (
+                <>แผ่น A4 จะพิมพ์ได้ <b className="text-[var(--text)]">{layout.perPage}</b> ดวง ({layout.cols}×{layout.rows}) · เลือกไว้ {selected.size} อุปกรณ์</>
+              ) : (
+                <>ขนาดฉลาก {lW}×{lH} mm · พิมพ์ทีละใบตามตัวอย่าง · เลือกไว้ {selected.size} อุปกรณ์</>
+              )}
+            </div>
+            {/* ปุ่มพิมพ์/ดาวน์โหลด PDF ชุดเดียวของหน้า — ทำงานตามสิ่งที่โชว์ในตัวอย่างก่อนพิมพ์เสมอ */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                onClick={printNow}
+                disabled={!selected.size}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-bold hover:bg-[var(--blue-d)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Icon name="print" size="sm" /> {mode === 'a4' ? `พิมพ์แผ่น A4 (${selected.size} ดวง)` : 'พิมพ์ฉลากนี้'}
+              </button>
+              <button
+                onClick={() => (mode === 'label' ? downloadLabelPdf() : downloadA4Pdf())}
+                disabled={!selected.size}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-[var(--g300)] text-[var(--tsub)] text-[13px] font-semibold hover:bg-[var(--surface2)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Icon name="description" size="sm" /> {mode === 'a4' ? 'ดาวน์โหลด PDF A4' : 'ดาวน์โหลด PDF ฉลากนี้'}
+              </button>
+            </div>
+          </div>
+
+          {/* ปรับแบบฉลาก — พับเก็บไว้ default (โหมด/ขนาด mm/margin/gap/สี/เทมเพลต โค้ดเดิมทุกตัวเลือกยังอยู่ครบ) */}
+          <button
+            onClick={() => setAdvOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)]"
+          >
+            <span className="text-[12px] font-bold text-[var(--tsub)]">ปรับแบบฉลาก (โหมด / ขนาด / สี / เทมเพลต)</span>
+            <span className="text-[var(--tmuted)]"><Icon name={advOpen ? 'expand_less' : 'expand_more'} size="sm" /></span>
+          </button>
+          {advOpen && (
+            <>
           {/* โหมด */}
           <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
             <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--tmuted)] mb-2.5">โหมดการพิมพ์</div>
             <div className="grid grid-cols-2 gap-2">
-              <ModeTab active={mode === 'label'} onClick={() => setMode('label')} icon="label" title="Label Printer" sub="พิมพ์ทีละใบ" />
-              <ModeTab active={mode === 'a4'} onClick={() => setMode('a4')} icon="description" title="A4 Sheet" sub="หลายดวงต่อแผ่น" />
+              <ModeTab active={mode === 'label'} onClick={() => setMode('label')} icon="label" title="ฉลากเดี่ยว (Label)" sub="พิมพ์ทีละใบ" />
+              <ModeTab active={mode === 'a4'} onClick={() => setMode('a4')} icon="description" title="แผ่น A4 (Sheet)" sub="หลายดวงต่อแผ่น" />
             </div>
           </div>
 
@@ -488,7 +581,7 @@ export default function QrPage() {
                   <div key={t.id} className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-[var(--g100)] cursor-pointer hover:bg-[var(--surface2)]" onClick={() => loadTemplate(t.id)}>
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] font-semibold text-[var(--text)] truncate">{t.name}</div>
-                      <div className="text-[11px] text-[var(--tmuted)]">{t.config?.lW}×{t.config?.lH} mm | {t.config?.mode === 'a4' ? 'A4 Sheet' : 'Label'}</div>
+                      <div className="text-[11px] text-[var(--tmuted)]">{t.config?.lW}×{t.config?.lH} mm | {t.config?.mode === 'a4' ? 'แผ่น A4' : 'ฉลากเดี่ยว'}</div>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); deleteTemplate(t.id); }} className="p-1 text-[var(--tmuted)] hover:text-[var(--red)]" title="ลบ">
                       <Icon name="close" size="sm" />
@@ -511,24 +604,17 @@ export default function QrPage() {
               </button>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* ── PREVIEW ── */}
       <div className="mt-4 bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--g100)]">
-          <div className="flex items-center gap-2">
-            <h3 className="text-[14px] font-bold text-[var(--text)]">Live Preview</h3>
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--emerald)] animate-pulse" />
-          </div>
-          <div className="flex gap-2">
-            <button onClick={downloadLabelPdf} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--emerald)] text-white text-[12px] font-semibold hover:bg-[var(--emerald-d)]">
-              <Icon name="description" size="sm" /> PDF
-            </button>
-            <button onClick={() => window.print()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[var(--tsub)] text-[12px] font-semibold hover:bg-[var(--surface2)]">
-              <Icon name="print" size="sm" /> พิมพ์
-            </button>
-          </div>
+        {/* หัวการ์ดตัวอย่าง — ไม่มีปุ่ม (ปุ่มพิมพ์/PDF อยู่ชุดเดียวในการ์ด "ขนาดฉลาก" ด้านบน) */}
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--g100)]">
+          <h3 className="text-[14px] font-bold text-[var(--text)]">ตัวอย่างก่อนพิมพ์</h3>
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--emerald)] animate-pulse" />
         </div>
 
         <div className="p-5">
@@ -546,8 +632,6 @@ export default function QrPage() {
               nameOf={nameOf} statusOf={statusOf}
               lw={lW} lh={lH} lm={lMargin} pm={pm} gapX={gapX} gapY={gapY}
               bg={bgColor} showBadge={showBadge}
-              onDownload={downloadA4Pdf}
-              onPrint={printA4}
             />
           )}
         </div>
@@ -556,10 +640,14 @@ export default function QrPage() {
       <div id="qtoast" className="qtoast" />
 
       {/* Print pool — ซ่อนบนจอ แต่มองเห็นเฉพาะตอนพิมพ์ (visible) */}
+      {/* พิมพ์ = สิ่งที่โชว์ในตัวอย่างเสมอ: โหมดฉลากเดี่ยว → พิมพ์ฉลากแรกที่เลือก 1 ดวง | โหมด A4 → พิมพ์ทุกดวงที่เลือก */}
+      {/* (แก้บั๊กเดิม: โหมดฉลากเดี่ยวกดพิมพ์แล้วได้กระดาษเปล่า เพราะ PrintSheet เดิม render เฉพาะเมื่อ mode === 'a4' → printroot ว่าง) */}
       <div id="printroot" aria-hidden="true">
-        {mode === 'a4' && selected.size > 0 && (
+        {selected.size > 0 && (
           <PrintSheet
-            items={[...selected].map((s) => ({ serial: s, name: nameOf(s), status: statusOf(s) }))}
+            items={mode === 'a4'
+              ? [...selected].map((s) => ({ serial: s, name: nameOf(s), status: statusOf(s) }))
+              : [{ serial: firstSerial, name: nameOf(firstSerial) || '', status: statusOf(firstSerial) }]}
             lw={lW} lh={lH} lm={lMargin} pm={pm} gapX={gapX} gapY={gapY}
             bg={bgColor} showBadge={showBadge}
           />
@@ -589,7 +677,10 @@ export default function QrPage() {
     </div>
   );
 
-  function printA4() {
+  // พิมพ์ตามโหมดปัจจุบัน — สิ่งที่ออกเครื่องพิมพ์ = สิ่งที่โชว์ในตัวอย่างเสมอ
+  // (printroot เรนเดอร์ทั้งสองโหมดแล้ว: โหมดฉลากเดี่ยว = ฉลากแรกที่เลือก 1 ดวง, โหมด A4 = ทุกดวงที่เลือก)
+  // เดิมชื่อ printA4 — กดพิมพ์ในโหมดฉลากเดี่ยวแล้วได้กระดาษเปล่า (printroot ว่าง) เพราะ PrintSheet มีเงื่อนไข mode === 'a4'
+  function printNow() {
     if (!selected.size) { toast('⚠ เลือกอุปกรณ์ก่อน', 'warn'); return; }
     window.print();
   }
@@ -739,7 +830,7 @@ function Stat({ k, v }) {
 }
 
 // ── A4 preview ──
-function A4Preview({ items, nameOf, statusOf, lw, lh, lm, pm, gapX, gapY, bg, showBadge, onDownload, onPrint }) {
+function A4Preview({ items, nameOf, statusOf, lw, lh, lm, pm, gapX, gapY, bg, showBadge }) {
   const isLight = isLightColor(bg);
   const innerW = A4W_MM - pm * 2;
   const innerH = A4H_MM - pm * 2;
@@ -803,16 +894,9 @@ function A4Preview({ items, nameOf, statusOf, lw, lh, lm, pm, gapX, gapY, bg, sh
         </div>
       </div>
 
+      {/* ปุ่มพิมพ์/ดาวน์โหลด PDF อยู่ชุดเดียวในการ์ด "ขนาดฉลาก" — ที่นี่โชว์แค่ข้อมูลหน้ากระดาษ */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="text-[12px] text-[var(--tmuted)]">แสดงหน้า 1/{pages} ({pageItems.length} ดวงในหน้านี้)</span>
-        <div className="flex gap-2">
-          <button onClick={onDownload} disabled={!items.length} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--emerald)] text-white text-[12px] font-semibold hover:bg-[var(--emerald-d)] disabled:opacity-50 disabled:cursor-not-allowed">
-            <Icon name="description" size="sm" /> PDF A4
-          </button>
-          <button onClick={onPrint} disabled={!items.length} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[var(--tsub)] text-[12px] font-semibold hover:bg-[var(--surface2)] disabled:opacity-50 disabled:cursor-not-allowed">
-            <Icon name="print" size="sm" /> พิมพ์
-          </button>
-        </div>
       </div>
     </div>
   );
