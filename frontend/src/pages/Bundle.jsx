@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import Icon from '../components/ui/Icon.jsx';
@@ -7,6 +7,7 @@ import TransferModal from '../components/TransferModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 import { buildLocation, buildBundleLocation } from '../utils/location.js';
+import { farmKeyOf, STOCK_KEY } from '../utils/bundleGroups.js';
 import { FarmInlineAdd, HouseInlineAdd } from '../components/InlineFarmAdd.jsx';
 
 const BTONES = {
@@ -14,6 +15,17 @@ const BTONES = {
   Deployed: 'green',
   Maintenance: 'amber',
 };
+
+// ── ก้อน ⑥ (Issue A): จัดกลุ่มอัตโนมัติ + chip ฟาร์ม ─────────────────────────────
+// เกณฑ์ "ชุดนี้อยู่คลังหรือฟาร์มไหน" = farmKeyOf / STOCK_KEY จาก utils/bundleGroups.js (import ด้านบน)
+
+// ปุ่ม chip (active = พื้นน้ำเงิน) — shrink-0 + nowrap เพื่อให้อยู่แถบเลื่อนแนวนอนแถวเดียวไม่ตัดคำ
+const chipCls = (active) =>
+  `flex shrink-0 items-center gap-1 whitespace-nowrap px-3 h-8 rounded-full border text-[12px] font-medium transition-colors ${
+    active
+      ? 'bg-[var(--blue)] border-[var(--blue)] text-white'
+      : 'bg-white border-[var(--g200)] text-[var(--tsub)] hover:border-[var(--blue)] hover:text-[var(--blue)]'
+  }`;
 
 export default function Bundle() {
   const [bundles, setBundles] = useState([]);
@@ -31,6 +43,7 @@ export default function Bundle() {
   const [transfer, setTransfer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [collapsedFarms, setCollapsedFarms] = useState({}); // ก้อน ⑥: ฟาร์มไหนถูกพับอยู่ (default กางหมด)
   const busy = useBusy();
 
   const load = useCallback(async () => {
@@ -78,10 +91,91 @@ export default function Bundle() {
     return bundles.filter((b) => {
       if (q && !(b.bundleId.toLowerCase().includes(q) || b.bundleName.toLowerCase().includes(q) || (b.description || '').toLowerCase().includes(q))) return false;
       if (filterStatus && b.status !== filterStatus) return false;
-      if (filterFarm && b.farmId !== filterFarm) return false;
+      if (filterFarm) {
+        const k = farmKeyOf(b);
+        if (filterFarm === STOCK_KEY ? k !== '' : k !== filterFarm) return false;
+      }
       return true;
     });
   }, [bundles, search, filterStatus, filterFarm]);
+
+  // ── ก้อน ⑥ (opt2): chip ฟาร์ม — นับจากผลค้นหา + ตัวกรองสถานะปัจจุบัน (ยังไม่กลั่นด้วยฟาร์ม)
+  // เพื่อให้ chip บอก "การกระจายตามฟาร์ม" ของสิ่งที่กำลังค้นหาอยู่เสมอ
+  const farmChips = useMemo(() => {
+    const q = search.toLowerCase();
+    const base = bundles.filter((b) => {
+      if (q && !(b.bundleId.toLowerCase().includes(q) || b.bundleName.toLowerCase().includes(q) || (b.description || '').toLowerCase().includes(q))) return false;
+      if (filterStatus && b.status !== filterStatus) return false;
+      return true;
+    });
+    const counts = {};
+    const nameHint = {};
+    let stock = 0;
+    base.forEach((b) => {
+      const k = farmKeyOf(b);
+      if (!k) { stock += 1; return; }
+      counts[k] = (counts[k] || 0) + 1;
+      if (b.farmName && !nameHint[k]) nameHint[k] = b.farmName;
+    });
+    const th = (x, y) => x.localeCompare(y, 'th');
+    const list = Object.keys(counts)
+      .map((k) => ({ key: k, name: farms.find((f) => f.farmId === k)?.farmName || nameHint[k] || k, count: counts[k] }))
+      .sort((a, b2) => th(a.name, b2.name));
+    return { list, stock, total: base.length };
+  }, [bundles, farms, search, filterStatus]);
+
+  // ── ก้อน ⑥ (opt1): จัดกลุ่ม 2 โซน — "อยู่ในคลัง" / "ติดตั้งที่ฟาร์มแล้ว" (แบ่งย่อยตามฟาร์ม เรียงชื่อก-ฮ)
+  const grouped = useMemo(() => {
+    const stock = [];
+    const byFarm = {};
+    const nameHint = {};
+    filtered.forEach((b) => {
+      const k = farmKeyOf(b);
+      if (!k) { stock.push(b); return; }
+      if (!byFarm[k]) byFarm[k] = [];
+      byFarm[k].push(b);
+      if (b.farmName && !nameHint[k]) nameHint[k] = b.farmName;
+    });
+    const th = (x, y) => x.localeCompare(y, 'th');
+    const farmSections = Object.keys(byFarm)
+      .map((k) => ({
+        key: k,
+        name: farms.find((f) => f.farmId === k)?.farmName || nameHint[k] || k,
+        type: farms.find((f) => f.farmId === k)?.farmType || '',
+        bundles: byFarm[k].sort((a, b2) => th(a.bundleName || '', b2.bundleName || '')),
+      }))
+      .sort((a, b2) => th(a.name, b2.name));
+    stock.sort((a, b2) => th(a.bundleName || '', b2.bundleName || ''));
+    return { stock, farmSections, deployedCount: filtered.length - stock.length };
+  }, [filtered, farms]);
+
+  const toggleFarmGroup = (k) => setCollapsedFarms((p) => ({ ...p, [k]: !p[k] }));
+
+  // ── ก้อน ⑥ (opt2): แถบ chip เลื่อนแนวนอน — แถวเดียวไม่ตัดบรรทัด ฟาร์มเพิ่มเท่าไรก็ไม่ลก
+  // เงาขอบซ้าย/ขวาโชว์เฉพาะตอนเนื้อหาล้นอีกฝั่ง + ไล่เลื่อน chip ที่เลือกไว้ให้อยู่กลางแถบเสมอ
+  const stripRef = useRef(null);
+  const activeChipRef = useRef(null);
+  const [stripEdge, setStripEdge] = useState({ left: false, right: false });
+  const updateStripEdge = useCallback(() => {
+    const s = stripRef.current;
+    if (!s) return;
+    setStripEdge({
+      left: s.scrollLeft > 8,
+      right: s.scrollLeft + s.clientWidth < s.scrollWidth - 8,
+    });
+  }, []);
+  useEffect(() => {
+    updateStripEdge();
+    window.addEventListener('resize', updateStripEdge);
+    return () => window.removeEventListener('resize', updateStripEdge);
+  }, [updateStripEdge, farmChips]);
+  // เปลี่ยนฟาร์มที่เลือก → เลื่อน chip ตัวนั้นมาอยู่กลางแถบ (ไม่ต้องตามหาเอง)
+  useEffect(() => {
+    const el = activeChipRef.current;
+    const s = stripRef.current;
+    if (!el || !s) return;
+    s.scrollTo({ left: Math.max(0, el.offsetLeft - (s.clientWidth - el.offsetWidth) / 2), behavior: 'smooth' });
+  }, [filterFarm]);
 
   // Detail
   const detailBundle = useMemo(() => bundles.find((b) => b.bundleId === detail), [bundles, detail]);
@@ -185,46 +279,87 @@ export default function Bundle() {
     dlCSV(`bundle_export_${stamp()}.csv`, rows);
   }
 
+  // ก้อน ⑥ — grid การ์ดชุด (ใช้ซ้ำทั้งโซนคลังและกลุ่มย่อยฟาร์ม)
+  const renderCards = (list) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {list.map((b) => (
+        <BundleCard
+          key={b.bundleId}
+          bundle={b}
+          onDetail={() => openDetail(b.bundleId)}
+          onDeploy={() => setDeployOpen(b.bundleId)}
+          onRecall={() => recall(b.bundleId)}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <BusyOverlay label={busy.busyLabel} />
       <ToastHost />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
-          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)]">
+          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)] whitespace-nowrap">
             <Icon name="download" size="sm" /> CSV
           </button>
-          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)]">
+          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)] whitespace-nowrap">
             <Icon name="add" size="sm" /> สร้างชุดใหม่ (Bundle)
           </button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <StatCard label="ชุดทั้งหมด" value={stats.all} icon="folder_open" tone="blue" />
         <StatCard label="อยู่ในคลัง (In Stock)" value={stats.inStock} icon="inventory_2" tone="green" />
         <StatCard label="ติดตั้งที่ฟาร์มแล้ว (Deployed)" value={stats.deployed} icon="local_shipping" tone="amber" />
         <StatCard label="อุปกรณ์ในชุด" value={stats.devices} icon="devices_other" tone="red" />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative max-w-xs flex-1">
+      {/* Filters — มือถือ: ช่องค้นหา/ตัวกรองกางเต็มกว้างเรียงลงเป็นชั้น (sm ขึ้นไป: เรียงแถวเดียวพับได้) */}
+      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+        <div className="relative sm:max-w-xs sm:flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)]"><Icon name="search" size="sm" /></span>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาชุดอุปกรณ์..."
             className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px]" />
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-9 px-3 rounded-lg border border-[var(--g200)] text-[13px]">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full sm:w-auto h-9 px-3 rounded-lg border border-[var(--g200)] text-[13px]">
           <option value="">ทุกสถานะ</option>
           <option value="In Stock">อยู่ในคลัง (In Stock)</option>
           <option value="Deployed">ติดตั้งที่ฟาร์มแล้ว (Deployed)</option>
           <option value="Maintenance">ซ่อมบำรุง (Maintenance)</option>
         </select>
-        <select value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} className="h-9 px-3 rounded-lg border border-[var(--g200)] text-[13px]">
-          <option value="">ทุกฟาร์ม</option>
-          {farms.map((f) => <option key={f.farmId} value={f.farmId}>{f.farmName}</option>)}
-        </select>
+        </div>
+
+      {/* ก้อน ⑥ (opt2) — แถบ chip ฟาร์ม: กดกรองเร็วแทน dropdown (ค้นหา + ตัวกรองสถานะเดิมยังทำงานตามปกติ)
+          แถบเลื่อนแนวนอนแถวเดียว ไม่ตัดบรรทัด — ฟาร์มเพิ่มขึ้นเรื่อย ๆ ก็ไม่ลก ความสูงคงที่ตลอด */}
+      <div className="relative">
+        <div
+          ref={stripRef}
+          onScroll={updateStripEdge}
+          className="flex items-center gap-1.5 overflow-x-auto scroll-smooth pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <button ref={filterFarm === '' ? activeChipRef : undefined} onClick={() => setFilterFarm('')} className={chipCls(filterFarm === '')}>
+            <Icon name="grid_on" size="xs" /> ทุกฟาร์ม <span className="opacity-60">({farmChips.total})</span>
+          </button>
+          {farmChips.list.map((f) => (
+            <button
+              key={f.key}
+              ref={filterFarm === f.key ? activeChipRef : undefined}
+              onClick={() => setFilterFarm(filterFarm === f.key ? '' : f.key)}
+              className={chipCls(filterFarm === f.key)}
+            >
+              <Icon name="agriculture" size="xs" /> {f.name} <span className="opacity-60">({f.count})</span>
+            </button>
+          ))}
+          <button ref={filterFarm === STOCK_KEY ? activeChipRef : undefined} onClick={() => setFilterFarm(filterFarm === STOCK_KEY ? '' : STOCK_KEY)} className={chipCls(filterFarm === STOCK_KEY)}>
+            <Icon name="inventory_2" size="xs" /> คลัง <span className="opacity-60">({farmChips.stock})</span>
+          </button>
+        </div>
+        {/* เงาขอบซ้าย/ขวา — เตือนว่ายังเลื่อนดูต่อได้ (โชว์เฉพาะตอนมีเนื้อหาล้นอีกฝั่งนั้น) */}
+        {stripEdge.left && <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-[var(--bg)] to-transparent" />}
+        {stripEdge.right && <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[var(--bg)] to-transparent" />}
       </div>
 
       {/* Detail view or list */}
@@ -244,18 +379,42 @@ export default function Bundle() {
           })}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {loading && <div className="col-span-full text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</div>}
-          {!loading && filtered.length === 0 && <div className="col-span-full text-center py-10 text-[var(--tmuted)]">ไม่พบ Bundle</div>}
-          {filtered.map((b) => (
-            <BundleCard
-              key={b.bundleId}
-              bundle={b}
-              onDetail={() => openDetail(b.bundleId)}
-              onDeploy={() => setDeployOpen(b.bundleId)}
-              onRecall={() => recall(b.bundleId)}
-            />
-          ))}
+        <div className="space-y-5">
+          {loading && <div className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</div>}
+          {!loading && filtered.length === 0 && (
+            <div className="text-center py-10 text-[var(--tmuted)]">ไม่พบ Bundle</div>
+          )}
+
+          {/* 📦 โซนคลัง — ชุดที่ยังไม่ได้ติดตั้ง (In Stock / ไม่ผูกฟาร์ม) */}
+          {!loading && grouped.stock.length > 0 && (
+            <section className="space-y-3">
+              <ZoneHeader icon="inventory_2" tone="blue" title="อยู่ในคลัง" count={grouped.stock.length} />
+              {renderCards(grouped.stock)}
+            </section>
+          )}
+
+          {/* 📍 โซนฟาร์ม — แบ่งย่อยตามฟาร์ม (กดหัวกลุ่มเพื่อพับ/กาง) */}
+          {!loading && grouped.farmSections.length > 0 && (
+            <section className="space-y-3">
+              <ZoneHeader icon="place" tone="green" title="ติดตั้งที่ฟาร์มแล้ว" count={grouped.deployedCount} />
+              {grouped.farmSections.map((sec) => (
+                <div key={sec.key} className="space-y-2.5">
+                  <button
+                    onClick={() => toggleFarmGroup(sec.key)}
+                    className="flex w-full items-center gap-1.5 text-left"
+                    title={collapsedFarms[sec.key] ? 'กางดูชุดของฟาร์มนี้' : 'พับชุดของฟาร์มนี้'}
+                  >
+                    <Icon name={collapsedFarms[sec.key] ? 'expand_more' : 'expand_less'} size="sm" className="text-[var(--tmuted)]" />
+                    <Icon name="agriculture" size="sm" className="text-[var(--emerald-d)]" />
+                    <span className="text-[13px] font-bold text-[var(--text)]">{sec.name}{sec.type ? ` (${sec.type})` : ''}</span>
+                    <span className="text-[12px] font-semibold text-[var(--tmuted)]">— {sec.bundles.length} ชุด</span>
+                  </button>
+                  {/* กำลังกรองอยู่ที่ฟาร์มนี้ → บังคับกางเสมอ (กันหน้าจอว่างทั้งหน้า) */}
+                  {filterFarm !== sec.key && collapsedFarms[sec.key] ? null : renderCards(sec.bundles)}
+                </div>
+              ))}
+            </section>
+          )}
         </div>
       )}
 
@@ -308,12 +467,29 @@ function StatCard({ label, value, icon, tone }) {
     red: 'bg-[var(--red-l)] text-[var(--red)]',
   };
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 flex items-center gap-3">
-      <span className={`flex items-center justify-center w-10 h-10 rounded-xl ${tones[tone]}`}><Icon name={icon} size="md" /></span>
-      <div>
-        <div className="text-[12px] text-[var(--tmuted)]">{label}</div>
-        <div className="text-xl font-bold text-[var(--text)]">{value}</div>
+    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 min-w-0">
+      <span className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex-shrink-0 ${tones[tone]}`}><Icon name={icon} size="md" /></span>
+      <div className="min-w-0">
+        <div className="text-[11px] sm:text-[12px] text-[var(--tmuted)] leading-tight">{label}</div>
+        <div className="text-lg sm:text-xl font-bold text-[var(--text)]">{value}</div>
       </div>
+    </div>
+  );
+}
+
+// ก้อน ⑥ — หัวโซนใหญ่ (คลัง / ติดตั้งที่ฟาร์มแล้ว)
+function ZoneHeader({ icon, tone, title, count }) {
+  const tones = {
+    blue: 'bg-[var(--blue-l)] text-[var(--blue)]',
+    green: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]',
+  };
+  return (
+    <div className="flex items-center gap-2.5 pt-1">
+      <span className={`flex items-center justify-center w-8 h-8 rounded-lg ${tones[tone]}`}>
+        <Icon name={icon} size="sm" />
+      </span>
+      <span className="text-[14px] font-bold text-[var(--text)]">{title}</span>
+      <span className="text-[13px] font-semibold text-[var(--tmuted)]">— {count} ชุด</span>
     </div>
   );
 }
@@ -347,10 +523,10 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
         )}
       </div>
       <div className="flex items-center gap-2 pt-2 border-t border-[var(--g100)]">
-        <button onClick={onDetail} className="flex items-center justify-center gap-1 flex-1 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="search" size="xs" /> รายละเอียด</button>
+        <button onClick={onDetail} className="flex items-center justify-center gap-1 flex-1 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)] whitespace-nowrap"><Icon name="search" size="xs" /> รายละเอียด</button>
         {b.status === 'In Stock'
-          ? <button onClick={onDeploy} className="px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold">ย้ายไปฟาร์ม (Deploy)</button>
-          : <button onClick={onRecall} className="px-3 py-1.5 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold">คืนเข้าคลัง (Recall)</button>}
+          ? <button onClick={onDeploy} className="px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold whitespace-nowrap">ย้ายไปฟาร์ม (Deploy)</button>
+          : <button onClick={onRecall} className="px-3 py-1.5 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold whitespace-nowrap">คืนเข้าคลัง (Recall)</button>}
       </div>
     </div>
   );
@@ -384,11 +560,11 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
               {b.description && <div className="text-[12px] text-[var(--tmuted)]">{b.description}</div>}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {b.status === 'In Stock'
-              ? <button onClick={onDeploy} className="px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ย้ายไปฟาร์ม (Deploy)</button>
-              : <button onClick={onRecall} className="px-3.5 py-2 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold">คืนเข้าคลัง (Recall)</button>}
-            <button onClick={onAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--emerald)] text-white text-[12px] font-semibold"><Icon name="add" size="sm" /> เพิ่มอุปกรณ์</button>
+              ? <button onClick={onDeploy} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ย้ายไปฟาร์ม (Deploy)</button>
+              : <button onClick={onRecall} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold">คืนเข้าคลัง (Recall)</button>}
+            <button onClick={onAdd} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--emerald)] text-white text-[12px] font-semibold"><Icon name="add" size="sm" /> เพิ่มอุปกรณ์</button>
           </div>
         </div>
         <div className="flex flex-wrap gap-4 mt-3 text-[12px] text-[var(--tsub)]">
