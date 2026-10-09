@@ -234,6 +234,16 @@ export default function Home() {
                         >
                           <Icon name="local_shipping" size="sm" /> ย้าย
                         </button>
+                        {/* B3 (รอบ 3) — เส้นทางย้ายทั้งชุดจากหน้าแรก: ชิ้นนี้อยู่ในชุด → เปิดหน้าชุดพร้อมฟอร์มย้ายทั้งชุด (ถ้ายังอยู่คลัง) */}
+                        {a.bundleId && (
+                          <button
+                            onClick={() => navigate(`/bundle?deploy=${encodeURIComponent(a.bundleId)}`)}
+                            title="ย้ายทั้งชุด — ถ้าชุดยังอยู่คลังจะเปิดฟอร์มย้ายทั้งชุดให้เลย (ถ้าติดตั้งแล้วจะเปิดหน้าชุดเพื่อย้ายรายชิ้น/คืนเข้าคลัง)"
+                            className="h-8 px-2.5 rounded-lg bg-[var(--blue-l)] border border-[var(--blue-b)] text-[var(--blue)] text-[12px] font-semibold hover:bg-[var(--blue-b)] flex items-center gap-1"
+                          >
+                            <Icon name="inventory_2" size="sm" /> ย้ายทั้งชุด
+                          </button>
+                        )}
                         <a
                           href={`/trace/${encodeURIComponent(a.serialNumber || '')}`}
                           target="_blank"

@@ -69,10 +69,19 @@ export default function Bundle() {
     } catch (e) { /* ignore */ }
   }
 
-  // Auto-open จาก Farm Monitor (?open=bundleId)
+  // Auto-open จาก Farm Monitor (?open=bundleId) + เส้นทางย้ายทั้งชุดจากหน้าแรก (?deploy=bundleId — B3 รอบ 3)
   useEffect(() => {
+    if (!bundles.length) return;
+    const deployId = searchParams.get('deploy');
     const openId = searchParams.get('open');
-    if (openId && bundles.length) {
+    if (deployId) {
+      const b = bundles.find((x) => x.bundleId === deployId);
+      if (b && b.status === 'In Stock') setDeployOpen(deployId); // ยังอยู่คลัง → เปิดฟอร์มย้ายทั้งชุด 2 ขั้นเลย
+      else openDetail(deployId); // ติดตั้งที่ฟาร์มแล้ว → เข้าหน้าชุด (ย้ายรายชิ้น/คืนเข้าคลัง)
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    if (openId) {
       openDetail(openId);
       setSearchParams({}, { replace: true });
     }
