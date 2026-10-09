@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import { AssetHistoryModal } from '../components/AssetHistory.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 import { showConfirm, ConfirmHost } from '../components/ui/Confirm.jsx';
@@ -34,6 +35,7 @@ export default function Bundle() {
   const [pendingAssets, setPendingAssets] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [transfer, setTransfer] = useState(null);
+  const [historySerial, setHistorySerial] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const [collapsedFarms, setCollapsedFarms] = useState({}); // ก้อน ⑥: ฟาร์มไหนถูกพับอยู่ (default กางหมด)
@@ -341,6 +343,7 @@ export default function Bundle() {
             serial: a.serial || a.assetId,
             current: { status: a.status, location: a.location, siteName: a.site, user: a.user },
           })}
+          onHistory={(a) => { if (a.serial) setHistorySerial(a.serial); }}
         />
       ) : (
         <div className="space-y-5">
@@ -419,6 +422,7 @@ export default function Bundle() {
           current={transfer.current}
         />
       )}
+      {historySerial && <AssetHistoryModal key={historySerial} serial={historySerial} onClose={() => setHistorySerial('')} />}
     </div>
   );
 }
@@ -653,7 +657,7 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
   );
 }
 
-function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, onDeploy, onRecall, onTransfer }) {
+function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, onDeploy, onRecall, onTransfer, onHistory }) {
   const inStock = b.status === 'In Stock';
   // ตำแหน่งของชุด = ตำแหน่งของสมาชิก (ย้ายทั้งชุดพร้อมกัน จึงใช้ค่าจากสมาชิกได้เลย)
   // ถ้าสมาชิกอยู่คนละจุด แปลว่ามีการย้ายเฉพาะรายชิ้นหลังจากนั้น — ต้องเตือนให้เห็นชัด
@@ -739,7 +743,7 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
                 <div className="text-[12px] text-[var(--tsub)] truncate">{a.name} <span className="text-[var(--tmuted)]">· {a.assetId} · {a.code}</span></div>
               </div>
               <div className="flex w-full sm:w-auto items-center justify-end sm:justify-start gap-1">
-                <a href={`/trace/${encodeURIComponent(a.serial)}`} target="_blank" title="Trace" className="h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="description" size="sm" /></a>
+                <button onClick={() => onHistory(a)} disabled={!a.serial} title="ประวัติ" className="h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)] disabled:opacity-40"><Icon name="description" size="sm" /></button>
                 <a href={`/qr?serial=${encodeURIComponent(a.serial)}`} target="_blank" title="QR" className="h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="qr_code" size="sm" /></a>
                 <button onClick={() => onTransfer(a)} title="โอนย้าย" className="h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="local_shipping" size="sm" /></button>
                 <span className="w-px h-6 bg-[var(--g200)] mx-1" aria-hidden="true" />

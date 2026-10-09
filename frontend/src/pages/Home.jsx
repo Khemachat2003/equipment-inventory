@@ -11,6 +11,7 @@ import StatusBadge from '../components/ui/StatusBadge.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import { AssetHistoryModal } from '../components/AssetHistory.jsx';
 
 const IMAGE_URL = (code, ext) =>
   `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext || 'jpg'}?v=4`;
@@ -34,6 +35,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [transfer, setTransfer] = useState(null); // ปุ่ม "ย้าย" เปิดฟอร์มโอนย้ายทันทีบนหน้าแรก (ไม่ต้องเด้งไป /scan ก่อน)
+  const [historySerial, setHistorySerial] = useState('');
   const [dataVersion, setDataVersion] = useState(0); // เพิ่มของเสร็จ → โหลดสถิติใหม่
 
   useEffect(() => {
@@ -244,15 +246,14 @@ export default function Home() {
                             <Icon name="inventory_2" size="sm" /> ย้ายทั้งชุด
                           </button>
                         )}
-                        <a
-                          href={`/trace/${encodeURIComponent(a.serialNumber || '')}`}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          onClick={() => a.serialNumber && setHistorySerial(a.serialNumber)}
+                          disabled={!a.serialNumber}
                           title="ดูประวัติการเคลื่อนไหว"
-                          className="h-8 px-2.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)] flex items-center gap-1"
+                          className="h-8 px-2.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)] flex items-center gap-1 disabled:opacity-40"
                         >
                           <Icon name="history" size="sm" /> ประวัติ
-                        </a>
+                        </button>
                         <a
                           href={`/qr?serial=${encodeURIComponent(a.serialNumber || '')}`}
                           target="_blank"
@@ -339,13 +340,13 @@ export default function Home() {
             {!loading && derived.recentSerials.length > 0 ? (
               <div className="space-y-2">
                 {derived.recentSerials.map((a) => (
-                  <a
+                  <button
                     key={a.serialNumber}
-                    href={`/trace/${encodeURIComponent(a.serialNumber || '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    title="ดูประวัติการเคลื่อนไหว (Trace)"
-                    className="flex items-center gap-2.5 rounded-xl border border-[var(--g200)] px-2.5 py-2 hover:border-[var(--purple)] hover:bg-[var(--purple-l)]/30 transition-colors"
+                    type="button"
+                    onClick={() => a.serialNumber && setHistorySerial(a.serialNumber)}
+                    disabled={!a.serialNumber}
+                    title="ดูประวัติการเคลื่อนไหว"
+                    className="flex w-full items-center gap-2.5 rounded-xl border border-[var(--g200)] px-2.5 py-2 text-left hover:border-[var(--purple)] hover:bg-[var(--purple-l)]/30 transition-colors disabled:opacity-50"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-mono text-[var(--purple)] truncate" title={a.serialNumber}>{a.serialNumber}</div>
@@ -353,7 +354,7 @@ export default function Home() {
                     </div>
                     <StatusBadge status={a.status} />
                     <Icon name="chevron_right" size="xs" className="text-[var(--tmuted)] shrink-0" />
-                  </a>
+                  </button>
                 ))}
                 <a
                   href="/asset"
@@ -530,7 +531,7 @@ export default function Home() {
             {recent.map((r, idx) => {
               const chip = actionChip(r.action);
               return (
-                <div key={idx} className="flex items-center gap-2.5 px-4 py-2.5 text-[12px] hover:bg-[var(--surface2)] transition-colors">
+                <button type="button" key={`${r.serialNumber}-${idx}`} onClick={() => r.serialNumber && setHistorySerial(r.serialNumber)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[12px] hover:bg-[var(--surface2)] transition-colors">
                   <span className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${chip.cls}`}>
                     <Icon name={chip.icon} size="xs" />
                   </span>
@@ -548,7 +549,7 @@ export default function Home() {
                     </span>
                   )}
                   <span className="ml-auto shrink-0 text-[var(--tmuted)] tabular-nums">{r.date}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -574,6 +575,7 @@ export default function Home() {
           onSuccess={() => setDataVersion((v) => v + 1)}
         />
       )}
+      {historySerial && <AssetHistoryModal key={historySerial} serial={historySerial} onClose={() => setHistorySerial('')} />}
     </div>
   );
 }

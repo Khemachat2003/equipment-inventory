@@ -4,6 +4,7 @@ import axios from 'axios';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import { AssetHistoryTimeline } from '../components/AssetHistory.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 // Public Trace Page — ดูประวัติการเคลื่อนย้ายอุปกรณ์ตาม Serial (ไม่ต้องล็อกอิน)
@@ -134,7 +135,7 @@ export default function TracePage() {
         </span>
       </div>
 
-      <Timeline data={data} />
+      <AssetHistoryTimeline data={data} />
 
       <TransferModal
         open={transferOpen}
@@ -226,99 +227,4 @@ function Meta({ label, value }) {
       <div className="text-[13px] font-medium text-[var(--text)] break-all">{value}</div>
     </div>
   );
-}
-
-function Timeline({ data }) {
-  return (
-    <div className="space-y-3.5 relative pl-11 before:absolute before:left-[15px] before:top-6 before:bottom-6 before:w-0.5 before:bg-gradient-to-b before:from-[var(--blue)] before:to-[var(--blue-l)]">
-      {data.map((item, idx) => (
-        <Entry key={idx} item={item} isFirst={idx === 0} />
-      ))}
-    </div>
-  );
-}
-
-function Entry({ item, isFirst }) {
-  const dotClass = isFirst
-    ? 'bg-[var(--blue)] border-[#93c5fd] text-white'
-    : dotStyle(item.action);
-  const hasRoute = item.from && item.from !== '-';
-
-  return (
-    <div className="relative">
-      <span className={`absolute -left-11 top-4 w-[26px] h-[26px] rounded-full flex items-center justify-center text-[13px] border-2 shadow-[0_0_0_4px_var(--bg)] z-[1] ${dotClass}`}>
-        {isFirst ? <Icon name="place" size="xs" /> : dotIcon(item.action)}
-      </span>
-
-      <div className="bg-white border border-[var(--g200)] rounded-xl px-5 py-4 shadow-[var(--sh-sm)] hover:shadow-[var(--sh-md)]">
-        <div className="flex items-start justify-between gap-3 flex-wrap mb-2.5">
-          <div className="text-[14px] font-bold text-[var(--text)] flex items-center gap-2">
-            {item.action || '-'}
-            {isFirst && <span className="px-2 py-0.5 rounded-full bg-[var(--blue)] text-white text-[10px] font-bold">ล่าสุด</span>}
-          </div>
-          <div className="px-2.5 py-0.5 rounded-full bg-[var(--surface2)] border border-[var(--g200)] text-[11px] text-[var(--tmuted)] whitespace-nowrap">
-            <Icon name="event" size="xs" /> {item.date || '-'}
-          </div>
-        </div>
-
-        {hasRoute ? (
-          <div className="flex items-center gap-2 flex-wrap mb-2">
-            <RouteChip marker="from">{item.from}</RouteChip>
-            <span className="text-[var(--tmuted)]"><Icon name="arrow_forward" size="sm" /></span>
-            <RouteChip marker="dest">{item.to || '-'}</RouteChip>
-          </div>
-        ) : item.to && item.to !== '-' ? (
-          <div className="flex items-center gap-2 flex-wrap mb-2">
-            <RouteChip marker="dest"><Icon name="place" size="xs" /> {item.to}</RouteChip>
-          </div>
-        ) : null}
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="w-[22px] h-[22px] rounded-full bg-[var(--blue-l)] text-[var(--blue)] text-[10px] font-bold flex items-center justify-center border border-[var(--blue-l)]">
-            {initials(item.user)}
-          </span>
-          <span className="text-[12px] text-[var(--tsub)]">{item.user || 'System'}</span>
-        </div>
-
-        {item.remark && item.remark !== '-' && (
-          <div className="mt-2.5 bg-[var(--surface2)] border-l-[3px] border-[var(--blue)] rounded-r-md px-3 py-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--tmuted)] mb-0.5">หมายเหตุ</div>
-            <div className="text-[12px] text-[var(--tsub)] whitespace-pre-wrap break-words">{item.remark}</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function RouteChip({ marker, children }) {
-  return (
-    <span className={`px-2.5 py-1 rounded-lg text-[12px] font-medium inline-flex items-center gap-1 border ${marker === 'dest' ? 'bg-[var(--blue-l)] border-[var(--blue-l)] text-[var(--blue)]' : 'bg-[var(--surface2)] border-[var(--g200)] text-[var(--text)]'}`}>
-      {children}
-    </span>
-  );
-}
-
-function dotStyle(action = '') {
-  const a = action.toLowerCase();
-  if (a.includes('ลงทะเบียน') || a.includes('เพิ่ม')) return 'bg-[var(--emerald-l)] border-[#4ade80] text-[var(--emerald-d)]';
-  if (a.includes('ซ่อม')) return 'bg-[var(--red-l)] border-[#f87171] text-[var(--red)]';
-  if (a.includes('คืน')) return 'bg-[var(--amber-l)] border-[#fbbf24] text-[var(--amber-d)]';
-  return 'bg-[var(--blue-l)] border-[var(--blue)] text-[var(--blue)]';
-}
-
-function dotIcon(action = '') {
-  const a = action.toLowerCase();
-  if (a.includes('ลงทะเบียน') || a.includes('เพิ่ม')) return '✦';
-  if (a.includes('ซ่อม')) return <Icon name="build" size="sm" />;
-  if (a.includes('คืน')) return '↩';
-  return '→';
-}
-
-function initials(name = '') {
-  const parts = String(name || '').trim().split(' ').filter(Boolean);
-  if (!parts.length) return '?';
-  return parts.length > 1
-    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    : parts[0].slice(0, 2).toUpperCase();
 }

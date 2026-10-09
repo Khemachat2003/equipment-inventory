@@ -6,6 +6,7 @@ import StatPill from '../components/ui/StatPill.jsx';
 import Pagination from '../components/ui/Pagination.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import { AssetHistoryModal } from '../components/AssetHistory.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
@@ -25,7 +26,7 @@ export default function Asset() {
   const [pageSize, setPageSize] = useState(20);
   const [transfer, setTransfer] = useState(null);
   const [selectedSerials, setSelectedSerials] = useState([]);
-  const [history, setHistory] = useState(null);
+  const [historySerial, setHistorySerial] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const busy = useBusy();
@@ -100,16 +101,7 @@ export default function Asset() {
     return { total: filtered.length, usable, repair };
   }, [filtered]);
 
-  async function openHistory(serial) {
-    await busy.run('กำลังโหลดประวัติ...', async () => {
-      try {
-        const { data } = await axios.get(`/api/asset-history/${encodeURIComponent(serial)}`);
-        setHistory({ serial, logs: data || [] });
-      } catch (e) {
-        showToast('โหลดประวัติไม่ได้', { type: 'err' });
-      }
-    });
-  }
+  function openHistory(serial) { if (serial) setHistorySerial(serial); }
 
   function doTransfer(a) {
     setTransfer({
@@ -298,9 +290,9 @@ export default function Asset() {
                     <td className="px-3 py-2 text-[var(--tsub)]">{a.user}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-center gap-0.5">
-                        <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดู trace" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]">
+                        <button onClick={() => openHistory(a.serialNumber)} title="ดูประวัติ" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]">
                           <Icon name="description" size="sm" />
-                        </a>
+                        </button>
                         <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="QR" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]">
                           <Icon name="qr_code" size="sm" />
                         </a>
@@ -355,9 +347,9 @@ export default function Asset() {
                   {a.user && <div className="text-[var(--tsub)]">ผู้ใช้: <span className="text-[var(--text)]">{a.user}</span></div>}
                 </div>
                 <div className="pl-[42px] flex items-center gap-2">
-                  <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
-                    <Icon name="description" size="xs" /> Trace
-                  </a>
+                  <button onClick={() => openHistory(a.serialNumber)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
+                    <Icon name="description" size="xs" /> ประวัติ
+                  </button>
                   <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
                     <Icon name="qr_code" size="xs" /> QR
                   </a>
@@ -390,7 +382,7 @@ export default function Asset() {
       )}
 
       {/* History modal */}
-      {history && <HistoryModal data={history} onClose={() => setHistory(null)} />}
+      {historySerial && <AssetHistoryModal key={historySerial} serial={historySerial} onClose={() => setHistorySerial('')} />}
 
       {/* เพิ่มอุปกรณ์ใหม่ (โฟลว์เดียว: เลือก/สร้าง Part → Serial อัตโนมัติ กันซ้ำ) */}
       {addOpen && <AddDeviceModal open onClose={() => setAddOpen(false)} onDone={() => { setAddOpen(false); load(); }} />}
@@ -417,61 +409,6 @@ function PartItem({ icon, label, sub, count, active, onClick }) {
       </span>
       <span className={`text-[11px] font-bold ${active ? 'text-[var(--blue)]' : 'text-[var(--tmuted)]'}`}>{count}</span>
     </button>
-  );
-}
-
-function HistoryModal({ data, onClose }) {
-  const { serial, logs } = data;
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--g100)]">
-          <div className="flex items-center gap-2">
-            <span className="text-[var(--blue)]"><Icon name="assignment" size="sm" /></span>
-            <span className="text-[15px] font-bold">ประวัติ</span>
-            <span className="px-2 py-0.5 rounded-full bg-[var(--blue-l)] text-[var(--blue)] font-mono text-[11px]">{serial}</span>
-            <span className="text-[12px] text-[var(--tmuted)]">{logs.length} รายการ</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <a href={`/trace/${encodeURIComponent(serial)}`} target="_blank" className="text-[12px] text-[var(--blue)] font-semibold">ดูหน้าเต็ม →</a>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--surface2)]">
-              <Icon name="close" size="sm" />
-            </button>
-          </div>
-        </div>
-        <div className="max-h-[60vh] overflow-y-auto p-5 space-y-3">
-          {logs.length === 0 && <div className="flex items-center justify-center gap-2 text-center py-10 text-[var(--tmuted)]"><Icon name="inbox" size="sm" /> ยังไม่มีประวัติในระบบ</div>}
-          {logs.map((l, i) => (
-            <HistoryItem key={i} log={l} isLatest={i === 0} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HistoryItem({ log, isLatest }) {
-  const action = log.action || '';
-  let icon = 'chevron_right';
-  const iconClass = isLatest ? 'bg-[var(--blue-l)] text-[var(--blue)]' : 'bg-[var(--g100)] text-[var(--tsub)]';
-  if (isLatest) icon = 'place';
-  else if (action.includes('ลงทะเบียน') || action.includes('เพิ่ม')) icon = 'add';
-  else if (action.includes('ซ่อม')) icon = 'build';
-  else if (action.includes('คืน')) icon = 'undo';
-  return (
-    <div className="flex gap-3 items-start">
-      <span className={`w-7 h-7 flex items-center justify-center rounded-full ${iconClass}`}><Icon name={icon} size="xs" /></span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[12px] font-semibold text-[var(--text)]">{action}</span>
-          <span className="text-[11px] text-[var(--tmuted)] whitespace-nowrap">{log.date}</span>
-        </div>
-        <div className="text-[12px] text-[var(--tsub)] mt-0.5">
-          {log.from && log.from !== '-' ? `${log.from} → ` : ''}{log.to}
-        </div>
-        {(log.user && log.user !== '-') && <div className="flex items-center gap-1 text-[11px] text-[var(--tmuted)] mt-0.5"><Icon name="person" size="xs" /> {log.user}{log.remark && log.remark !== '-' ? ` · ${log.remark}` : ''}</div>}
-      </div>
-    </div>
   );
 }
 
