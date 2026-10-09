@@ -8,6 +8,7 @@ import LocationPath from '../components/ui/LocationPath.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
+import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 
 const FORMATS = [
   BarcodeFormat.QR_CODE,
@@ -256,7 +257,7 @@ export default function ScanPage() {
       try {
         const { data } = await axios.get(`/api/asset-history/${encodeURIComponent(serial)}`);
         setHistory({ serial, logs: data || [] });
-      } catch (e) { alert('โหลดประวัติไม่ได้'); }
+      } catch (e) { showToast('โหลดประวัติไม่ได้', { type: 'err' }); }
     });
   }
 
@@ -264,6 +265,7 @@ export default function ScanPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
+      <ToastHost />
       {/* ① ค้นหาอุปกรณ์ที่จะย้าย — ทางเข้าหลัก (พิมพ์ชื่อ/รหัส/Serial ก็เจอ) */}
       <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
         <div className="text-[13px] font-semibold text-[var(--text)] mb-2.5">ค้นหาอุปกรณ์ที่จะย้าย</div>

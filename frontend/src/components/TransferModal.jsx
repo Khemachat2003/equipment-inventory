@@ -3,6 +3,7 @@ import axios from 'axios';
 import Icon from './ui/Icon.jsx';
 import { useBusy, BusyOverlay } from './ui/Busy.jsx';
 import { FarmInlineAdd, HouseInlineAdd } from './InlineFarmAdd.jsx';
+import { showToast, ToastHost } from './ui/Toast.jsx';
 
 // Shared Transfer Modal — จำลอง openTransferModal จากระบบเดิม
 // ใช้ได้ทั้งหน้า Asset / Bundle / Farm / Scan / Trace
@@ -198,11 +199,11 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
   }
 
   async function submit() {
-    if (!serial) return alert('ไม่พบ Serial Number');
+    if (!serial) return showToast('ไม่พบ Serial Number', { type: 'err' });
     const selectedSite = sites.find((s) => s.siteId === siteId);
     // SiteName (คอลัมน์ H) = ตัวระบุว่าอยู่ฟาร์มไหน — มาจากช่อง "ไซต์งาน / ฟาร์ม" ช่องเดียว
     const destSite = siteId === 'Intranin' ? 'Intranin' : selectedSite ? selectedSite.siteName : siteFree;
-    if (showFarm && !destSite) return alert('เลือกไซต์งาน / ฟาร์มปลายทาง');
+    if (showFarm && !destSite) return showToast('เลือกไซต์งาน / ฟาร์มปลายทาง', { type: 'warn' });
 
     const isReturn = action.includes('คืนคลัง');
 
@@ -233,10 +234,10 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
           onSuccess && onSuccess();
           onClose();
         } else {
-          alert(data.error || 'เกิดข้อผิดพลาด');
+          showToast(data.error || 'เกิดข้อผิดพลาด', { type: 'err' });
         }
       } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
@@ -464,6 +465,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
           </button>
         </div>
       </div>
+      <ToastHost />
       <BusyOverlay label={busy.busyLabel} />
     </div>
   );

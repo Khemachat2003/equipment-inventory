@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Icon from './ui/Icon.jsx';
 import { useBusy, BusyOverlay } from './ui/Busy.jsx';
+import { showToast, ToastHost } from './ui/Toast.jsx';
 
 const ain = 'w-full h-9 px-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px] focus:outline-none focus:border-[var(--blue)]';
 
@@ -78,20 +79,20 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
   async function confirmNewPart() {
     const pnum = sanitizePartNumber(newPart.partNumber);
     const pname = (newPart.partName || '').trim();
-    if (!pnum) return alert('กรอก Part Number ก่อน (ตัวย่อภาษาอังกฤษ เช่น SENWT)');
+    if (!pnum) return showToast('กรอก Part Number ก่อน (ตัวย่อภาษาอังกฤษ เช่น SENWT)', { type: 'warn' });
     if (!/^[A-Z0-9][A-Z0-9._-]*$/.test(pnum)) {
-      return alert('Part Number ใช้ได้เฉพาะ A-Z 0-9 . _ - เท่านั้น (ห้ามช่องว่าง/ภาษาไทย) — เพราะจะถูกใช้สร้าง Serial');
+      return showToast('Part Number ใช้ได้เฉพาะ A-Z 0-9 . _ - เท่านั้น (ห้ามช่องว่าง/ภาษาไทย) — เพราะจะถูกใช้สร้าง Serial', { type: 'warn' });
     }
     if (parts.some((p) => sanitizePartNumber(p.partNumber) === pnum)) {
-      return alert('Part Number นี้มีอยู่แล้วในระบบ — กดเลือกจากรายการด้านบนแทน');
+      return showToast('Part Number นี้มีอยู่แล้วในระบบ — กดเลือกจากรายการด้านบนแทน', { type: 'warn' });
     }
     setSelected({ partNumber: pnum, partName: pname || pnum, isNew: true });
     setNewPart(null);
   }
 
   async function submit() {
-    if (!selected) return alert('เลือกอุปกรณ์จากรายการ หรือกด "สร้าง Part ใหม่" ก่อน');
-    if (!qtyNum || qtyNum < 1) return alert('ระบุจำนวนชิ้นให้ถูกต้อง');
+    if (!selected) return showToast('เลือกอุปกรณ์จากรายการ หรือกด "สร้าง Part ใหม่" ก่อน', { type: 'warn' });
+    if (!qtyNum || qtyNum < 1) return showToast('ระบุจำนวนชิ้นให้ถูกต้อง', { type: 'warn' });
     const partNumber = selected.partNumber;
     const partName = selected.partName || partNumber;
     await busy.run('กำลังเพิ่มอุปกรณ์...', async () => {
@@ -114,7 +115,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
         if (!r2.data.success) throw new Error(r2.data.error || 'เพิ่ม Asset ไม่สำเร็จ');
         setResult({ serials: r2.data.serials || [], added: r2.data.added || qtyNum, partCreated: !!selected.isNew });
       } catch (e) {
-        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message));
+        showToast('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message), { type: 'err' });
       }
     });
   }
@@ -316,6 +317,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
           </div>
           </>
         )}
+        <ToastHost />
         <BusyOverlay label={busy.busyLabel} />
       </div>
     </div>
