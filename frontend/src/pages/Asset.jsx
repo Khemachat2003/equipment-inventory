@@ -8,6 +8,7 @@ import LocationPath from '../components/ui/LocationPath.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
+import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 import { CATEGORY_FALLBACK, categoryIcon, categoryLabel } from '../data/categories.js';
 import { buildLocation } from '../utils/location.js';
 
@@ -23,6 +24,7 @@ export default function Asset() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [transfer, setTransfer] = useState(null);
+  const [selectedSerials, setSelectedSerials] = useState([]);
   const [history, setHistory] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -104,7 +106,7 @@ export default function Asset() {
         const { data } = await axios.get(`/api/asset-history/${encodeURIComponent(serial)}`);
         setHistory({ serial, logs: data || [] });
       } catch (e) {
-        alert('โหลดประวัติไม่ได้');
+        showToast('โหลดประวัติไม่ได้', { type: 'err' });
       }
     });
   }
@@ -114,6 +116,16 @@ export default function Asset() {
       serial: a.serialNumber,
       current: { status: a.status, location: a.location, siteName: a.siteName, user: a.user },
     });
+  }
+
+  function toggleSelected(a) {
+    const serial = a.serialNumber;
+    setSelectedSerials((prev) => prev.includes(serial) ? prev.filter((s) => s !== serial) : [...prev, serial]);
+  }
+
+  function startBulkTransfer() {
+    const selected = assets.filter((a) => selectedSerials.includes(a.serialNumber) && a.serialNumber);
+    if (selected.length) setTransfer({ assets: selected });
   }
 
   function exportCSV() {
@@ -130,6 +142,7 @@ export default function Asset() {
 
   return (
     <div className="space-y-4">
+      {!transfer && !addOpen && <ToastHost />}
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -144,6 +157,16 @@ export default function Asset() {
           </button>
         </div>
       </div>
+
+      {selectedSerials.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--blue-b)] bg-[var(--blue-l)] px-3 py-2">
+          <span className="text-[13px] font-medium text-[var(--blue-d)]">เลือกแล้ว {selectedSerials.length} ชิ้น</span>
+          <div className="flex gap-2">
+            <button onClick={() => setSelectedSerials([])} className="min-h-10 px-3 rounded-lg border border-[var(--g300)] bg-white text-[13px]">ล้างที่เลือก</button>
+            <button onClick={startBulkTransfer} className="min-h-10 px-3 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold">ย้ายที่เลือก</button>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="flex flex-wrap gap-2">
@@ -227,6 +250,7 @@ export default function Asset() {
             <table className="w-full text-[12px]">
 <thead>
               <tr className="text-left text-[12px] text-[var(--tsub)] border-b border-[var(--g200)] bg-[var(--surface2)]/50">
+                  <th className="w-10 px-3 py-2.5 font-medium">เลือก</th>
                   <th className="px-3 py-2.5 font-medium">รหัส</th>
                   <th className="px-3 py-2.5 font-medium">ชื่อ</th>
                   <th className="px-3 py-2.5 font-medium">Serial</th>
@@ -237,12 +261,13 @@ export default function Asset() {
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={7} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
+                {loading && <tr><td colSpan={8} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
                 {!loading && paged.length === 0 && (
-                  <tr><td colSpan={7} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
+                  <tr><td colSpan={8} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
                 )}
                 {paged.map((a) => (
                   <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--g100)] hover:bg-[var(--surface2)]">
+                    <td className="px-3 py-2"><input aria-label={`เลือก ${a.serialNumber}`} type="checkbox" checked={selectedSerials.includes(a.serialNumber)} onChange={() => toggleSelected(a)} /></td>
                     <td className="px-3 py-2">
                       <div className="font-mono text-[11px] text-[var(--blue)]">{a.code}</div>
                       <div className="font-mono text-[10px] text-[var(--tmuted)]">{a.assetId}</div>
@@ -299,6 +324,7 @@ export default function Asset() {
             {paged.map((a) => (
               <div key={a.serialNumber + a.assetId} className="p-3.5 space-y-2.5">
                 <div className="flex items-start gap-2.5">
+                  <input aria-label={`เลือก ${a.serialNumber}`} className="mt-2 h-5 w-5 shrink-0" type="checkbox" checked={selectedSerials.includes(a.serialNumber)} onChange={() => toggleSelected(a)} />
                   <span className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-[var(--g100)] text-[var(--tsub)]" title={categoryLabel(catOf(a))}>
                     <Icon name={categoryIcon(catOf(a))} size="sm" />
                   </span>
@@ -352,8 +378,13 @@ export default function Asset() {
         <TransferModal
           open
           onClose={() => setTransfer(null)}
-          onSuccess={load}
-          serial={transfer.serial}
+          onSuccess={async (result) => {
+            if (result?.failedSerials) setSelectedSerials(result.failedSerials);
+            else if (transfer.assets) setSelectedSerials([]);
+            await load();
+          }}
+          assets={transfer.assets}
+          serial={transfer.serial || transfer.assets?.[0]?.serialNumber}
           current={transfer.current}
         />
       )}
@@ -486,13 +517,13 @@ function AddAssetModal({ assets, parts, categoryList = CATEGORY_FALLBACK, onClos
 
   async function submit() {
     const pn = partNumber.trim().toUpperCase();
-    if (!pn || !partName.trim()) return alert('กรุณากรอก Part Number และชื่ออุปกรณ์');
+    if (!pn || !partName.trim()) return showToast('กรุณากรอก Part Number และชื่ออุปกรณ์', { type: 'warn' });
     const exists = parts.some((p) => p.partNumber === pn);
     await busy.run('กำลังเพิ่ม Part + Asset...', async () => {
       try {
         if (!exists) {
           const r = await axios.post('/api/add-part', { partNumber: pn, partName: partName.trim(), category, description, unit });
-          if (r.data && r.data.error) { alert('ไม่สำเร็จ: ' + r.data.error); return; }
+          if (r.data && r.data.error) { showToast('ไม่สำเร็จ: ' + r.data.error, { type: 'err' }); return; }
         }
         const r = await axios.post('/api/add-asset', {
           assetId,
@@ -506,11 +537,11 @@ function AddAssetModal({ assets, parts, categoryList = CATEGORY_FALLBACK, onClos
           user: user.trim() || '',
         });
         if (r.data.success) {
-          alert(`เพิ่ม Part + Asset สำเร็จ\nAsset ID: ${assetId}\nSerial: ${serialPreview}`);
+          showToast(`เพิ่ม Part + Asset สำเร็จ · ${assetId} · ${serialPreview}`);
           onDone();
-        } else alert('ไม่สำเร็จ: ' + (r.data.error || 'เพิ่ม Asset ไม่สำเร็จ'));
+        } else showToast('ไม่สำเร็จ: ' + (r.data.error || 'เพิ่ม Asset ไม่สำเร็จ'), { type: 'err' });
       } catch (e) {
-        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message));
+        showToast('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message), { type: 'err' });
       }
     });
   }
@@ -588,7 +619,7 @@ function BulkAddModal({ parts, categoryList = CATEGORY_FALLBACK, onClose, onDone
 
   async function submit() {
     const n = parseInt(qty);
-    if (!partNumber.trim() || !partName.trim() || !n) return alert('กรอกข้อมูลให้ครบ');
+    if (!partNumber.trim() || !partName.trim() || !n) return showToast('กรอกข้อมูลให้ครบ', { type: 'warn' });
     await busy.run('กำลังเพิ่ม Asset หลายชิ้น...', async () => {
       try {
         const { data } = await axios.post('/api/bulk-add-asset', {
@@ -601,11 +632,11 @@ function BulkAddModal({ parts, categoryList = CATEGORY_FALLBACK, onClose, onDone
           user: user.trim(),
         });
         if (data.success) {
-          alert(`เพิ่ม ${data.added} ชิ้นสำเร็จ\nSerial: ${data.firstSerial} ~ ${data.lastSerial}`);
+          showToast(`เพิ่ม ${data.added} ชิ้นสำเร็จ · Serial ${data.firstSerial} ถึง ${data.lastSerial}`);
           onDone();
-        } else alert('เกิดข้อผิดพลาด: ' + (data.error || ''));
+        } else showToast('เกิดข้อผิดพลาด: ' + (data.error || ''), { type: 'err' });
       } catch (e) {
-        alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message));
+        showToast('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message), { type: 'err' });
       }
     });
   }

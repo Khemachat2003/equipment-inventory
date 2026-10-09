@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import Icon from '../components/ui/Icon.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
+import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 
 const IMAGE_URL = (code, ext) =>
   `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext}?v=4`;
@@ -21,7 +22,6 @@ export default function Stock() {
   const [borrowOpen, setBorrowOpen] = useState(false);
   const [confirmBorrow, setConfirmBorrow] = useState(null);
   const [cart, setCart] = useState({});
-  const [notice, setNotice] = useState('');
   const [addPrompt, setAddPrompt] = useState(null);
   const [editPrompt, setEditPrompt] = useState(null);
   const busyBorrow = useBusy();
@@ -104,16 +104,16 @@ export default function Stock() {
         if (data.success) {
           const ok = (data.borrowed || []).length;
           const short = data.short || [];
-          if (ok) flash(`เบิกสำเร็จ ${ok} รายการ${short.length ? `, ไม่พอ ${short.length} รายการ` : ''}`);
-          else flash('ไม่มีรายการที่เบิกได้');
+          if (ok) flash(`เบิกสำเร็จ ${ok} รายการ${short.length ? `, ไม่พอ ${short.length} รายการ` : ''}`, short.length ? 'warn' : 'ok');
+          else flash('ไม่มีรายการที่เบิกได้', 'warn');
           if (short.length) setConfirmBorrow({ items: short });
           clearCart();
           await load();
         } else {
-          flash('เกิดข้อผิดพลาด');
+          flash('เกิดข้อผิดพลาด', 'err');
         }
       } catch (e) {
-        flash('เกิดข้อผิดพลาด');
+        flash('เกิดข้อผิดพลาด', 'err');
       } finally {
         setBorrowOpen(false);
       }
@@ -130,13 +130,13 @@ export default function Stock() {
     setAddPrompt({ code, total });
   }
 
-  function flash(msg) {
-    setNotice(msg);
-    setTimeout(() => setNotice(''), 4000);
+  function flash(msg, type = 'ok') {
+    showToast(msg, { type });
   }
 
   return (
     <div className="space-y-4">
+      <ToastHost />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
@@ -146,8 +146,6 @@ export default function Stock() {
           <Icon name="add_circle" size="sm" /> เพิ่มอุปกรณ์
         </button>
       </div>
-
-      {notice && <div className="px-4 py-2.5 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)] text-[13px]">{notice}</div>}
 
       {/* ตะกร้าเบิก */}
       {cartCount > 0 && (
@@ -427,7 +425,7 @@ export default function Stock() {
             await load();
             flash(`เพิ่ม ${a} ชิ้น → Office ${res.office} | Site ${res.site} | รวม ${res.total}`);
           }}
-          onError={(msg) => alert(msg)}
+          onError={(msg, type) => showToast(msg, { type: type || 'err' })}
         />
       )}
       {editPrompt && (
@@ -441,7 +439,7 @@ export default function Stock() {
             await load();
             flash(`บันทึกแล้ว → Office ${res.office} | Site ${res.site} | รวม ${res.total}`);
           }}
-          onError={(msg) => alert(msg)}
+          onError={(msg, type) => showToast(msg, { type: type || 'err' })}
         />
       )}
       <BusyOverlay label={busyBorrow.busyLabel} />
@@ -513,7 +511,7 @@ function ReturnModal({ onClose, onDone }) {
         const { data } = await axios.get('/api/get-site-items');
         setItems(data.items || []);
       } catch (e) {
-        alert('โหลดข้อมูลไม่ได้');
+        showToast('โหลดข้อมูลไม่ได้', { type: 'err' });
       } finally {
         setLoading(false);
       }
@@ -550,13 +548,15 @@ function ReturnModal({ onClose, onDone }) {
       .filter((i) => selected[i.code])
       .map((i) => ({ code: i.code, qty: parseInt(qtys[i.code]) || parseInt(i.qty) }))
       .filter((r) => r.qty >= 1);
-    if (!toReturn.length) return alert('กรุณาเลือกรายการ');
+    if (!toReturn.length) return showToast('กรุณาเลือกรายการ', { type: 'warn' });
     try {
       const { data } = await axios.post('/api/return-selected-site', { items: toReturn });
-      if (data.success) onDone();
-      else alert('เกิดข้อผิดพลาด');
+      if (data.success) {
+        showToast('คืนอุปกรณ์จาก Site สำเร็จ');
+        onDone();
+      } else showToast(data.error || 'เกิดข้อผิดพลาด', { type: 'err' });
     } catch (e) {
-      alert('เกิดข้อผิดพลาด');
+      showToast(e?.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
     }
   }
 
@@ -634,11 +634,11 @@ function AddModal({ onClose, onDone }) {
     officeN == null && siteN == null ? parseInt(qty) || 0 : (officeN || 0) + (siteN || 0);
 
   async function submit() {
-    if (!code || !name || !file) return alert('กรอกข้อมูลและเลือกรูปให้ครบ');
+    if (!code || !name || !file) return showToast('กรอกข้อมูลและเลือกรูปให้ครบ', { type: 'warn' });
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!['jpg', 'jpeg', 'png'].includes(ext)) return alert('รองรับ JPG/PNG เท่านั้น');
+    if (!['jpg', 'jpeg', 'png'].includes(ext)) return showToast('รองรับ JPG/PNG เท่านั้น', { type: 'warn' });
     if (officeN == null && siteN == null && (qty === '' || parseInt(qty) < 0))
-      return alert('กรอกจำนวนให้ถูกต้อง');
+      return showToast('กรอกจำนวนให้ถูกต้อง', { type: 'warn' });
     await busy.run('กำลังเพิ่มอุปกรณ์...', async () => {
       try {
         const base64 = await new Promise((resolve) => {
@@ -651,7 +651,7 @@ function AddModal({ onClose, onDone }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileName: code + '.' + ext, base64 }),
         })).json();
-        if (!up.success) return alert('อัปโหลดรูปไม่สำเร็จ: ' + (up.error || 'ไม่ทราบสาเหตุ'));
+        if (!up.success) return showToast('อัปโหลดรูปไม่สำเร็จ: ' + (up.error || 'ไม่ทราบสาเหตุ'), { type: 'err' });
         const off = officeN == null && siteN == null ? parseInt(qty) || 0 : officeN || 0;
         const sit = siteN == null ? 0 : siteN || 0;
         try {
@@ -663,14 +663,14 @@ function AddModal({ onClose, onDone }) {
             site: sit,
             ext,
           });
-          if (!data.success) return alert(data.error || 'เพิ่มอุปกรณ์ไม่สำเร็จ');
-          alert('เพิ่มอุปกรณ์สำเร็จ');
+          if (!data.success) return showToast(data.error || 'เพิ่มอุปกรณ์ไม่สำเร็จ', { type: 'err' });
+          showToast('เพิ่มอุปกรณ์สำเร็จ');
           onDone();
         } catch (err) {
-          alert(err?.response?.data?.error || 'เกิดข้อผิดพลาด');
+          showToast(err?.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
         }
       } catch (e) {
-        alert('เกิดข้อผิดพลาด');
+        showToast('เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
@@ -716,7 +716,7 @@ function AddQtyModal({ code, total, onClose, onDone, onError }) {
 
   async function confirm() {
     const a = parseInt(addNum);
-    if (!a || a < 1) return onError('กรอกจำนวนที่จะเพิ่มอย่างน้อย 1');
+    if (!a || a < 1) return onError('กรอกจำนวนที่จะเพิ่มอย่างน้อย 1', 'warn');
     await busy.run('กำลังเพิ่มจำนวน...', async () => {
       try {
         const { data } = await axios.post('/api/add-total', { code, addQty: a });

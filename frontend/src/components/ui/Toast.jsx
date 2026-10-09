@@ -8,10 +8,11 @@
 import { useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
 
-let pushFn = null; // ผูกกับ ToastHost ที่กำลัง mount อยู่ (หน้าหนึ่ง render ครั้งเดียวพอ)
+const pushFns = new Set(); // host ล่าสุดรับ toast; ถ้า modal unmount ให้ host ของหน้ารับต่อ
 
 export function showToast(msg, opts = {}) {
-  if (pushFn) pushFn({ msg, type: opts.type || 'ok', actionLabel: opts.actionLabel || '', onAction: opts.onAction || null });
+  const push = [...pushFns].at(-1);
+  if (push) push({ msg, type: opts.type || 'ok', actionLabel: opts.actionLabel || '', onAction: opts.onAction || null });
 }
 
 // ใช้เฉพาะไอคอนที่มีใน font subset แล้ว: check_circle / warning
@@ -22,8 +23,9 @@ export function ToastHost() {
   const [item, setItem] = useState(null);
 
   useEffect(() => {
-    pushFn = (next) => setItem({ ...next, id: Date.now() });
-    return () => { pushFn = null; };
+    const push = (next) => setItem({ ...next, id: Date.now() });
+    pushFns.add(push);
+    return () => { pushFns.delete(push); };
   }, []);
 
   // หายเองใน 5 วิ — เปลี่ยนข้อความใหม่ก็เริ่มนับใหม่

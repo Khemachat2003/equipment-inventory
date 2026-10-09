@@ -16,6 +16,7 @@ import { showToast, ToastHost } from './ui/Toast.jsx';
 
 const ACTIONS = ['ย้ายตำแหน่งอุปกรณ์', 'ส่งซ่อมภายนอก', 'โอนย้ายผู้รับผิดชอบ', 'คืนคลังสินค้า'];
 const STATUSES = ['ใช้งานได้', 'สำรอง', 'ส่งซ่อม', 'ชำรุด/สูญหาย'];
+const EMPTY_CURRENT = {};
 
 // ปลายทาง → action/status "เดิม" ของ API (แค่ map ศัพท์ให้ user นึกถึงปลายทาง ไม่ใช่ศัพท์ระบบ)
 const DESTINATIONS = [
@@ -44,7 +45,7 @@ function saveLastFarm(farm) {
   try { localStorage.setItem(LAST_FARM_KEY, JSON.stringify(farm)); } catch { /* ignore */ }
 }
 
-export default function TransferModal({ open, onClose, onSuccess, serial, current }) {
+export default function TransferModal({ open, onClose, onSuccess, serial, current, assets = [] }) {
   const [action, setAction] = useState('ย้ายตำแหน่งอุปกรณ์');
   const [status, setStatus] = useState('ใช้งานได้');
   const [farmType, setFarmType] = useState('');
@@ -67,9 +68,10 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
   const [fromMemory, setFromMemory] = useState(false);
   // A1: ผู้รับผิดชอบโชว์เป็นข้อความ "ค่าเดิม — แก้ได้" กดแก้ไขถึงเป็นช่องกรอก
   const [userEditing, setUserEditing] = useState(false);
+  const [batchResult, setBatchResult] = useState(null);
   const busy = useBusy();
 
-  const cur = current || {};
+  const cur = current || EMPTY_CURRENT;
   const showFarm =
     !action.includes('ซ่อม') && !action.includes('คืนคลัง');
   // "ตำแหน่งย่อย" มีความหมายเฉพาะตอนอยู่ที่ฟาร์มเท่านั้น
@@ -86,7 +88,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
   const houseLabel = houseId
     ? `${houseId} ${houses.find((h) => h.houseId === houseId)?.houseName || ''}`.trim()
     : '';
-  const fromText = cur.siteName
+  const fromText = assets.length > 1 ? 'หลายตำแหน่ง' : cur.siteName
     ? `${cur.siteName}${cur.location ? ` (${cur.location})` : ''}`
     : 'ตำแหน่งเดิม';
   const summaryText = activeDest === 'stock'
@@ -113,6 +115,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
     setHouseAddOpen(false);
     setFromMemory(false);
     setUserEditing(false);
+    setBatchResult(null);
     axios.get('/api/farm-sites').then(({ data }) => {
       const list = data || [];
       setSites(list);
@@ -199,7 +202,8 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
   }
 
   async function submit() {
-    if (!serial) return showToast('ไม่พบ Serial Number', { type: 'err' });
+    const targets = assets.length ? assets : serial ? [{ serialNumber: serial, ...(current || {}) }] : [];
+    if (!targets.length) return showToast('ไม่พบ Serial Number', { type: 'err' });
     const selectedSite = sites.find((s) => s.siteId === siteId);
     // SiteName (คอลัมน์ H) = ตัวระบุว่าอยู่ฟาร์มไหน — มาจากช่อง "ไซต์งาน / ฟาร์ม" ช่องเดียว
     const destSite = siteId === 'Intranin' ? 'Intranin' : selectedSite ? selectedSite.siteName : siteFree;
@@ -207,16 +211,12 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
 
     const isReturn = action.includes('คืนคลัง');
 
-    const body = {
-      serialNumber: serial,
+    const commonBody = {
       action,
       status,
-      // Location (คอลัมน์ G) = ตำแหน่งย่อยภายในไซต์ เช่น "ชั้น 2" / "ใกล้ประตู" — ไม่ซ้ำกับชื่อฟาร์มอีก
       location: isReturn ? 'Stock' : location.trim(),
       siteName: destSite,
-      user,
       remark,
-      fromLocation: `${cur.siteName || ''} (${cur.location || ''})`.trim(),
       farmType: showFarm ? farmType || '-' : '-',
       animalType: showFarm ? animalType || '-' : '-',
       houseId: isReturn ? '-' : houseId || houseFree || '-',
@@ -224,25 +224,67 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
     };
 
     await busy.run('กำลังโอนย้าย...', async () => {
-      try {
-        const { data } = await axios.post('/api/transfer-asset', body);
-        if (data.success) {
-          // A3: จำฟาร์มที่เพิ่งใช้ (เฉพาะปลายทางเป็นฟาร์ม) ไว้เติมให้ครั้งหน้า
-          if (showFarm && siteId && siteId !== 'Intranin') {
-            saveLastFarm({ siteId, siteName: destSite });
-          }
-          onSuccess && onSuccess();
+      if (targets.length === 1) {
+        try {
+          const target = targets[0];
+          const { data } = await axios.post('/api/transfer-asset', {
+            ...commonBody,
+            serialNumber: target.serialNumber,
+            user: userEditing ? user : (target.user || ''),
+            fromLocation: `${target.siteName || ''} (${target.location || ''})`.trim(),
+          });
+          if (!data.success) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+          if (showFarm && siteId && siteId !== 'Intranin') saveLastFarm({ siteId, siteName: destSite });
+          if (onSuccess) onSuccess();
           onClose();
-        } else {
-          showToast(data.error || 'เกิดข้อผิดพลาด', { type: 'err' });
+        } catch (e) {
+          showToast(e.response?.data?.error || e.message || 'เกิดข้อผิดพลาด', { type: 'err' });
         }
-      } catch (e) {
-        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
+        return;
       }
+
+      const succeeded = [];
+      const failed = [];
+      for (const target of targets) {
+        try {
+          const { data } = await axios.post('/api/transfer-asset', {
+            ...commonBody,
+            serialNumber: target.serialNumber,
+            user: userEditing ? user : (target.user || ''),
+            fromLocation: `${target.siteName || ''} (${target.location || ''})`.trim(),
+          });
+          if (!data.success) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+          succeeded.push(target.serialNumber);
+        } catch (e) {
+          failed.push({ serialNumber: target.serialNumber, error: e.response?.data?.error || e.message || 'เกิดข้อผิดพลาด' });
+        }
+      }
+      if (showFarm && siteId && siteId !== 'Intranin') saveLastFarm({ siteId, siteName: destSite });
+      setBatchResult({ succeeded, failed });
+      if (onSuccess) onSuccess({ failedSerials: failed.map((x) => x.serialNumber) });
     });
   }
 
   if (!open) return null;
+
+  if (batchResult) return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl my-8 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-[var(--g100)] text-[15px] font-bold">ผลการโอนย้ายอุปกรณ์</div>
+        <div className="p-5 space-y-3 text-[14px]">
+          <p className="text-[var(--emerald-d)]">สำเร็จ {batchResult.succeeded.length} จาก {batchResult.succeeded.length + batchResult.failed.length} ชิ้น</p>
+          {batchResult.failed.length > 0 && <div className="rounded-lg bg-[var(--red-l)] p-3 space-y-1">
+            <div className="font-semibold text-[var(--red)]">ไม่สำเร็จ {batchResult.failed.length} ชิ้น — รายการเหล่านี้ยังถูกเลือกไว้</div>
+            {batchResult.failed.map((item) => <div key={item.serialNumber} className="break-all text-[12px] text-[var(--red)]">{item.serialNumber}: {item.error}</div>)}
+          </div>}
+        </div>
+        <div className="flex justify-end border-t border-[var(--g100)] bg-[var(--surface2)] px-5 py-4">
+          <button onClick={onClose} className="min-h-10 px-4 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold">ปิด</button>
+        </div>
+      </div>
+      <ToastHost />
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
@@ -251,7 +293,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
           <div className="flex items-center gap-2">
             <span className="text-[var(--blue)]"><Icon name="sync_alt" /></span>
             <span className="text-[15px] font-bold text-[var(--text)]">โอนย้ายอุปกรณ์</span>
-            <span className="px-2 py-0.5 rounded-full bg-[var(--blue-l)] text-[var(--blue)] font-mono text-[11px]">{serial}</span>
+            <span className="px-2 py-0.5 rounded-full bg-[var(--blue-l)] text-[var(--blue)] font-mono text-[11px]">{assets.length > 1 ? `${assets.length} ชิ้น` : serial}</span>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--surface2)]">
             <Icon name="close" size="sm" />
@@ -260,7 +302,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
 
         <div className="p-5 space-y-4">
           {/* ขั้น 1 — เลือกปลายทาง (ปุ่มใหญ่ 3 ปุ่ม แทน dropdown "ประเภทการโอนย้าย" เดิม) */}
-          <div className="text-[12px] font-semibold text-[var(--tsub)]">อุปกรณ์นี้จะไปไหน?</div>
+          <div className="text-[12px] font-semibold text-[var(--tsub)]">{assets.length > 1 ? `อุปกรณ์ ${assets.length} ชิ้นจะไปไหน?` : 'อุปกรณ์นี้จะไปไหน?'}</div>
           <div className="grid grid-cols-3 gap-2">
             {DESTINATIONS.map((d) => (
               <button
@@ -355,7 +397,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
             </>
           )}
 
-          {/* ผู้รับผิดชอบ — โชว์เป็นข้อความ "ค่าเดิม — แก้ได้" ไม่ใช่ช่องว่าง (A1) */}
+          {/* ผู้รับผิดชอบเดิมแยกรายชิ้นในโหมดหลายรายการ; หากแก้ จะใช้ค่านี้กับทุกรายการ */}
           <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[var(--surface2)] border border-[var(--g100)]">
             {userEditing ? (
               <>
@@ -370,7 +412,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
               </>
             ) : (
               <>
-                <span className="text-[12px] text-[var(--tsub)] min-w-0 truncate">ผู้รับผิดชอบ: <b className="text-[var(--text)]">{user || 'ไม่ระบุ'}</b>{cur.user ? ' (จากเดิม — แก้ได้)' : ''}</span>
+              <span className="text-[12px] text-[var(--tsub)] min-w-0 truncate">ผู้รับผิดชอบ: <b className="text-[var(--text)]">{assets.length > 1 ? 'คงค่าเดิมแยกรายชิ้น' : user || 'ไม่ระบุ'}</b>{assets.length > 1 ? '' : cur.user ? ' (จากเดิม — แก้ได้)' : ''}</span>
                 <button type="button" onClick={() => setUserEditing(true)} className="px-2 py-0.5 rounded-md border border-[var(--g300)] bg-white text-[11px] font-semibold text-[var(--tsub)] whitespace-nowrap">แก้ไข</button>
               </>
             )}
