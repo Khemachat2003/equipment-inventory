@@ -15,11 +15,11 @@
      - (ถ้าต้องการสีธีมในหน้า HTML เก่าด้วย ดูหมายเหตุใน summary)
    ════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Core palette */
-  --ink:       #0A1628;
-  --ink2:      #111E35;
-  --ink3:      #162040;
-  --panel:     #1A2840;
+  /* Core palette — Step 4: เลื่อนจาก navy เดิมมาแนว Slate เข้ม (สอดคล้อง g100–g700 ที่เป็น slate อยู่แล้ว) */
+  --ink:       #0F172A;
+  --ink2:      #14213A;
+  --ink3:      #182741;
+  --panel:     #16233C;
   --rim:       rgba(255,255,255,.07);
   --rim2:      rgba(255,255,255,.12);
 
@@ -45,14 +45,15 @@
   --purple:    #7048E8;
   --purple-l:  #F1EDFD;
 
-  /* Surface */
-  --bg:        #F3F5F8;
-  --surface:   #FFFFFF;
-  --surface2:  #F8F9FB;
+  /* Surface — Step 4 Enterprise Polish: ลดความขาวจ้า (จาก #FFFFFF ล้วน) → โทน Slate/Off-white
+     สบายตาเวลาใช้งานนาน และให้การ์ด/ตารางมีมิติขึ้นบนพื้นหลัง slate */
+  --bg:        #E7EBF1;
+  --surface:   #F8FAFC;
+  --surface2:  #F0F3F7;
 
-  /* Text */
-  --text:      #0D1E31;
-  --tsub:      #4A5568;
+  /* Text — โทน slate (เดิม navy) */
+  --text:      #0F1B2E;
+  --tsub:      #475569;
   --tmuted:    #94A3B8;
 
   /* Borders */

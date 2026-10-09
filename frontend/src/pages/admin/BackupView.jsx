@@ -92,7 +92,7 @@ export default function BackupView() {
           value={table}
           onChange={(e) => setTable(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && load(table)}
-          className="h-9 px-3 rounded-lg border border-[var(--g200)] bg-white text-[13px] focus:outline-none focus:border-[var(--blue)] min-w-[220px]"
+          className="h-9 px-3 rounded-lg border border-[var(--g200)] bg-[var(--surface)] text-[13px] focus:outline-none focus:border-[var(--blue)] min-w-[220px]"
         >
           <option value="">-- เลือกตาราง --</option>
           {BACKUP_TABLES.map((t) => (
@@ -128,7 +128,7 @@ export default function BackupView() {
       </div>
 
       {/* Card */}
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--g100)]">
           <span className="text-[var(--blue)]"><Icon name="analytics" /></span>
           <h2 className="text-[14px] font-bold text-[var(--text)]">

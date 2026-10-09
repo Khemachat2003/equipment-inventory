@@ -1,22 +1,27 @@
-// navigation.test.jsx — เทสต์โครงเมนูหลัง UX simplify (เมนู 3 ปุ่ม + เพิ่มเติม พับเก็บ)
+// navigation.test.jsx — เทสต์โครงเมนูหลัง UX simplify + Step 3 (Farm Monitor ขึ้นเมนูหลัก)
 import { describe, it, expect } from 'vitest';
 import { NAV_GROUPS, MOBILE_NAV, ROUTE_META, getRouteMeta } from '../navigation.js';
 import { UI_FLAGS } from '../uiConfig.js';
 
-describe('navigation — โครงเมนูใหม่ (UX simplify)', () => {
-  it('งานประจำวัน 4 ปุ่ม: หน้าแรก / เบิก–คืนของ / ย้าย–โอนอุปกรณ์ / ชุดติดตั้งฟาร์ม (Bundle ขึ้นเมนูหลัก)', () => {
+describe('navigation — โครงเมนูใหม่ (Step 3: Farm Monitor ขึ้นเมนูหลัก)', () => {
+  it('งานประจำวัน 5 ปุ่ม: หน้าแรก / Farm Monitor / Bundle / เบิก–คืนของ / ย้าย–โอนอุปกรณ์ (1-Click ทั้งคู่)', () => {
     const main = NAV_GROUPS.find((g) => g.label === 'งานประจำวัน');
-    expect(main.items.map((i) => i.to)).toEqual(['/', '/stock', '/scan', '/bundle']);
+    expect(main.items.map((i) => i.to)).toEqual(['/', '/farm', '/bundle', '/stock', '/scan']);
   });
 
-  it('กลุ่ม "เพิ่มเติม" ถูกพับเก็บไว้ (collapsed) และมีหน้าเดิมครบทุกหน้า (ยกเว้น /bundle ที่ขึ้นงานประจำวันแล้ว)', () => {
+  it('Farm Monitor (/farm) ไม่ถูกซ่อนในซับเมนู "เพิ่มเติม" อีกต่อไป (Step 3 — unnesting)', () => {
+    const more = NAV_GROUPS.find((g) => g.label === 'เพิ่มเติม');
+    expect(more.items.map((i) => i.to)).not.toContain('/farm');
+    expect(more.items.map((i) => i.to)).not.toContain('/bundle');
+  });
+
+  it('กลุ่ม "เพิ่มเติม" ถูกพับเก็บไว้ (collapsed) และมีหน้าข้อมูลครบทุกหน้า', () => {
     const more = NAV_GROUPS.find((g) => g.label === 'เพิ่มเติม');
     expect(more.collapsed).toBe(true);
     const tos = more.items.map((i) => i.to);
-    ['/farm', '/asset', '/qr', '/history', '/report', '/dashboard'].forEach((p) =>
+    ['/asset', '/qr', '/history', '/report', '/dashboard'].forEach((p) =>
       expect(tos).toContain(p)
     );
-    expect(tos).not.toContain('/bundle');
   });
 
   it('/dashboard (Dashboard แบบเต็ม) เป็นของ admin เท่านั้น', () => {
@@ -38,6 +43,10 @@ describe('navigation — โครงเมนูใหม่ (UX simplify)', ()
     [...NAV_GROUPS.flatMap((g) => g.items), ...MOBILE_NAV].forEach((i) => {
       expect(ROUTE_META[i.to]).toBeTruthy();
     });
+  });
+
+  it('ROUTE_META ของ /farm เปลี่ยนชื่อเป็น Farm Monitor (Step 3)', () => {
+    expect(ROUTE_META['/farm'].title).toBe('Farm Monitor');
   });
 
   it('getRouteMeta: path ไม่รู้จัก → กลับหน้าแรก', () => {

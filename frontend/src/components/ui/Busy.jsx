@@ -28,7 +28,7 @@ export function BusyOverlay({ label, subText = 'กำลังประมว�
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col items-center gap-2.5 px-6 py-5 rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-lg)]">
+      <div className="flex flex-col items-center gap-2.5 px-6 py-5 rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-lg)]">
         <span className="text-[var(--blue)]">
           <Icon name="progress_activity" size="xl" className="animate-spin" />
         </span>

@@ -46,7 +46,7 @@ export default function AuditLog() {
         </button>
       </div>
 
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="p-3.5 border-b border-[var(--g100)]">
           <input
             value={search}

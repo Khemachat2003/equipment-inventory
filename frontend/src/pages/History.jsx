@@ -54,7 +54,7 @@ export default function History() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-end gap-3 p-4 rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)]">
+      <div className="flex flex-wrap items-end gap-3 p-4 rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)]">
         <F label="จากวันที่">
           <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={inp} />
         </F>
@@ -69,7 +69,7 @@ export default function History() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="px-4 py-3 border-b border-[var(--g100)] text-[12px] text-[var(--tmuted)]">
           พบ <strong className="text-[var(--tsub)]">{total}</strong> รายการ{total > 0 && ` · เรียงจากล่าสุด → เก่า`}
         </div>

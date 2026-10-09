@@ -83,6 +83,24 @@ const DAMAGED_HEADER = [
 
 const INBOUND_SHEET = "Inbound_Log";
 const INBOUND_HEADER = ["batchId", "receivedAt", "poNumber", "supplier", "serial", "assetId", "createdBy", "createdAt"];
+const INBOUND_PO_STATUS_SHEET = "Inbound_PO_Status";
+const INBOUND_PO_STATUS_HEADER = ["poNumber", "status", "closedAt", "closedBy", "updatedAt"];
+
+async function ensureInboundPOStatusSheet() {
+  const sheets = await getSheetsClient();
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  if (!(meta.data.sheets || []).some((s) => s.properties?.title === INBOUND_PO_STATUS_SHEET)) {
+    try {
+      await sheets.spreadsheets.batchUpdate({ spreadsheetId: SPREADSHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: INBOUND_PO_STATUS_SHEET, gridProperties: { rowCount: 1000, columnCount: INBOUND_PO_STATUS_HEADER.length } } } }] } });
+    } catch (err) {
+      const refreshed = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+      if (!(refreshed.data.sheets || []).some((s) => s.properties?.title === INBOUND_PO_STATUS_SHEET)) throw err;
+    }
+  }
+  const header = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: `${INBOUND_PO_STATUS_SHEET}!A1:E1` });
+  if (!header.data.values?.length) await sheets.spreadsheets.values.update({ spreadsheetId: SPREADSHEET_ID, range: `${INBOUND_PO_STATUS_SHEET}!A1:E1`, valueInputOption: "RAW", requestBody: { values: [INBOUND_PO_STATUS_HEADER] } });
+  return true;
+}
 
 async function ensureInboundLogSheet() {
   const sheets = await getSheetsClient();
@@ -171,5 +189,7 @@ module.exports = {
   ensureDamagedAssetsSheet,
   INBOUND_SHEET,
   ensureInboundLogSheet,
+  INBOUND_PO_STATUS_SHEET,
+  ensureInboundPOStatusSheet,
   logDamagedAsset,
 };

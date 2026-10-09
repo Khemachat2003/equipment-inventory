@@ -11,12 +11,28 @@ import { showConfirm, ConfirmHost } from '../components/ui/Confirm.jsx';
 import { buildLocation, buildBundleLocation } from '../utils/location.js';
 import { farmKeyOf, STOCK_KEY } from '../utils/bundleGroups.js';
 import { FarmInlineAdd, HouseInlineAdd } from '../components/InlineFarmAdd.jsx';
+import { readDispatchQueue, writeDispatchQueue, removeDispatchedAssets } from '../utils/dispatchQueue.js';
 
 const BTONES = {
   'In Stock': 'blue',
   Deployed: 'green',
   Maintenance: 'amber',
 };
+
+function isUnbundledStockAsset(asset) {
+  if (!asset || asset.bundleId) return false;
+  const location = String(asset.location || '').trim().toLowerCase();
+  const site = String(asset.siteName || '').trim().toLowerCase();
+  return location === 'stock' || location === 'intranin' || site === 'stock' || site === 'intranin'
+    || String(asset.status || '').trim().toLowerCase() === 'in stock';
+}
+
+function suggestBundleId(existingIds = []) {
+  const used = new Set(existingIds.map((id) => String(id || '').toUpperCase()));
+  let next = 1;
+  while (used.has(`BDL-${String(next).padStart(3, '0')}`)) next += 1;
+  return `BDL-${String(next).padStart(3, '0')}`;
+}
 
 // ── ก้อน ⑥ (Issue A): จัดกลุ่มอัตโนมัติ + ตัวกรองฟาร์ม ──────────────────────────
 // เกณฑ์ "ชุดนี้อยู่คลังหรือฟาร์มไหน" = farmKeyOf / STOCK_KEY จาก utils/bundleGroups.js (import ด้านบน)
@@ -38,6 +54,8 @@ export default function Bundle() {
   const [historySerial, setHistorySerial] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [dispatchQueue, setDispatchQueue] = useState(() => readDispatchQueue());
+  const [dispatchOpen, setDispatchOpen] = useState(false);
   const [collapsedFarms, setCollapsedFarms] = useState({}); // ก้อน ⑥: ฟาร์มไหนถูกพับอยู่ (default กางหมด)
   const busy = useBusy();
 
@@ -54,6 +72,14 @@ export default function Bundle() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (searchParams.get('dispatch') === '1') {
+      setDispatchQueue(readDispatchQueue());
+      setDispatchOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // เพิ่มฟาร์มใหม่จากฟอร์มย่อใน DeployModal → refresh รายการฟาร์ม (dropdown อัปเดตทันที)
   async function refreshFarms() {
@@ -187,6 +213,40 @@ export default function Bundle() {
     });
   }
 
+  async function assembleDispatchBundle(data, assetIds) {
+    if (!assetIds.length) return;
+    await busy.run('กำลังประกอบชุดจากคิวจัดส่ง...', async () => {
+      try {
+        const latest = await axios.get('/api/assets');
+        const currentById = new Map((latest.data || []).map((asset) => [asset.assetId, asset]));
+        const stale = assetIds.filter((assetId) => {
+          const asset = currentById.get(assetId);
+          return !asset || !isUnbundledStockAsset(asset) || (dispatchQueue.poNumber && asset.poNumber !== dispatchQueue.poNumber);
+        });
+        if (stale.length) {
+          showToast(`มี Serial ที่ถูกจัดชุดหรือเปลี่ยน PO ไปแล้ว: ${stale.join(', ')} · รีเฟรชคิวก่อนสร้าง`, { type: 'warn' });
+          return;
+        }
+        await axios.post('/api/bundles', data);
+        await axios.post(`/api/bundles/${encodeURIComponent(data.bundleId)}/assets/bulk`, { assetIds });
+        const nextQueue = removeDispatchedAssets(dispatchQueue, assetIds);
+        writeDispatchQueue(nextQueue);
+        setDispatchQueue(nextQueue);
+        await load();
+        if (!nextQueue) setDispatchOpen(false);
+        showToast(nextQueue ? `สร้าง ${data.bundleName} แล้ว · เหลือ ${nextQueue.items.length} Serial ในคิว` : `สร้าง ${data.bundleName} สำเร็จ`, {
+          actionLabel: 'กำหนดปลายทาง',
+          onAction: () => {
+            setDispatchOpen(false);
+            setDeployOpen(data.bundleId);
+          },
+        });
+      } catch (error) {
+        showToast(error.response?.data?.error || 'สร้างชุดจากคิวไม่สำเร็จ', { type: 'err' });
+      }
+    });
+  }
+
   async function removeAsset(bundleId, assetId) {
     // ยืนยันด้วยกล่องในระบบ (แทน window.confirm) — ยกเลิก/Esc/คลิกพื้นหลัง = ไม่ทำอะไร
     if (!(await showConfirm({
@@ -303,6 +363,13 @@ export default function Bundle() {
         </div>
       </div>
 
+      {dispatchQueue?.items?.length > 0 && (
+        <section className="flex flex-col gap-3 rounded-xl border border-[var(--blue-b)] bg-[var(--blue-l)]/50 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+          <div className="min-w-0"><div className="text-[13px] font-bold text-[var(--blue)]">คิวจัดชุดจาก PO {dispatchQueue.poNumber}</div><div className="text-[12px] text-[var(--tsub)]">เหลือ {dispatchQueue.items.length} Serial · แบ่งลง Bundle ได้หลายชุด</div></div>
+          <div className="flex gap-2"><button onClick={() => { writeDispatchQueue(null); setDispatchQueue(null); setDispatchOpen(false); }} className="min-h-11 rounded-lg border border-[var(--g300)] bg-[var(--surface)] px-3 text-[12px] font-semibold text-[var(--tsub)]">ล้างคิว</button><button onClick={() => setDispatchOpen(true)} className="min-h-11 rounded-lg bg-[var(--blue)] px-4 text-[12px] font-semibold text-white">จัดชุดต่อ</button></div>
+        </section>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <StatCard label="ชุดทั้งหมด" value={stats.all} icon="folder_open" tone="blue" />
@@ -387,6 +454,7 @@ export default function Bundle() {
 
       {/* Create modal */}
       {createOpen && <CreateModal onClose={() => setCreateOpen(false)} onSubmit={createBundle} existingIds={bundles.map((b) => b.bundleId)} />}
+      {dispatchOpen && dispatchQueue?.items?.length > 0 && <DispatchAssemblyModal key={dispatchQueue.items.map((item) => item.assetId).join('|')} queue={dispatchQueue} existingIds={bundles.map((b) => b.bundleId)} onClose={() => setDispatchOpen(false)} onSubmit={assembleDispatchBundle} />}
 
       {/* Deploy modal */}
       {deployOpen && (
@@ -508,7 +576,7 @@ function FarmFilterCombobox({ value, onChange, counts }) {
           aria-expanded={open}
           aria-controls={listboxId}
           onClick={() => (open ? setOpen(false) : showOptions())}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--g200)] bg-white px-3 min-h-11 text-left text-[14px] text-[var(--text)] hover:border-[var(--blue)] focus:outline-none focus:ring-2 focus:ring-[var(--blue)]/20"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--g200)] bg-[var(--surface)] px-3 min-h-11 text-left text-[14px] text-[var(--text)] hover:border-[var(--blue)] focus:outline-none focus:ring-2 focus:ring-[var(--blue)]/20"
         >
           <Icon name={selected.icon} size="sm" className="shrink-0 text-[var(--blue)]" />
           <span className="min-w-0 flex-1 truncate">{selected.name}</span>
@@ -521,7 +589,7 @@ function FarmFilterCombobox({ value, onChange, counts }) {
             onClick={() => { onChange(''); setOpen(false); }}
             aria-label="ล้างตัวกรองฟาร์ม"
             title="ล้างตัวกรองฟาร์ม"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--g200)] bg-white text-[var(--tsub)] hover:border-[var(--blue)] hover:text-[var(--blue)] focus:outline-none focus:ring-2 focus:ring-[var(--blue)]/20"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--g200)] bg-[var(--surface)] text-[var(--tsub)] hover:border-[var(--blue)] hover:text-[var(--blue)] focus:outline-none focus:ring-2 focus:ring-[var(--blue)]/20"
           >
             <Icon name="close" size="sm" />
           </button>
@@ -529,7 +597,7 @@ function FarmFilterCombobox({ value, onChange, counts }) {
       </div>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-[var(--g200)] bg-white shadow-[var(--sh-md)]">
+        <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-[var(--g200)] bg-[var(--surface)] shadow-[var(--sh-md)]">
           <label htmlFor="bundle-farm-search" className="sr-only">ค้นหาชื่อฟาร์มหรือ Farm ID</label>
           <div className="relative border-b border-[var(--g100)] p-2">
             <Icon name="search" size="sm" className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--tmuted)]" />
@@ -592,7 +660,7 @@ function StatCard({ label, value, icon, tone }) {
     red: 'bg-[var(--red-l)] text-[var(--red)]',
   };
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 min-w-0">
+    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 min-w-0">
       <span className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex-shrink-0 ${tones[tone]}`}><Icon name={icon} size="md" /></span>
       <div className="min-w-0">
         <div className="text-[12px] text-[var(--tmuted)] leading-tight">{label}</div>
@@ -622,9 +690,16 @@ function ZoneHeader({ icon, tone, title, count }) {
 function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
   const b = bundle;
   const inStock = b.status === 'In Stock';
-  const loc = inStock ? 'คลังกลาง' : b.location || b.farmId;
+  // Step 2: โชว์ชื่อฟาร์มที่อ่านง่ายก่อน (farmName) + โรงเรือนถ้ามี — ตรงกับหน้า Asset/Scan ที่ใช้ buildLocation
+  const locParts = inStock
+    ? []
+    : [
+        b.farmName || b.location || b.farmId,
+        b.houseName ? [b.houseId, b.houseName].filter(Boolean).join(' ') : '',
+      ].filter(Boolean);
+  const loc = inStock ? 'คลังกลาง' : locParts.join(' › ');
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 flex flex-col gap-3">
+    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between">
         <div>
           <div className="font-mono text-[13px] font-bold text-[var(--text)]">{b.bundleId}</div>
@@ -638,7 +713,7 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
         <span className="flex items-center gap-1 min-w-0">
           <Icon name="place" size="xs" className="flex-shrink-0" />
           <span className="truncate" title={loc}>
-            {inStock ? 'คลังกลาง' : loc}
+            {loc}
           </span>
         </span>
         {!inStock && (
@@ -671,7 +746,7 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
   );
   const divergent = divergence?.divergent;
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
       <div className="p-5 border-b border-[var(--g100)] bg-gradient-to-r from-[var(--blue-l)] to-transparent">
         <button onClick={onBack} className="flex items-center gap-1 text-[12px] text-[var(--blue)] font-semibold mb-3"><Icon name="arrow_back" size="sm" /> กลับ</button>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -761,6 +836,29 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
         </div>
       </div>
     </div>
+  );
+}
+
+function DispatchAssemblyModal({ queue, existingIds, onClose, onSubmit }) {
+  const [bundleId, setBundleId] = useState(() => suggestBundleId(existingIds));
+  const [bundleName, setBundleName] = useState('');
+  const [description, setDescription] = useState(`PO ${queue.poNumber || 'ไม่ระบุ PO'}`);
+  const [selectedIds, setSelectedIds] = useState(() => queue.items.map((item) => item.assetId));
+  const duplicate = existingIds.some((id) => String(id).trim().toUpperCase() === bundleId.trim().toUpperCase());
+  const selectedSet = new Set(selectedIds);
+  function toggle(id) { setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]); }
+  return (
+    <Modal onClose={onClose} title="ประกอบ Bundle จากคิว PO">
+      <div className="rounded-lg border border-[var(--blue-b)] bg-[var(--blue-l)] px-3 py-2 text-[12px] text-[var(--blue)]">PO {queue.poNumber || 'ไม่ระบุ PO'} · เลือก Serial สำหรับ Bundle นี้ ({selectedIds.length}/{queue.items.length})</div>
+      <Field label="รหัส Bundle *"><input value={bundleId} onChange={(event) => setBundleId(event.target.value.toUpperCase())} className={inp} /></Field>
+      {duplicate && <div className="text-[12px] font-semibold text-[var(--red)]">รหัส Bundle นี้มีอยู่แล้ว</div>}
+      <Field label="ชื่อ Bundle *"><input value={bundleName} onChange={(event) => setBundleName(event.target.value)} placeholder="เช่น ตู้ควบคุมพัดลม · โรงเรือน 1" className={inp} /></Field>
+      <Field label="คำอธิบาย"><input value={description} onChange={(event) => setDescription(event.target.value)} className={inp} /></Field>
+      <div className="flex items-center justify-between gap-2"><span className="text-[12px] font-semibold text-[var(--tsub)]">Serial ในคิว</span><button onClick={() => setSelectedIds(selectedIds.length === queue.items.length ? [] : queue.items.map((item) => item.assetId))} className="min-h-11 px-2 text-[12px] font-semibold text-[var(--blue)]">{selectedIds.length === queue.items.length ? 'ล้างที่เลือก' : 'เลือกทั้งหมด'}</button></div>
+      <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-[var(--g200)] p-1">{queue.items.map((item) => <label key={item.assetId} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 hover:bg-[var(--surface2)]"><input type="checkbox" className="h-5 w-5 shrink-0" checked={selectedSet.has(item.assetId)} onChange={() => toggle(item.assetId)} /><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-semibold">{item.name || item.assetId}</span><span className="block truncate font-mono text-[11px] text-[var(--blue)]">{item.serialNumber} · {item.batchId}</span></span></label>)}</div>
+      <p className="text-[11px] text-[var(--tmuted)]">หลังสร้างชุด สามารถกด “กำหนดปลายทาง” เพื่อเลือกฟาร์มและโรงเรือนให้ Bundle นี้แยกจากชุดอื่น</p>
+      <ModalFooter onClose={onClose} onSubmit={() => onSubmit({ bundleId: bundleId.trim(), bundleName: bundleName.trim(), description, status: 'In Stock' }, selectedIds)} submitLabel={`สร้าง Bundle (${selectedIds.length} Serial)`} submitDisabled={!bundleId.trim() || !bundleName.trim() || duplicate || selectedIds.length === 0} />
+    </Modal>
   );
 }
 
@@ -1026,7 +1124,7 @@ function AddAssetModal({ pending, setPending, results, onSearch, onClose, onComm
 function Modal({ onClose, title, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl my-3 sm:my-8" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md bg-[var(--surface)] rounded-2xl shadow-xl my-3 sm:my-8" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-[var(--g100)]">
           <span className="text-[15px] font-bold text-[var(--text)]">{title}</span>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--surface2)]"><Icon name="close" size="sm" /></button>

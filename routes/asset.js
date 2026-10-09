@@ -13,8 +13,9 @@ const {
 } = require("../services/sheets");
 const { requireLogin, validate } = require("../middleware/auth");
 const { logAudit } = require("../services/audit");
-const { normalizeReceivedAt, createBatchId, createInboundRows, inboundMap } = require("../utils/inbound");
+const { normalizeReceivedAt, resolveInboundBatch, createInboundRows, inboundMap, summarizeInboundBatches, summarizeInboundPOs } = require("../utils/inbound");
 const { readInboundRows, prepareInboundWrite, appendInboundRows } = require("../services/inboundStore");
+const { readPOStatuses, savePOStatus } = require("../services/inboundPOStore");
 const { isLocalInventoryMode, readLocalInventory, addLocalAsset, addLocalAssets } = require("../services/localInventory");
 
 // -------------------- SYNC ASSET HISTORY --------------------
@@ -272,25 +273,64 @@ router.get("/api/asset-history-recent", requireLogin, async (req, res) => {
   }
 });
 
-router.get("/api/inbound-batches/recent", requireLogin, async (req, res) => {
+async function respondInboundBatches(req, res, limit = Infinity) {
   try {
     let sheets = null;
     if (!isLocalInventoryMode()) {
       try { sheets = await getSheetsClient(); } catch (error) { console.warn(`[inbound] Google Sheets client unavailable; using local metadata (${error.message})`); }
     }
     const rows = await readInboundRows(sheets, SPREADSHEET_ID);
-    const grouped = new Map();
-    for (const row of rows) {
-      if (!row[0]) continue;
-      const batch = grouped.get(row[0]) || { batchId: row[0], receivedAt: row[1] || "", poNumber: row[2] || "", supplier: row[3] || "", count: 0 };
-      batch.count += 1;
-      grouped.set(row[0], batch);
-    }
-    res.json([...grouped.values()].sort((a, b) => String(b.receivedAt).localeCompare(String(a.receivedAt))).slice(0, 12));
+    res.json(summarizeInboundBatches(rows).slice(0, limit));
   } catch (err) {
     if (String(err.message || "").includes("Unable to parse range")) return res.json([]);
     console.error("Recent inbound batches:", err);
     res.status(500).json([]);
+  }
+}
+
+router.get("/api/inbound-batches", requireLogin, async (req, res) => respondInboundBatches(req, res));
+router.get("/api/inbound-batches/recent", requireLogin, async (req, res) => {
+  return respondInboundBatches(req, res, 12);
+});
+
+async function loadInboundPOs() {
+  let sheets = null;
+  if (!isLocalInventoryMode()) sheets = await getSheetsClient();
+  const [inboundRows, statusRows] = await Promise.all([readInboundRows(sheets, SPREADSHEET_ID), readPOStatuses(sheets, SPREADSHEET_ID)]);
+  let assets;
+  if (isLocalInventoryMode()) {
+    assets = (await readLocalInventory()).assets;
+  } else {
+    const { data } = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: "Asset_List!A2:P" });
+    assets = (data.values || []).map((row) => ({ serialNumber: row[4] || "", status: row[5] || "", location: row[6] || "", siteName: row[7] || "" }));
+  }
+  return { sheets, groups: summarizeInboundPOs(inboundRows, assets, statusRows) };
+}
+
+router.get("/api/inbound-pos", requireLogin, async (req, res) => {
+  try {
+    const { groups } = await loadInboundPOs();
+    const filtered = req.query.status === "active" || req.query.status === "closed" ? groups.filter((po) => po.status === req.query.status) : groups;
+    const limit = Number.parseInt(req.query.limit, 10);
+    res.json(Number.isFinite(limit) && limit > 0 ? filtered.slice(0, limit) : filtered);
+  } catch (error) {
+    console.error("Inbound PO list error:", error);
+    res.status(500).json({ error: "Unable to load inbound PO lifecycle" });
+  }
+});
+
+router.post("/api/inbound-pos/:poNumber/close", requireLogin, async (req, res) => {
+  const poNumber = String(req.params.poNumber || "").trim();
+  if (!poNumber) return res.status(400).json({ error: "PO number is required" });
+  try {
+    const { sheets, groups } = await loadInboundPOs();
+    if (!groups.some((po) => po.poNumber === poNumber)) return res.status(404).json({ error: "PO not found" });
+    const record = await savePOStatus(sheets, SPREADSHEET_ID, poNumber, "closed", req.session.user.username);
+    clearAssetCache();
+    res.json({ success: true, ...record });
+  } catch (error) {
+    console.error("Close inbound PO error:", error);
+    res.status(500).json({ error: "Unable to close PO" });
   }
 });
 
@@ -467,6 +507,7 @@ router.post("/api/add-asset",
     body("receivedAt").optional().isString(),
     body("poNumber").optional().isString(),
     body("supplier").optional().isString(),
+    body("batchId").optional().isString(),
   ],
   validate,
   async (req, res) => {
@@ -484,24 +525,33 @@ router.post("/api/add-asset",
         receivedAt: receivedAtInput,
         poNumber = "",
         supplier = "",
+        batchId: requestedBatchId = "",
       } = req.body;
       if (isLocalInventoryMode()) {
-        const created = await addLocalAsset({ assetId, code, name, partNumber, serialNumber, status, location, siteName, user }, req.session.user.username);
-        if (!created.success) return res.status(409).json(created);
         let inbound = null;
         if (serialNumber) {
-          const receivedAt = normalizeReceivedAt(receivedAtInput);
           const existing = await readInboundRows(null, SPREADSHEET_ID);
-          const batchId = createBatchId(receivedAt, existing.map((row) => row[0]));
-          const [row] = createInboundRows({ batchId, receivedAt, poNumber: String(poNumber || "").slice(0, 100), supplier: String(supplier || "").slice(0, 100), serials: [serialNumber], assetIds: [assetId], receivedBy: req.session.user.username });
+          inbound = resolveInboundBatch({ batchId: requestedBatchId, receivedAt: normalizeReceivedAt(receivedAtInput), poNumber, supplier, existingRows: existing });
+        }
+        const created = await addLocalAsset({ assetId, code, name, partNumber, serialNumber, status, location, siteName, user }, req.session.user.username);
+        if (!created.success) return res.status(409).json(created);
+        if (serialNumber) {
+          const [row] = createInboundRows({ ...inbound, serials: [serialNumber], assetIds: [assetId], receivedBy: req.session.user.username });
           const storage = await appendInboundRows(null, SPREADSHEET_ID, [row]);
-          inbound = { batchId, receivedAt, poNumber: String(poNumber || "").trim(), supplier: String(supplier || "").trim(), inboundStorage: storage };
+          if (inbound.poNumber) await savePOStatus(null, SPREADSHEET_ID, inbound.poNumber, "active");
+          inbound = { ...inbound, inboundStorage: storage };
         }
         clearAssetCache();
         return res.json({ success: true, ...inbound });
       }
       const sheets = await getSheetsClient();
       const receivedAt = serialNumber ? normalizeReceivedAt(receivedAtInput) : null;
+      let inboundBatch = null;
+      if (serialNumber) {
+        const existing = await readInboundRows(sheets, SPREADSHEET_ID);
+        inboundBatch = resolveInboundBatch({ batchId: requestedBatchId, receivedAt, poNumber, supplier, existingRows: existing });
+        await prepareInboundWrite();
+      }
       const currentDate = new Date().toLocaleString("th-TH");
       const rowValues = [
         assetId,
@@ -515,7 +565,6 @@ router.post("/api/add-asset",
         user,
         currentDate,
       ];
-      if (serialNumber) await prepareInboundWrite();
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
         range: "Asset_List!A:J",
@@ -524,11 +573,10 @@ router.post("/api/add-asset",
       });
       let inbound = null;
       if (serialNumber) {
-        const existing = await readInboundRows(sheets, SPREADSHEET_ID);
-        const batchId = createBatchId(receivedAt, existing.map((row) => row[0]));
-        const [inboundRow] = createInboundRows({ batchId, receivedAt, poNumber: String(poNumber || "").slice(0, 100), supplier: String(supplier || "").slice(0, 100), serials: [serialNumber], assetIds: [assetId], receivedBy: req.session.user.username });
+        const [inboundRow] = createInboundRows({ ...inboundBatch, serials: [serialNumber], assetIds: [assetId], receivedBy: req.session.user.username });
         const storage = await appendInboundRows(sheets, SPREADSHEET_ID, [inboundRow]);
-        inbound = { batchId, receivedAt, poNumber: String(poNumber || "").trim(), supplier: String(supplier || "").trim(), inboundStorage: storage };
+        if (inboundBatch.poNumber) await savePOStatus(sheets, SPREADSHEET_ID, inboundBatch.poNumber, "active");
+        inbound = { ...inboundBatch, inboundStorage: storage };
       }
       await saveAssetHistory(
         serialNumber,
@@ -554,7 +602,7 @@ await logAudit(
 res.json({ success: true, ...(inbound || {}) });   // ✅ ส่ง Response ทีหลัง
     } catch (error) {
       console.error("❌ Add Asset Error:", error);
-      res.status(500).json({ success: false, error: error.message });
+      res.status(error.status || 500).json({ success: false, error: error.message });
     }
   }
 );
@@ -895,6 +943,7 @@ router.post("/api/bulk-add-asset",
     body("farmType").optional().isString(),
     body("houseId").optional().isString(),
     body("houseName").optional().isString(),
+    body("batchId").optional().isString(),
   ],
   validate,
   async (req, res) => {
@@ -913,16 +962,17 @@ router.post("/api/bulk-add-asset",
         receivedAt: receivedAtInput,
         poNumber = "",
         supplier = "",
+        batchId: requestedBatchId = "",
       } = req.body;
       if (isLocalInventoryMode()) {
-        const receivedAt = normalizeReceivedAt(receivedAtInput);
         const inboundExisting = await readInboundRows(null, SPREADSHEET_ID);
-        const batchId = createBatchId(receivedAt, inboundExisting.map((row) => row[0]));
+        const batch = resolveInboundBatch({ batchId: requestedBatchId, receivedAt: normalizeReceivedAt(receivedAtInput), poNumber, supplier, existingRows: inboundExisting });
         const created = await addLocalAssets({ partNumber, partName, qty, status, siteName, location, user, farmType, houseId, houseName }, req.session.user.username);
-        const inboundRows = createInboundRows({ batchId, receivedAt, poNumber: String(poNumber || "").slice(0, 100), supplier: String(supplier || "").slice(0, 100), serials: created.assets.map((asset) => asset.serialNumber), assetIds: created.assets.map((asset) => asset.assetId), receivedBy: req.session.user.username });
+        const inboundRows = createInboundRows({ ...batch, serials: created.assets.map((asset) => asset.serialNumber), assetIds: created.assets.map((asset) => asset.assetId), receivedBy: req.session.user.username });
         await appendInboundRows(null, SPREADSHEET_ID, inboundRows);
+        if (batch.poNumber) await savePOStatus(null, SPREADSHEET_ID, batch.poNumber, "active");
         cache.del("partCatalog");
-        return res.json({ success: true, ...created, serials: created.assets.map((asset) => asset.serialNumber), batchId, receivedAt, poNumber, supplier, inboundStorage: "local-file" });
+        return res.json({ success: true, ...created, serials: created.assets.map((asset) => asset.serialNumber), ...batch, poNumber: batch.poNumber, supplier: batch.supplier, inboundStorage: "local-file" });
       }
       const sheets = await getSheetsClient();
 
@@ -1021,14 +1071,10 @@ router.post("/api/bulk-add-asset",
         });
       }
 
-      const receivedAt = normalizeReceivedAt(receivedAtInput);
       const inboundExisting = await readInboundRows(sheets, SPREADSHEET_ID);
-      const batchId = createBatchId(receivedAt, inboundExisting.map((row) => row[0]));
+      const batch = resolveInboundBatch({ batchId: requestedBatchId, receivedAt: normalizeReceivedAt(receivedAtInput), poNumber, supplier, existingRows: inboundExisting });
       const inboundRows = createInboundRows({
-        batchId,
-        receivedAt,
-        poNumber: String(poNumber || "").slice(0, 100),
-        supplier: String(supplier || "").slice(0, 100),
+        ...batch,
         serials: newRows.map((row) => row[4]),
         assetIds: newRows.map((row) => row[0]),
         receivedBy: req.session.user.username,
@@ -1050,6 +1096,7 @@ router.post("/api/bulk-add-asset",
       });
 
       const inboundStorage = await appendInboundRows(sheets, SPREADSHEET_ID, inboundRows);
+      if (batch.poNumber) await savePOStatus(sheets, SPREADSHEET_ID, batch.poNumber, "active");
 
       const catRes = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
@@ -1085,17 +1132,16 @@ res.json({
   success: true,
   added: qty,
   serials: newRows.map((r) => r[4]),
-  batchId,
-  receivedAt,
-  poNumber: String(poNumber || "").trim(),
-  supplier: String(supplier || "").trim(),
+  ...batch,
+  poNumber: batch.poNumber,
+  supplier: batch.supplier,
   inboundStorage,
   firstSerial: newRows[0][4],
   lastSerial: newRows[newRows.length - 1][4],
 });
     } catch (e) {
       console.error("Bulk add error:", e);
-      res.status(500).json({ success: false, error: e.message });
+      res.status(e.status || 500).json({ success: false, error: e.message });
     }
   }
 );

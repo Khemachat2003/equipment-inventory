@@ -69,7 +69,7 @@ export function ConfirmHost() {
       aria-modal="true"
       onClick={(e) => { if (e.target === e.currentTarget) answer(false); }}
     >
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-[var(--sh-lg)] p-5">
+      <div className="w-full max-w-sm rounded-2xl bg-[var(--surface)] shadow-[var(--sh-lg)] p-5">
         <div className="flex items-start gap-3">
           <span className={`mt-0.5 shrink-0 ${danger ? 'text-[var(--red)]' : 'text-[var(--blue)]'}`}>
             <Icon name="warning" />

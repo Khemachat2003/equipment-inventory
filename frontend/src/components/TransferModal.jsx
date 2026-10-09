@@ -269,7 +269,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
 
   if (batchResult) return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl my-8 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-lg bg-[var(--surface)] rounded-2xl shadow-xl my-8 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-[var(--g100)] text-[15px] font-bold">ผลการโอนย้ายอุปกรณ์</div>
         <div className="p-5 space-y-3 text-[14px]">
           <p className="text-[var(--emerald-d)]">สำเร็จ {batchResult.succeeded.length} จาก {batchResult.succeeded.length + batchResult.failed.length} ชิ้น</p>
@@ -288,7 +288,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-2xl bg-[var(--surface)] rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--g100)]">
           <div className="flex items-center gap-2">
             <span className="text-[var(--blue)]"><Icon name="sync_alt" /></span>
@@ -312,7 +312,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
                 className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-center transition-colors ${
                   activeDest === d.id
                     ? 'bg-[var(--blue-l)] border-[var(--blue)] text-[var(--blue)]'
-                    : 'bg-white border-[var(--g200)] text-[var(--tsub)] hover:border-[var(--g300)] hover:bg-[var(--surface2)]'
+                    : 'bg-[var(--surface)] border-[var(--g200)] text-[var(--tsub)] hover:border-[var(--g300)] hover:bg-[var(--surface2)]'
                 }`}
               >
                 <Icon name={d.icon} />
@@ -334,7 +334,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
               {fromMemory && (
                 <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[var(--blue-l)] border border-[var(--blue-b)] text-[12px]">
                   <span className="text-[var(--blue-d)]">ย้ายไปที่: <b>{sites.find((s) => s.siteId === siteId)?.siteName || siteId}</b> — ฟาร์มที่ใช้ครั้งล่าสุด</span>
-                  <button type="button" onClick={() => { setSiteId(''); setFromMemory(false); }} className="px-2 py-0.5 rounded-md bg-white border border-[var(--blue)] text-[11px] font-semibold text-[var(--blue)] whitespace-nowrap">เลือกฟาร์มอื่น</button>
+                  <button type="button" onClick={() => { setSiteId(''); setFromMemory(false); }} className="px-2 py-0.5 rounded-md bg-[var(--surface)] border border-[var(--blue)] text-[11px] font-semibold text-[var(--blue)] whitespace-nowrap">เลือกฟาร์มอื่น</button>
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -406,14 +406,14 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
                   value={user}
                   onChange={(e) => setUser(e.target.value)}
                   placeholder={cur.user ? `เดิม: ${cur.user}` : 'ชื่อผู้ดูแล (ถ้ามี)'}
-                  className="flex-1 h-8 px-2.5 rounded-md border border-[var(--g200)] bg-white text-[13px] focus:outline-none focus:border-[var(--blue)]"
+                  className="flex-1 h-8 px-2.5 rounded-md border border-[var(--g200)] bg-[var(--surface)] text-[13px] focus:outline-none focus:border-[var(--blue)]"
                 />
                 <button type="button" onClick={() => setUserEditing(false)} className="px-2 py-1 rounded-md text-[12px] font-semibold text-[var(--blue)] whitespace-nowrap">เสร็จ</button>
               </>
             ) : (
               <>
               <span className="text-[12px] text-[var(--tsub)] min-w-0 truncate">ผู้รับผิดชอบ: <b className="text-[var(--text)]">{assets.length > 1 ? 'คงค่าเดิมแยกรายชิ้น' : user || 'ไม่ระบุ'}</b>{assets.length > 1 ? '' : cur.user ? ' (จากเดิม — แก้ได้)' : ''}</span>
-                <button type="button" onClick={() => setUserEditing(true)} className="px-2 py-0.5 rounded-md border border-[var(--g300)] bg-white text-[11px] font-semibold text-[var(--tsub)] whitespace-nowrap">แก้ไข</button>
+                <button type="button" onClick={() => setUserEditing(true)} className="px-2 py-0.5 rounded-md border border-[var(--g300)] bg-[var(--surface)] text-[11px] font-semibold text-[var(--tsub)] whitespace-nowrap">แก้ไข</button>
               </>
             )}
           </div>
@@ -497,7 +497,7 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-[var(--g100)] bg-[var(--surface2)] rounded-b-2xl">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[var(--g300)] text-[13px] text-[var(--tsub)] hover:bg-white">ยกเลิก</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[var(--g300)] text-[13px] text-[var(--tsub)] hover:bg-[var(--surface)]">ยกเลิก</button>
           <button
             onClick={submit}
             disabled={busy.busy}

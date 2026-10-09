@@ -43,7 +43,7 @@ export default function Report() {
 
   return (
     <div className="max-w-3xl space-y-4">
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="p-5 border-b border-[var(--g100)]">
           <div className="flex items-center gap-2 text-[15px] font-bold text-[var(--text)]">
             <span className="text-[var(--blue)]"><Icon name="description" /></span> Export รายงาน PDF

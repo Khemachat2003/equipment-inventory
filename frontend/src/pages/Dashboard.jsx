@@ -140,7 +140,7 @@ export default function Dashboard() {
       <div className={`grid grid-cols-1 ${UI_FLAGS.charts ? 'xl:grid-cols-[1fr_320px]' : ''} gap-4 items-start`}>
         {/* Chart */}
         {UI_FLAGS.charts && (
-        <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)]">
               <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--blue-l)] text-[var(--blue)]">
@@ -160,7 +160,7 @@ export default function Dashboard() {
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                       chartType === t.value
                         ? 'bg-[var(--blue)] text-white shadow-[var(--sh-sm)]'
-                        : 'text-[var(--tsub)] hover:bg-white'
+                        : 'text-[var(--tsub)] hover:bg-[var(--surface)]'
                     }`}
                   >
                     <Icon name={t.icon} size="sm" /> {t.label}
@@ -175,7 +175,7 @@ export default function Dashboard() {
                     className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                       range === r.days
                         ? 'bg-[var(--blue)] text-white shadow-[var(--sh-sm)]'
-                        : 'text-[var(--tsub)] hover:bg-white'
+                        : 'text-[var(--tsub)] hover:bg-[var(--surface)]'
                     }`}
                   >
                     {r.label}
@@ -197,7 +197,7 @@ export default function Dashboard() {
         {/* Right rail — สถานะ + อันดับฟาร์ม */}
         <div className="space-y-4">
           {/* สถานะอุปกรณ์ */}
-          <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+          <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)] mb-4">
               <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)]">
                 <Icon name="fact_check" size="sm" />
@@ -226,7 +226,7 @@ export default function Dashboard() {
           </div>
 
           {/* อันดับฟาร์ม */}
-          <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+          <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)] mb-4">
               <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--amber-l)] text-[var(--amber-d)]">
                 <Icon name="workspace_premium" size="sm" />
@@ -297,7 +297,7 @@ function KpiCard({ icon, tone, label, value, desc }) {
     red: 'bg-[var(--red-l)] text-[var(--red)]',
   }[tone] || 'bg-[var(--blue-l)] text-[var(--blue)]';
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5 flex items-center gap-4">
+    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-5 flex items-center gap-4">
       <span className={`flex items-center justify-center w-11 h-11 rounded-xl shrink-0 ${cls}`}>
         <Icon name={icon} size="md" />
       </span>

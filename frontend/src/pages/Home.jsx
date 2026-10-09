@@ -1,17 +1,21 @@
 // Home — หน้าแรกแบบ Workdesk (UX simplify)
 // หลักการ: "1 หน้าจอ = งานที่ผู้ใช้อยากทำ" — ค้นหาได้ทุกอย่างจากที่เดียว
-// ค้นหา → เห็นอุปกรณ์รายชิ้น/ของในคลัง → กด action ต่อได้ทันที (ย้าย/ประวัติ/ฉลาก/เบิก)
+// ลำดับความสำคัญ (Visual Hierarchy): (1) ค้นหา → ผลลัพธ์ทำต่อทันที
+//   (2) งานที่ทำบ่อย / Operations (ช่าง+จัดซื้อกดใช้ตลอดวัน)
+//   (3) Farm Health & Status + Quick Farm Access (compact 6 ฟาร์มแรก + ค้นหาในโซน + ดูฟาร์มทั้งหมด)
 // ไม่แสดงกราฟ chart.js (กราฟเดิมอยู่ที่ /dashboard)
 
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import { AssetHistoryModal } from '../components/AssetHistory.jsx';
+import FarmDetailModal from '../components/FarmDetailModal.jsx';
+import { buildFarmOverview } from '../utils/farmMonitor.js';
 
 const IMAGE_URL = (code, ext) =>
   `https://cdn.jsdelivr.net/gh/Khemachat2003/stock-image@main/images/${code}.${ext || 'jpg'}?v=4`;
@@ -23,52 +27,115 @@ const QUICK_ACTIONS = [
   { to: '/qr', icon: 'qr_code_2', box: 'bg-[var(--amber-l)] text-[var(--amber-d)]', title: 'พิมพ์ฉลาก', desc: 'พิมพ์ฉลาก QR / Barcode ติดอุปกรณ์' },
 ];
 
+// Scalable Farm Cards (รองรับฟาร์มเพิ่มขึ้นในอนาคต): หน้าแรกโชว์แค่ 6 ฟาร์มแรกแบบ Compact Grid
+// ที่เหลือกด "ดูฟาร์มทั้งหมด" เพื่อขยายดู — กันบล็อกการ์ดล้นหน้าจอ (Grid Overflow) เมื่อฟาร์มเยอะขึ้น
+const FARM_PREVIEW_COUNT = 6;
+
 
 
 export default function Home() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [q, setQ] = useState('');
   const [assets, setAssets] = useState([]);
   const [stock, setStock] = useState([]);
+  const [bundles, setBundles] = useState([]);
+  const [farms, setFarms] = useState([]);
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [transfer, setTransfer] = useState(null); // ปุ่ม "ย้าย" เปิดฟอร์มโอนย้ายทันทีบนหน้าแรก (ไม่ต้องเด้งไป /scan ก่อน)
   const [historySerial, setHistorySerial] = useState('');
+  const [farmOpen, setFarmOpen] = useState(null); // ชื่อฟาร์มที่เปิด FarmDetailModal (Quick Farm Access — ดูรายละเอียดฟาร์มได้จากหน้าแรก)
+  const [farmQuery, setFarmQuery] = useState(''); // In-Zone Quick Search: พิมพ์ค้นหาฟาร์มในโซน Farm Health ได้ทันที ไม่ต้องเลื่อนหา
+  const [showAllFarms, setShowAllFarms] = useState(false); // "ดูฟาร์มทั้งหมด" — ขยาดเกิน FARM_PREVIEW_COUNT ฟาร์มแรก
   const [dataVersion, setDataVersion] = useState(0); // เพิ่มของเสร็จ → โหลดสถิติใหม่
 
   useEffect(() => {
     let alive = true;
     (async () => {
       // allSettled: API ตัวใดล้มเหลว (เช่น quota/เน็ต) → ส่วนอื่นยังแสดงได้
-      const [a, s, d, h] = await Promise.allSettled([
+      const [a, s, d, h, b, f] = await Promise.allSettled([
         axios.get('/api/assets'),
         axios.get('/api/stock'),
         axios.get('/api/dashboard-full'),
         axios.get('/api/asset-history-recent'),
+        axios.get('/api/bundles'),
+        axios.get('/api/farms'),
       ]);
       if (!alive) return;
       if (a.status === 'fulfilled') setAssets(a.value.data || []);
       if (s.status === 'fulfilled') setStock(s.value.data || []);
       if (d.status === 'fulfilled') setStats(d.value.data || null);
       if (h.status === 'fulfilled') setRecent((h.value.data || []).slice(0, 8));
+      if (b.status === 'fulfilled') setBundles(b.value.data || []);
+      if (f.status === 'fulfilled') setFarms(f.value.data || []);
       setLoading(false);
     })();
     return () => { alive = false; };
   }, [dataVersion]);
 
+  // Deep-link แชร์ลิงก์ฟาร์มได้: /?farm=ชื่อฟาร์ม → เปิดรายละเอียดฟาร์มทันที (แล้วล้างพารามิเตอร์)
+  useEffect(() => {
+    const farmParam = searchParams.get('farm');
+    if (farmParam) {
+      setFarmOpen(farmParam);
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const results = useMemo(() => {
     const k = q.trim().toLowerCase();
     if (!k) return null;
+    // ค้นได้ทั้ง: ชื่อ/รหัส/AssetID/Serial + PO / ล็อตรับเข้า (Batch) / Supplier
+    // → ช่าง/จัดซื้อพิมพ์เลข PO แล้วเห็นทันทีว่าแต่ละชิ้นติดตั้งอยู่ที่ฟาร์มไหน โรงเรือนใด
     const hitAssets = assets
-      .filter((a) => [a.name, a.code, a.assetId, a.serialNumber].some((v) => (v || '').toLowerCase().includes(k)))
+      .filter((a) => [a.name, a.code, a.assetId, a.serialNumber, a.poNumber, a.batchId, a.supplier].some((v) => (v || '').toLowerCase().includes(k)))
       .slice(0, 8);
     const hitStock = stock
       .filter((i) => [i.code, i.name].some((v) => (v || '').toLowerCase().includes(k)))
       .slice(0, 6);
     return { assets: hitAssets, stock: hitStock, total: hitAssets.length + hitStock.length };
   }, [q, assets, stock]);
+
+  // ── Farm Health (Step 3) — สรุปรายฟาร์มด้วยกฎเดียวกับ Farm Monitor (/farm) ──
+  // รวมข้อมูลฟาร์ม 2 แหล่ง: /api/farms (farmName/farmType — แหล่งหลัก) + /api/dashboard-full.farmSites (จังหวัด/ประเภท)
+  const farmMetaList = useMemo(() => {
+    const map = new Map();
+    (stats?.farmSites || []).forEach((f) => {
+      if (f?.siteName) map.set(f.siteName, { siteName: f.siteName, farmType: f.farmType, province: f.province });
+    });
+    (farms || []).forEach((f) => {
+      const name = f?.farmName || f?.siteName;
+      if (name && map.has(name)) map.set(name, { ...map.get(name), farmType: f.farmType || map.get(name).farmType });
+      else if (name) map.set(name, { siteName: name, farmType: f?.farmType, province: f?.province });
+    });
+    return [...map.values()];
+  }, [farms, stats]);
+  const farmOverview = useMemo(
+    () => buildFarmOverview({ assets, bundles, farms: farmMetaList }),
+    [assets, bundles, farmMetaList],
+  );
+  const farmTotalBundles = useMemo(
+    () => bundles.reduce((s, b) => s + (b.status === 'Deployed' ? 1 : 0), 0),
+    [bundles],
+  );
+  const openedFarm = useMemo(
+    () => farmOverview.find((f) => f.name === farmOpen) || { name: farmOpen, type: 'อื่นๆ', province: '' },
+    [farmOverview, farmOpen],
+  );
+  // ── Scalable Farm Cards: ค้นหาในโซน (ชื่อ/ประเภท/จังหวัด) → โชว์ทุกผลลัพธ์ที่ตรง
+  //    ไม่ค้น → โชว์ 6 ฟาร์มแรก (Compact Grid) หรือทั้งหมดถ้ากด "ดูฟาร์มทั้งหมด" ──
+  const farmFilterActive = farmQuery.trim() !== '';
+  const visibleFarms = useMemo(() => {
+    const k = farmQuery.trim().toLowerCase();
+    if (k) {
+      return farmOverview.filter((f) => [f.name, f.type, f.province].some((v) => (v || '').toLowerCase().includes(k)));
+    }
+    return showAllFarms ? farmOverview : farmOverview.slice(0, FARM_PREVIEW_COUNT);
+  }, [farmOverview, farmQuery, showAllFarms]);
 
   // ── สถิติเพิ่มเติม (derive จากข้อมูลที่มีอยู่ ไม่ต้องเรียก API เพิ่ม) ──
   const derived = useMemo(() => {
@@ -148,8 +215,8 @@ export default function Home() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Escape') setQ(''); }}
-                placeholder="พิมพ์ชื่อ / รหัส / Serial อุปกรณ์..."
-                className="w-full h-12 pl-10 pr-3 rounded-xl border border-transparent bg-white text-[14px] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-white/50 shadow-[var(--sh-sm)] placeholder:text-[var(--tmuted)]"
+                placeholder="พิมพ์ชื่อ / รหัส / Serial / PO / ล็อตรับเข้า..."
+                className="w-full h-12 pl-10 pr-3 rounded-xl border border-transparent bg-[var(--surface)] text-[14px] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-white/50 shadow-[var(--sh-sm)] placeholder:text-[var(--tmuted)]"
               />
             </div>
             <div className="flex gap-2">
@@ -192,11 +259,13 @@ export default function Home() {
         </div>
       </div>
 
+      
+
       {/* ══ ผลลัพธ์ค้นหา — ทำต่อได้จากที่นี่เลย ไม่ต้องเปลี่ยนหน้า ══ */}
       {results && (
         <div className="space-y-3">
           {results.total === 0 ? (
-            <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-6 text-center text-[13px] text-[var(--tmuted)]">
+            <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-6 text-center text-[13px] text-[var(--tmuted)]">
               ไม่พบ "{q}" — ลองพิมพ์ชื่อหรือรหัสอื่น หรือกดปุ่ม สแกน ด้านบน
             </div>
           ) : (
@@ -209,23 +278,34 @@ export default function Home() {
                   {results.assets.map((a) => (
                     <div
                       key={`${a.serialNumber}-${a.assetId}`}
-                      className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-3.5 flex flex-wrap items-center gap-3 hover:border-[var(--blue-b)] transition-colors"
+                      className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-3.5 flex flex-wrap items-center gap-3 hover:border-[var(--blue-b)] transition-colors"
                     >
                       <div className="flex-1 min-w-[220px]">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[13px] font-semibold text-[var(--text)] truncate">{a.name || a.code}</span>
                           <StatusBadge status={a.status} />
+                          {(a.poNumber || a.batchId) && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded bg-[var(--amber-l)] px-1.5 py-px text-[10px] font-semibold text-[var(--amber-d)] border border-[var(--amber-b)]"
+                              title={a.poNumber ? `PO ${a.poNumber}` : `ล็อตรับเข้า ${a.batchId}`}
+                            >
+                              <Icon name="local_shipping" size="xs" className="shrink-0" />
+                              {a.poNumber ? `PO ${a.poNumber}` : a.batchId}
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] font-mono text-[var(--blue)] mt-0.5 truncate">
                           {a.serialNumber || a.assetId || a.code}
                         </div>
+                        {/* Step 3 — ตำแหน่งฟาร์มเป็น primary pill: เห็นทันทีว่าติดอยู่ฟาร์มไหน โรงเรือนใด */}
                         <LocationPath
                           className="mt-1"
+                          variant="primary"
                           siteName={a.siteName}
                           houseName={a.houseName}
                           houseId={a.houseId}
                           location={a.location}
-                          bundleId={a.bundleName}
+                          bundleId={a.bundleId}
                         />
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -274,7 +354,7 @@ export default function Home() {
                     ของในคลัง ({results.stock.length})
                   </div>
                   {results.stock.map((i) => (
-                    <div key={i.code} className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-3.5 flex flex-wrap items-center gap-3 hover:border-[var(--emerald-b)] transition-colors">
+                    <div key={i.code} className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-3.5 flex flex-wrap items-center gap-3 hover:border-[var(--emerald-b)] transition-colors">
                       <img
                         src={IMAGE_URL(i.code, i.ext)}
                         width="44"
@@ -309,7 +389,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ══ งานที่ทำบ่อย ══ */}
+      {/* ══ งานที่ทำบ่อย — Operations (Priority 1: ช่าง/จัดซื้อใช้กดงานจริงตลอดวัน — ขึ้นก่อนโซนภาพรวม) ══ */}
       <div>
         <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--tmuted)] mb-2">งานที่ทำบ่อย</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -317,7 +397,7 @@ export default function Home() {
             <button
               key={a.title}
               onClick={() => navigate(a.to)}
-              className="group text-left rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 hover:border-[var(--blue)] hover:shadow-[var(--sh-md)] hover:-translate-y-0.5 transition-all"
+              className="group text-left rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 hover:border-[var(--blue)] hover:shadow-[var(--sh-md)] hover:-translate-y-0.5 transition-all"
             >
               <span className={`flex items-center justify-center w-11 h-11 rounded-xl ${a.box} transition-transform group-hover:scale-105`}>
                 <Icon name={a.icon} size="md" />
@@ -332,9 +412,132 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ══ สถิติเชิงลึก — ลงทะเบียนล่าสุด + สถานะอุปกรณ์ | อุปกรณ์และฟาร์ม ══ */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4 items-stretch">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* ══ Farm Health & Status — Executive Overview (Priority 2: เห็นสถานะทุกฟาร์มจากหน้าแรก) ══ */}
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--tmuted)]">
+            <Icon name="monitoring" size="xs" /> Farm Health &amp; Status
+            {farmOverview.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-[var(--g200)] text-[10px] font-bold text-[var(--tsub)] normal-case tracking-normal tabular-nums">
+                {farmOverview.length} ฟาร์ม
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* In-Zone Quick Search — พิมพ์ชื่อฟาร์ม/จังหวัด/ประเภท → เจอการ์ดทันที ไม่ต้องเลื่อนหา */}
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--tmuted)] pointer-events-none">
+                <Icon name="search" size="xs" />
+              </span>
+              <input
+                value={farmQuery}
+                onChange={(e) => setFarmQuery(e.target.value)}
+                placeholder="ค้นหาฟาร์ม..."
+                className="h-8 w-[172px] pl-8 pr-7 rounded-lg border border-[var(--g200)] bg-[var(--surface)] text-[12px] text-[var(--text)] placeholder:text-[var(--tmuted)] focus:outline-none focus:ring-2 focus:ring-[var(--blue-glow)] focus:border-[var(--blue-b)] transition-shadow"
+              />
+              {farmQuery && (
+                <button
+                  onClick={() => setFarmQuery('')}
+                  title="ล้างการค้นหาฟาร์ม"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--tmuted)] hover:text-[var(--text)] transition-colors"
+                >
+                  <Icon name="close" size="xs" />
+                </button>
+              )}
+            </div>
+            {/* View All — รองรับฟาร์มเพิ่มขึ้นในอนาคต: หน้าแรกโชว์ 6 ฟาร์มแรก ที่เหลือขยายดูที่นี่ */}
+            {!farmFilterActive && farmOverview.length > FARM_PREVIEW_COUNT && (
+              <button
+                onClick={() => setShowAllFarms((v) => !v)}
+                title={showAllFarms ? 'ย่อกลับเหลือ 6 ฟาร์มแรก' : `แสดงฟาร์มทั้งหมด ${farmOverview.length} ฟาร์ม`}
+                className="text-[12px] font-semibold text-[var(--blue)] hover:underline flex items-center gap-1"
+              >
+                <Icon name={showAllFarms ? 'expand_less' : 'expand_more'} size="xs" />
+                {showAllFarms ? 'ย่อ' : `ดูฟาร์มทั้งหมด (${farmOverview.length})`}
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/farm')}
+              title="เปิดหน้า Farm Monitor — ภาพรวมฟาร์มและค้นหาของว่าอยู่ฟาร์มไหน"
+              className="text-[12px] font-semibold text-[var(--blue)] hover:underline flex items-center gap-1"
+            >
+              <Icon name="open_in_new" size="xs" /> เปิด Farm Monitor
+            </button>
+          </div>
+        </div>
+
+        {/* สรุปตัวเลขรวม: ฟาร์ม · ตู้ Bundle · อุปกรณ์รวม · ต้องดูแล */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-3">
+          <SumTile
+            icon="agriculture" tone="green" label="ฟาร์มทั้งหมด"
+            value={stats?.totalFarms ?? farmOverview.length}
+            sub={`${farmOverview.filter((f) => f.assets > 0).length} ฟาร์มมีอุปกรณ์ติดตั้ง`}
+          />
+          <SumTile
+            icon="grid_on" tone="purple" label="ตู้ควบคุม (Bundle)"
+            value={bundles.length}
+            sub={`${farmTotalBundles} ตู้ติดตั้งที่ฟาร์ม · ${Math.max(0, bundles.length - farmTotalBundles)} ตู้ในคลัง`}
+          />
+          <SumTile
+            icon="devices" tone="blue" label="อุปกรณ์รวมทั้งระบบ"
+            value={derived.totalAssets}
+            sub={`${stats?.totalFarmAssets ?? 0} ติดตั้งที่ฟาร์ม · ${stats?.totalStockAssets ?? 0} รอติดตั้ง`}
+          />
+          <SumTile
+            icon={derived.repairCount > 0 ? 'warning' : 'check_circle'}
+            tone={derived.repairCount > 0 ? 'red' : 'green'}
+            label="ต้องดูแล (ซ่อม/ชำรุด)"
+            value={derived.repairCount}
+            sub={derived.repairCount > 0 ? 'ควรเข้าตรวจเช็คหน้างาน' : 'สถานะปกติทั้งหมด'}
+          />
+        </div>
+
+        {/* Quick Farm Access — Compact Grid: โชว์ 6 ฟาร์มแรก (กันล้นจอเมื่อฟาร์มเพิ่มขึ้น) + กดเปิด FarmDetailModal ทันที */}
+        {loading && farmOverview.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] p-4 animate-pulse">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--g100)]" />
+                  <div className="flex-1">
+                    <div className="h-3.5 w-28 rounded bg-[var(--g100)]" />
+                    <div className="h-2.5 w-20 rounded bg-[var(--g100)] mt-1.5" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <div className="h-11 rounded-lg bg-[var(--g100)]" />
+                  <div className="h-11 rounded-lg bg-[var(--g100)]" />
+                  <div className="h-11 rounded-lg bg-[var(--g100)]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : farmOverview.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[var(--g300)] p-6 text-center text-[13px] text-[var(--tmuted)]">
+            ยังไม่มีข้อมูลฟาร์ม — เพิ่มฟาร์มแรกได้ที่หน้า Farm Monitor
+          </div>
+        ) : visibleFarms.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[var(--g300)] p-6 text-center text-[13px] text-[var(--tmuted)]">
+            ไม่พบฟาร์มที่ตรงกับ "{farmQuery}" — ลองค้นด้วยชื่อ/จังหวัดอื่น หรือเปิด Farm Monitor ดูทั้งหมด
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {visibleFarms.map((f) => (
+                <FarmAccessCard key={f.name} farm={f} onOpen={() => setFarmOpen(f.name)} />
+              ))}
+            </div>
+            {!farmFilterActive && !showAllFarms && farmOverview.length > FARM_PREVIEW_COUNT && (
+              <div className="mt-2.5 text-center text-[11px] text-[var(--tmuted)]">
+                แสดง {visibleFarms.length} จาก {farmOverview.length} ฟาร์ม — กด "ดูฟาร์มทั้งหมด" ด้านบนเพื่อดูที่เหลือ
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ══ สถิติเชิงลึก — ลงทะเบียนล่าสุด + สถานะอุปกรณ์ ══ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Serial ลงทะเบียนล่าสุด (parse วันที่จาก Serial) */}
           <Card icon="app_registration" tone="purple" title="ลงทะเบียนล่าสุด">
             {!loading && derived.recentSerials.length > 0 ? (
@@ -404,62 +607,8 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* อุปกรณ์และฟาร์ม — รวมสถิติ + % ติดตั้ง + อันดับฟาร์ม */}
-        <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5 flex flex-col">
-          <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)] mb-2">
-            <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--purple-l)] text-[var(--purple)]"><Icon name="devices" size="sm" /></span>
-            อุปกรณ์และฟาร์ม
-          </div>
-          {loading ? (
-            <SkeletonRows rows={4} />
-          ) : (
-            <>
-              <div className="divide-y divide-[var(--g100)]">
-                <MiniStat icon="agriculture" tone="green" label="ฟาร์มทั้งหมด" value={stats?.totalFarms ?? 0} />
-                <MiniStat icon="precision_manufacturing" tone="blue" label="ติดตั้งที่ฟาร์ม" value={stats?.totalFarmAssets ?? 0} />
-                <MiniStat icon="inventory_2" tone="amber" label="รอติดตั้ง (สต็อก)" value={stats?.totalStockAssets ?? 0} />
-                <MiniStat icon="category" tone="purple" label="รายชิ้นทั้งหมด" value={derived.totalAssets} />
-                <MiniStat icon="grid_on" tone="blue" label="ชุดอุปกรณ์ (Bundle)" value={derived.bundleCount} />
-              </div>
-
-              {/* % ติดตั้งแล้ว */}
-              <div className="mt-3">
-                <div className="flex items-center justify-between text-[11px] text-[var(--tsub)]">
-                  <span>สัดส่วนติดตั้งแล้ว</span>
-                  <span className="font-bold text-[var(--text)] tabular-nums">{derived.installedPct}%</span>
-                </div>
-                <div className="h-2 rounded-full bg-[var(--g100)] mt-1.5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${derived.installedPct}%`, background: 'linear-gradient(90deg, var(--blue), var(--emerald))' }}
-                  />
-                </div>
-              </div>
-
-              {/* อันดับฟาร์ม */}
-              {(stats?.topFarms || []).length > 0 && (
-                <div className="mt-4 pt-3 border-t border-[var(--g100)]">
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--tmuted)] mb-2">
-                    <Icon name="workspace_premium" size="xs" /> อันดับฟาร์มที่ติดตั้งสูงสุด
-                  </div>
-                  <div className="space-y-2">
-                    {stats.topFarms.slice(0, 3).map((f, i) => (
-                      <div key={f.name} className="flex items-center gap-2.5">
-                        <span className={`flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold shrink-0 ${i === 0 ? 'bg-[var(--amber)] text-white' : 'bg-[var(--surface2)] text-[var(--tsub)] border border-[var(--g200)]'}`}>#{i + 1}</span>
-                        <span className="flex-1 text-[12px] text-[var(--text)] truncate">{f.name}</span>
-                        <span className="text-[12px] font-bold tabular-nums">{f.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
       {/* ══ สต็อกใกล้หมด — เตือนล่วงหน้าก่อนของหมดจริง ══ */}
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--g100)]">
           <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)]">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--amber-l)] text-[var(--amber-d)]">
@@ -510,7 +659,7 @@ export default function Home() {
       </div>
 
       {/* ══ การโอนย้ายล่าสุด — timeline เรียงเหตุการณ์ ══ */}
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--g100)]">
           <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)]">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--blue-l)] text-[var(--blue)]">
@@ -575,6 +724,19 @@ export default function Home() {
           onSuccess={() => setDataVersion((v) => v + 1)}
         />
       )}
+      {/* Farm Detail Modal (Step 3) — กดการ์ดฟาร์มด้านบน → เห็น Asset Breakdown + Bundle Control ทันที */}
+      {farmOpen && (
+        <FarmDetailModal
+          key={farmOpen}
+          farm={openedFarm}
+          assets={assets}
+          bundles={bundles}
+          loading={loading}
+          onClose={() => setFarmOpen(null)}
+          onTransfer={setTransfer}
+          onHistory={setHistorySerial}
+        />
+      )}
       {historySerial && <AssetHistoryModal key={historySerial} serial={historySerial} onClose={() => setHistorySerial('')} />}
     </div>
   );
@@ -602,7 +764,7 @@ function actionChip(action = '') {
 
 function Card({ icon, tone, title, children }) {
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 sm:p-5 flex flex-col">
+    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 sm:p-5 flex flex-col">
       <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text)] mb-3">
         <span className={`w-7 h-7 flex items-center justify-center rounded-lg ${TONE_BOX[tone] || TONE_BOX.blue}`}><Icon name={icon} size="sm" /></span>
         {title}
@@ -632,14 +794,92 @@ function HeroKpi({ icon, glow, label, value, unit }) {
   );
 }
 
-function MiniStat({ icon, tone, label, value }) {
+// ── Farm Health & Status (Step 3) — tile สรุปรวม + การ์ด Quick Farm Access ──
+const SUM_TONES = {
+  green: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]',
+  blue: 'bg-[var(--blue-l)] text-[var(--blue)]',
+  purple: 'bg-[var(--purple-l)] text-[var(--purple)]',
+  red: 'bg-[var(--red-l)] text-[var(--red)]',
+  amber: 'bg-[var(--amber-l)] text-[var(--amber-d)]',
+};
+
+function SumTile({ icon, tone, label, value, sub }) {
   return (
-    <div className="flex items-center gap-3 py-2.5">
-      <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${TONE_BOX[tone] || TONE_BOX.blue}`}>
-        <Icon name={icon} size="sm" />
+    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] px-3.5 py-3 flex items-center gap-3 min-w-0">
+      <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${SUM_TONES[tone] || SUM_TONES.blue}`}>
+        <Icon name={icon} size="md" />
       </span>
-      <div className="flex-1 min-w-0 text-[12px] text-[var(--tsub)]">{label}</div>
-      <div className="text-[17px] font-bold text-[var(--text)] tabular-nums">{value}</div>
+      <div className="min-w-0">
+        <div className="text-[19px] font-bold text-[var(--text)] tabular-nums leading-none">{value}</div>
+        <div className="text-[11px] font-semibold text-[var(--tsub)] mt-0.5 truncate">{label}</div>
+        <div className="text-[10px] text-[var(--tmuted)] truncate">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+const FARM_TYPE_ICONS = { 'สัตว์ปีก': 'egg', 'สัตว์บก': 'pets', 'สุกร': 'agriculture', 'อื่นๆ': 'category', 'ไม่ระบุ': 'help' };
+
+// การ์ดสรุปรายฟาร์ม — กดครั้งเดียวเปิด Asset Breakdown / Bundle Control บนหน้าแรก (FarmDetailModal)
+function FarmAccessCard({ farm, onOpen }) {
+  const icon = FARM_TYPE_ICONS[farm.type] || 'help';
+  const totalActive = farm.ok + farm.rep;
+  const healthPct = totalActive > 0 ? Math.round((farm.ok / totalActive) * 100) : 100;
+  return (
+    <button
+      onClick={onOpen}
+      title={`เปิดรายละเอียดฟาร์ม ${farm.name} — Asset Breakdown + Bundle Control`}
+      className="group text-left rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 hover:border-[var(--blue-b)] hover:shadow-[var(--sh-md)] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue-glow)]"
+    >
+      <div className="flex items-start gap-2.5">
+        <span className="w-10 h-10 rounded-xl bg-[var(--emerald-l)] text-[var(--emerald-d)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+          <Icon name={icon} size="md" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-bold text-[var(--text)] truncate">{farm.name}</div>
+          <div className="text-[11px] text-[var(--tmuted)] truncate">{farm.type}{farm.province ? ` · ${farm.province}` : ''}</div>
+        </div>
+        <span className="text-[var(--tmuted)] group-hover:text-[var(--blue)] group-hover:translate-x-0.5 transition-all shrink-0 mt-1">
+          <Icon name="chevron_right" size="sm" />
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <MiniNum icon="inventory_2" label="อุปกรณ์" value={farm.assets} />
+        <MiniNum icon="grid_on" label="ตู้ชุด" value={farm.bundles} />
+        <MiniNum icon="home_work" label="โรงเรือน" value={farm.houses} />
+      </div>
+      <div className="mt-3">
+        <div className="h-1.5 rounded-full bg-[var(--g100)] overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${farm.rep > 0 ? 'bg-[var(--amber)]' : 'bg-[var(--emerald)]'}`}
+            style={{ width: `${healthPct}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-1.5 text-[10.5px]">
+          <span className="flex items-center gap-1 text-[var(--emerald-d)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--emerald)]" /> ใช้งานได้ {farm.ok}
+          </span>
+          {farm.rep > 0 ? (
+            <span className="flex items-center gap-1 text-[var(--amber-d)] font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--amber)]" /> ส่งซ่อม {farm.rep}
+            </span>
+          ) : (
+            <span className="text-[var(--tmuted)]">สถานะปกติ</span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function MiniNum({ icon, label, value }) {
+  return (
+    <div className="rounded-lg bg-[var(--surface2)] border border-[var(--g100)] px-2 py-1.5 min-w-0">
+      <div className="flex items-center gap-1 text-[10px] text-[var(--tmuted)]">
+        <Icon name={icon} size="xs" className="shrink-0" />
+        {label}
+      </div>
+      <div className="text-[14px] font-bold text-[var(--text)] tabular-nums leading-tight">{value}</div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ credentials2.json
 .env
 logs/
 data/inbound-log.local.json
+data/inbound-po-status.local.json
 data/local-inventory.dev.json
 ecosystem.config.js
 node_modules/
@@ -26,3 +27,10 @@ frontend/public/fonts/*
 
 # Python bytecode cache
 __pycache__/
+
+# Local test artifacts: Chrome DevTools profiles (มี session/cookies ของ localhost) และภาพหน้าจอทดสอบ — ไม่ track
+artifacts/
+
+# เอกสารส่งต่องานระหว่าง session (เฉพาะเครื่องนี้ — จะ commit ถาวรเมื่อไหร่ลบบรรทัดนี้ได้)
+/HANDOFF.md
+

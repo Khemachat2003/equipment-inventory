@@ -9,6 +9,7 @@ import TransferModal from '../components/TransferModal.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
+import PODispatchPicker from '../components/PODispatchPicker.jsx';
 
 const FORMATS = [
   BarcodeFormat.QR_CODE,
@@ -266,8 +267,9 @@ export default function ScanPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <ToastHost />
+      <PODispatchPicker />
       {/* ① ค้นหาอุปกรณ์ที่จะย้าย — ทางเข้าหลัก (พิมพ์ชื่อ/รหัส/Serial ก็เจอ) */}
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
         <div className="text-[13px] font-semibold text-[var(--text)] mb-2.5">ค้นหาอุปกรณ์ที่จะย้าย</div>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)] pointer-events-none">
@@ -306,11 +308,12 @@ export default function ScanPage() {
                     </div>
                     <LocationPath
                       className="mt-1"
+                      variant="primary"
                       siteName={a.siteName}
                       houseName={a.houseName}
                       houseId={a.houseId}
                       location={a.location}
-                      bundleId={a.bundleName}
+                      bundleId={a.bundleId}
                     />
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -328,7 +331,7 @@ export default function ScanPage() {
                       className={`h-8 px-2.5 rounded-lg border text-[12px] flex items-center gap-1 ${
                         histOpen
                           ? 'bg-[var(--blue-l)] border-[var(--blue-b)] text-[var(--blue)] font-semibold'
-                          : 'border-[var(--g300)] text-[var(--tsub)] hover:bg-white'
+                          : 'border-[var(--g300)] text-[var(--tsub)] hover:bg-[var(--surface)]'
                       } disabled:opacity-40`}
                     >
                       <Icon name="history" size="sm" /> ประวัติ
@@ -428,7 +431,7 @@ export default function ScanPage() {
       )}
 
       {/* พิมพ์เอง */}
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
         <div className="text-[13px] font-semibold text-[var(--text)] mb-2.5">พิมพ์ Serial / Code และกด Enter</div>
         <div className="flex gap-2">
           <input
@@ -468,20 +471,22 @@ export default function ScanPage() {
           <div className="mt-3 space-y-2 max-h-80 overflow-y-auto">
             {multi.map((a) => (
               <button key={a.serialNumber + a.assetId} onClick={() => { setAsset(a); setStatus('found'); setMulti(null); }}
-                className="w-full text-left px-3.5 py-3 rounded-xl border border-[var(--g200)] hover:bg-[var(--surface2)] flex items-center justify-between gap-3">
+                className="w-full text-left px-3.5 py-3 rounded-xl border border-[var(--g200)] hover:bg-[var(--surface2)] flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-[13px] font-semibold truncate">{a.name}</div>
                   <div className="text-[11px] font-mono text-[var(--blue)] mt-0.5">{a.serialNumber}</div>
+                  {/* Step 2: ตำแหน่งใช้ buildLocation ตัวเดียวกับหน้า Asset/Bundle (แก้ bundleName→bundleId ให้ตรงกัน) */}
+                  <LocationPath
+                    className="mt-1"
+                    variant="primary"
+                    siteName={a.siteName}
+                    houseName={a.houseName}
+                    houseId={a.houseId}
+                    location={a.location}
+                    bundleId={a.bundleId}
+                  />
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] text-[var(--tmuted)]">
-                    {a.siteName}
-                    {a.location && a.location !== '-' && a.location !== a.siteName
-                      ? ` · ${a.location}`
-                      : ''}
-                  </span>
-                  <StatusBadge status={a.status} />
-                </div>
+                <StatusBadge status={a.status} />
               </button>
             ))}
           </div>
@@ -556,22 +561,30 @@ function ResultCard({ asset, history, onHistory, onTransfer, onScanAgain, onRefr
             <div className="text-[12px] text-[var(--tmuted)]">Serial Number</div>
             <div className="font-mono text-[14px] text-[var(--blue)]">{asset.serialNumber}</div>
           </div>
-          <div className="rounded-lg border border-[var(--g200)] bg-white px-3 py-2 text-[12px]">
+          <div className="rounded-lg border border-[var(--g200)] bg-[var(--surface)] px-3 py-2 text-[12px]">
             {asset.batchId ? <><div className="font-semibold text-[var(--blue)]">ล็อต {asset.batchId}</div><div className="text-[var(--tsub)]">รับเข้า {formatInboundAt(asset.receivedAt)}{asset.receivedAt ? ` (${inboundAge(asset.receivedAt)})` : ''}{asset.poNumber ? ` · PO ${asset.poNumber}` : ''}{asset.supplier ? ` · ${asset.supplier}` : ''}</div></> : <div className="text-[var(--tsub)]">ไม่ระบุล็อต</div>}
           </div>
         </div>
         <div className="p-4 space-y-2">
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--emerald-l)] border border-[var(--emerald-b)]">
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[var(--emerald-l)] border border-[var(--emerald-b)]">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 bg-[var(--emerald)] text-white"><Icon name="place" size="sm" /></span>
-            <div className="min-w-0">
-              <div className="text-[10px] text-[var(--tmuted)] uppercase tracking-wide">ตำแหน่งปัจจุบัน</div>
-              <div className="text-[14px] font-bold text-[var(--text)] truncate">
-                {asset.siteName}
-                {asset.location && asset.location !== '-' && asset.location !== asset.siteName
-                  ? ` · ${asset.location}`
-                  : ''}
-                {asset.houseName && asset.houseName !== '-' ? ` · ${asset.houseName}` : ''}
-              </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] text-[var(--emerald-d)] uppercase tracking-wide">ตำแหน่งปัจจุบัน</div>
+              {asset.bundleId && (
+                <div className="mb-1 mt-1 inline-flex max-w-full items-center gap-1 rounded-md border border-[var(--blue-b)] bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-[var(--blue)]">
+                  <Icon name="inventory_2" size="xs" className="flex-shrink-0" />
+                  <span className="truncate">อยู่ในชุด {asset.bundleName || asset.bundleId}</span>
+                </div>
+              )}
+              {/* Step 2: ใช้ buildLocation/LocationPath ตัวเดียวกับหน้า Asset/Bundle — ตำแหน่งตรงกันทุกหน้า (อุปกรณ์ในชุดอ่านฟาร์มจากคอลัมน์ Location ให้อัตโนมัติ) */}
+              <LocationPath
+                size="md"
+                siteName={asset.siteName}
+                houseName={asset.houseName}
+                houseId={asset.houseId}
+                location={asset.location}
+                bundleId={asset.bundleId}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 text-[12px] pt-1">
@@ -635,7 +648,7 @@ function inboundAge(value) {
 function Card({ title, accent, children }) {
   const dot = accent === 'success' ? 'bg-[var(--emerald-l)] text-[var(--emerald-d)]' : 'bg-[var(--blue-l)] text-[var(--blue)]';
   return (
-    <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
       <div className="flex items-center gap-2 mb-4">
         <span className={`w-7 h-7 flex items-center justify-center rounded-lg ${dot}`}><Icon name="qr_code_scanner" size="sm" /></span>
         <span className="text-[15px] font-bold text-[var(--text)]">{title}</span>
@@ -644,3 +657,4 @@ function Card({ title, accent, children }) {
     </div>
   );
 }
+

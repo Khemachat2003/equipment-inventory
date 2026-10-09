@@ -47,7 +47,7 @@ export default function AdminTools() {
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Full backup */}
-        <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
           <div className="flex items-center gap-2 mb-2">
             <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--blue-l)] text-[var(--blue)]">
               <Icon name="database" size="sm" />
@@ -68,7 +68,7 @@ export default function AdminTools() {
         </div>
 
         {/* Quick backup */}
-        <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
           <div className="flex items-center gap-2 mb-2">
             <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--amber-l)] text-[var(--amber)]">
               <Icon name="save" size="sm" />
@@ -89,7 +89,7 @@ export default function AdminTools() {
         </div>
 
         {/* Clear cache */}
-        <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
+        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-5">
           <div className="flex items-center gap-2 mb-2">
             <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--red-l)] text-[var(--red)]">
               <Icon name="cleaning_services" size="sm" />

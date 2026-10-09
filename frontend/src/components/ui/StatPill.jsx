@@ -26,7 +26,7 @@ const TONES = {
 export default function StatPill({ label, value, icon, tone = 'blue', dot = false }) {
   const t = TONES[tone] || TONES.blue;
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] select-none">
+    <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] select-none">
       {icon && (
         <span className={`flex items-center justify-center w-8 h-8 rounded-lg border ${t.box}`}>
           <Icon name={icon} size="sm" />

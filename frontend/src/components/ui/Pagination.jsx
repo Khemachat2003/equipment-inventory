@@ -27,7 +27,7 @@ export default function Pagination({ total, page, onPage, pageSize, onPageSize }
         <select
           value={pageSize}
           onChange={(e) => onPageSize(parseInt(e.target.value))}
-          className="h-8 px-2 rounded-lg border border-[var(--g200)] text-[12px] bg-white"
+          className="h-8 px-2 rounded-lg border border-[var(--g200)] text-[12px] bg-[var(--surface)]"
         >
           {PAGE_SIZES.map((s) => (
             <option key={s} value={s}>{s} รายการ/หน้า</option>
@@ -57,7 +57,7 @@ function PageBtn({ children, onClick, disabled, active }) {
       className={`min-w-8 h-8 px-2 rounded-lg text-[12px] font-medium border transition-colors ${
         active
           ? 'bg-[var(--blue)] text-white border-[var(--blue)]'
-          : 'bg-white border-[var(--g200)] text-[var(--tsub)] hover:bg-[var(--blue-l)] disabled:opacity-40'
+          : 'bg-[var(--surface)] border-[var(--g200)] text-[var(--tsub)] hover:bg-[var(--blue-l)] disabled:opacity-40'
       }`}
     >
       {children}

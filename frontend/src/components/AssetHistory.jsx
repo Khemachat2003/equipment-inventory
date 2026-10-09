@@ -20,7 +20,7 @@ export function AssetHistoryModal({ serial, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
-      <section role="dialog" aria-modal="true" aria-labelledby="asset-history-title" className="my-8 w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <section role="dialog" aria-modal="true" aria-labelledby="asset-history-title" className="my-8 w-full max-w-2xl overflow-hidden rounded-2xl bg-[var(--surface)] shadow-xl" onClick={(e) => e.stopPropagation()}>
         <header className="flex items-center justify-between gap-3 border-b border-[var(--g100)] px-5 py-4">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-[var(--blue)]"><Icon name="assignment" size="sm" /></span>
@@ -38,7 +38,7 @@ export function AssetHistoryModal({ serial, onClose }) {
           {status === 'ready' && data.length === 0 && <div className="py-12 text-center text-[13px] text-[var(--tmuted)]">ยังไม่มีประวัติในระบบ</div>}
           {status === 'ready' && data.length > 0 && <AssetHistoryTimeline data={data} />}
         </div>
-        <footer className="border-t border-[var(--g100)] bg-white p-3 sm:px-5">
+        <footer className="border-t border-[var(--g100)] bg-[var(--surface)] p-3 sm:px-5">
           <a href={`/trace/${encodeURIComponent(serial)}`} target="_blank" rel="noreferrer" className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--blue)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--blue-d)] sm:ml-auto sm:w-auto">
             ดูประวัติเต็ม <Icon name="arrow_forward" size="xs" />
           </a>
@@ -63,7 +63,7 @@ function HistoryEntry({ item, isFirst }) {
       <span className={`absolute -left-11 top-4 z-[1] flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 text-[13px] shadow-[0_0_0_4px_var(--bg)] ${isFirst ? 'border-[#93c5fd] bg-[var(--blue)] text-white' : dotStyle(item.action)}`}>
         {isFirst ? <Icon name="place" size="xs" /> : <Icon name={dotIcon(item.action)} size="xs" />}
       </span>
-      <div className="rounded-xl border border-[var(--g200)] bg-white px-4 py-3.5 shadow-[var(--sh-sm)] sm:px-5 sm:py-4">
+      <div className="rounded-xl border border-[var(--g200)] bg-[var(--surface)] px-4 py-3.5 shadow-[var(--sh-sm)] sm:px-5 sm:py-4">
         <div className="mb-2.5 flex flex-wrap items-start justify-between gap-2">
           <div className="flex items-center gap-2 text-[14px] font-bold text-[var(--text)]">
             {item.action || '-'}

@@ -83,7 +83,7 @@ function Group({ label, children }) {
   return (
     <div className="space-y-1.5">
       <div className="px-1 text-[12px] font-bold text-[var(--tmuted)]">{label}</div>
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">{children}</div>
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">{children}</div>
     </div>
   );
 }

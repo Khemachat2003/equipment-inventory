@@ -200,13 +200,13 @@ export default function Farm() {
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--surface2)] border border-[var(--g200)]">
           <button
             onClick={() => setView('overview')}
-            className={`flex items-center gap-1 px-3 h-8 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors ${view === 'overview' ? 'bg-white text-[var(--blue)] shadow-sm' : 'text-[var(--tsub)] hover:text-[var(--text)]'}`}
+            className={`flex items-center gap-1 px-3 h-8 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors ${view === 'overview' ? 'bg-[var(--surface)] text-[var(--blue)] shadow-sm' : 'text-[var(--tsub)] hover:text-[var(--text)]'}`}
           >
             <Icon name="grid_on" size="xs" /> ภาพรวมฟาร์ม
           </button>
           <button
             onClick={() => setView('detail')}
-            className={`flex items-center gap-1 px-3 h-8 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors ${view === 'detail' ? 'bg-white text-[var(--blue)] shadow-sm' : 'text-[var(--tsub)] hover:text-[var(--text)]'}`}
+            className={`flex items-center gap-1 px-3 h-8 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors ${view === 'detail' ? 'bg-[var(--surface)] text-[var(--blue)] shadow-sm' : 'text-[var(--tsub)] hover:text-[var(--text)]'}`}
           >
             <Icon name="table_view" size="xs" /> ตารางรายชิ้น
           </button>
@@ -214,7 +214,7 @@ export default function Farm() {
       </div>
 
       {/* ⑦a — ค้นหา-first "ของชิ้นนี้อยู่ที่ไหน?" — จุดขายหลักของหน้า: พิมพ์แล้วตอบตำแหน่งทันที (ทุกฟาร์ม) */}
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 sm:p-5">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 sm:p-5">
         <div className="flex items-baseline gap-2 mb-2.5 flex-wrap">
           <span className="flex items-center gap-1.5 text-[14px] font-bold text-[var(--text)]"><Icon name="search" size="sm" className="text-[var(--blue)]" /> ของชิ้นนี้อยู่ที่ไหน?</span>
           <span className="text-[12px] text-[var(--tmuted)]">พิมพ์ชื่อ / รหัส / Serial — ค้นได้ทั้งรายชิ้นและทั้งชุด จากทุกฟาร์ม</span>
@@ -292,7 +292,7 @@ export default function Farm() {
       ) : (
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
         {/* Farm sidebar — จอใหญ่เท่านั้น */}
-        <div className="hidden lg:block rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden lg:max-h-[78vh] lg:sticky lg:top-[var(--topbar-h)]">
+        <div className="hidden lg:block rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden lg:max-h-[78vh] lg:sticky lg:top-[var(--topbar-h)]">
           <div className="p-2 border-b border-[var(--g100)]">
             <input
               value={farmSearch}
@@ -323,7 +323,7 @@ export default function Farm() {
         </div>
 
         {/* Main */}
-        <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
           <div className="p-4 border-b border-[var(--g100)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-1.5 text-[14px] font-bold text-[var(--text)]">{currentFarm === 'ALL' ? <><Icon name="public" size="sm" /> ทุกฟาร์ม</> : <><Icon name="grass" size="sm" /> {currentFarm}</>}</div>
@@ -446,7 +446,7 @@ export default function Farm() {
             {filteredBundles.map((b) => (
               <div key={'bundle-' + b.bundleId} className="p-3.5 space-y-2.5 bg-[var(--blue-l)]" onClick={() => openBundle(b.bundleId)}>
                 <div className="flex items-center gap-2.5">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-white text-[var(--blue)] shadow-sm">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-[var(--surface)] text-[var(--blue)] shadow-sm">
                     <Icon name="folder_open" size="sm" />
                   </span>
                   <div className="flex-1 min-w-0">
@@ -521,7 +521,7 @@ export default function Farm() {
 // กดการ์ด → เข้ามุมมองรายชิ้นของฟาร์มนั้น (ตารางเดิมกลายเป็นชั้นลึก)
 function FarmOverviewCard({ name, type, assets, bundles, houses, ok, rep, onOpen }) {
   return (
-    <button onClick={() => onOpen(name)} className="text-left rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 hover:border-[var(--blue-b)] hover:shadow-md transition-shadow space-y-3">
+    <button onClick={() => onOpen(name)} className="text-left rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 hover:border-[var(--blue-b)] hover:shadow-md transition-shadow space-y-3">
       <div className="flex items-center gap-2.5">
         <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--emerald-l)] text-[var(--emerald-d)] flex-shrink-0"><Icon name={TYPE_ICONS[type] || 'help'} size="md" /></span>
         <div className="min-w-0">
@@ -802,7 +802,7 @@ function AddFarmOrHouseModal({ onClose, onDone }) {
 function Modal({ onClose, title, submitLabel, onSubmit, saving, busyLabel, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md bg-[var(--surface)] rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--g100)]">
           <span className="text-[15px] font-bold text-[var(--text)]">{title}</span>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--surface2)]"><Icon name="close" size="sm" /></button>

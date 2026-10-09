@@ -69,7 +69,7 @@ export default function TracePage() {
 
   if (status === 'loading') {
     return <Shell searchVal={searchVal} setSearchVal={setSearchVal} onGo={go}>
-      <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-md)] p-16 text-center">
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-md)] p-16 text-center">
         <div className="flex justify-center mb-4">
           <div className="w-9 h-9 border-2 border-[var(--g200)] border-t-[var(--blue)] rounded-full animate-spin" />
         </div>
@@ -81,7 +81,7 @@ export default function TracePage() {
 
   if (status === 'empty' || status === 'error') {
     return <Shell searchVal={searchVal} setSearchVal={setSearchVal} onGo={go}>
-      <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-md)] p-16 text-center">
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-md)] p-16 text-center">
         <div className="text-[40px] mb-3 opacity-60 text-[var(--tmuted)]">
           <Icon name={status === 'empty' ? 'mail' : 'error'} size="2xl" />
         </div>
@@ -108,7 +108,7 @@ export default function TracePage() {
       <AssetCard latest={latest} oldest={oldest} data={data} displaySerial={displaySerial} />
 
       <div className="flex flex-wrap gap-2 mb-6">
-        <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-[var(--g300)] text-[13px] text-[var(--tsub)] hover:bg-[var(--surface2)]">
+        <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--surface)] border border-[var(--g300)] text-[13px] text-[var(--tsub)] hover:bg-[var(--surface2)]">
           <Icon name="print" size="sm" /> พิมพ์รายงาน
         </button>
         <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--emerald-l)] text-[var(--emerald-d)] text-[13px] font-semibold border border-[var(--emerald-d)]/30 hover:bg-[var(--emerald-l)]/70">
@@ -171,7 +171,7 @@ function Shell({ searchVal, setSearchVal, onGo, children }) {
               placeholder="ค้นหา Serial Number..."
               className="flex-1 h-9 px-3 rounded-lg bg-white/15 text-white text-[13px] placeholder:text-white/40 border border-white/25 focus:bg-white/25 focus:outline-none"
             />
-            <button onClick={onGo} className="h-9 px-3.5 rounded-lg bg-white text-[var(--blue)] text-[13px] font-semibold hover:bg-[#e0e7ff] flex items-center gap-1.5">
+            <button onClick={onGo} className="h-9 px-3.5 rounded-lg bg-[var(--surface)] text-[var(--blue)] text-[13px] font-semibold hover:bg-[#e0e7ff] flex items-center gap-1.5">
               <Icon name="search" size="sm" /> ค้นหา
             </button>
           </div>
@@ -200,7 +200,7 @@ function AssetCard({ latest, oldest, data, displaySerial }) {
     : displaySerial;
 
   return (
-    <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-md)] overflow-hidden mb-6 print:shadow-none">
+    <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-md)] overflow-hidden mb-6 print:shadow-none">
       <div className="bg-gradient-to-r from-[var(--blue)] to-[#1d4ed8] px-6 py-5 flex items-start justify-between gap-4 flex-wrap print:hidden">
         <div>
           <div className="text-white text-[19px] font-bold break-all">{name}</div>
@@ -210,7 +210,7 @@ function AssetCard({ latest, oldest, data, displaySerial }) {
           <Icon name="place" size="xs" /> {latest.to || 'ในระบบ'}
         </span>
       </div>
-      <div className="border-t border-[var(--g100)] grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-[var(--g100)] bg-white">
+      <div className="border-t border-[var(--g100)] grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-[var(--g100)] bg-[var(--surface)]">
         <Meta label="รายการทั้งหมด" value={`${data.length} รายการ`} />
         <Meta label="ลงทะเบียนเมื่อ" value={oldest.date || '-'} />
         <Meta label="อัปเดตล่าสุด" value={latest.date || '-'} />

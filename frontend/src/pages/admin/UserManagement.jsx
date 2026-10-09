@@ -72,7 +72,7 @@ export default function UserManagement() {
         </button>
       </div>
 
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         <div className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead>
@@ -157,7 +157,7 @@ function PasswordResetModal({ username, onClose, onDone }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-[var(--sh-lg)]">
+      <div className="w-full max-w-sm rounded-2xl bg-[var(--surface)] shadow-[var(--sh-lg)]">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--g100)]">
           <div className="text-[14px] font-semibold text-[var(--text)]">ตั้งรหัสผ่านใหม่ · {username}</div>
           <button onClick={onClose} className="text-[var(--tmuted)] hover:text-[var(--text)]">

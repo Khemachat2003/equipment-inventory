@@ -149,7 +149,7 @@ export default function Stock() {
 
       {/* ตะกร้าเบิก */}
       {cartCount > 0 && (
-        <div className="rounded-2xl bg-white border border-[var(--emerald)] shadow-[var(--sh-sm)] overflow-hidden">
+        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--emerald)] shadow-[var(--sh-sm)] overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--emerald-l)] border-b border-[var(--emerald-b)]">
             <Icon name="add_shopping_cart" size="sm" />
             <span className="text-[13px] font-semibold text-[var(--emerald-d)]">
@@ -219,7 +219,7 @@ export default function Stock() {
       )}
 
       {/* Panel */}
-      <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2 p-3 sm:p-3.5 border-b border-[var(--g100)]">
           <div className="relative max-w-xs flex-1">
@@ -243,16 +243,16 @@ export default function Stock() {
 
         {/* Table (จอใหญ่) */}
         <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-[13px]">
+          <table className="w-full min-w-[740px] text-[13px]">
             <thead>
               <tr className="text-left text-[var(--tmuted)] border-b border-[var(--g100)] bg-[var(--surface2)]">
-                <th className="px-4 py-3 font-medium">รหัส</th>
-                <th className="px-4 py-3 font-medium">รูป</th>
-                <th className="px-4 py-3 font-medium">ชื่ออุปกรณ์</th>
-                <th className="px-4 py-3 font-medium">ทั้งหมด</th>
-                <th className="px-4 py-3 font-medium">Office</th>
-                <th className="px-4 py-3 font-medium">Site</th>
-                <th className="px-4 py-3 font-medium">จัดการ</th>
+                <th className="px-3 py-3 font-medium">รหัส</th>
+                <th className="px-3 py-3 font-medium">รูป</th>
+                <th className="px-3 py-3 font-medium">ชื่ออุปกรณ์</th>
+                <th className="px-3 py-3 text-center font-medium">ทั้งหมด</th>
+                <th className="px-3 py-3 text-center font-medium">Office</th>
+                <th className="px-3 py-3 text-center font-medium">Site</th>
+                <th className="sticky right-0 z-20 border-l border-[var(--g200)] bg-[var(--surface2)] px-3 py-3 text-center font-medium shadow-[-10px_0_10px_-10px_rgba(15,23,42,0.25)]">จัดการ</th>
               </tr>
             </thead>
             <tbody>
@@ -271,13 +271,13 @@ export default function Stock() {
                 paged.map((item) => {
                 const oq = parseInt(item.office) || 0;
                 return (
-                  <tr key={item.code} className={`border-b border-[var(--g100)] ${oq < 1 ? 'opacity-60' : ''}`}>
-                    <td className="px-4 py-2.5 font-mono font-semibold">{item.code}</td>
-                    <td className="px-4 py-2.5">
+                  <tr key={item.code} className={`group border-b border-[var(--g100)] ${oq < 1 ? 'opacity-60' : ''}`}>
+                    <td className="whitespace-nowrap px-3 py-2.5 font-mono font-semibold">{item.code}</td>
+                    <td className="px-3 py-2.5">
                       <img
                         src={IMAGE_URL(item.code, item.ext || 'jpg')}
-                        width="46"
-                        height="46"
+                        width="40"
+                        height="40"
                         loading="lazy"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
@@ -287,13 +287,13 @@ export default function Stock() {
                         alt={item.name}
                       />
                     </td>
-                    <td className="px-4 py-2.5 font-medium text-[var(--text)]">{item.name}</td>
-                    <td className="px-4 py-2.5">{item.total}</td>
-                    <td className="px-4 py-2.5">
+                    <td className="max-w-[240px] px-3 py-2.5"><span className="block truncate font-medium text-[var(--text)]" title={item.name}>{item.name}</span></td>
+                    <td className="px-3 py-2.5 text-center tabular-nums">{item.total}</td>
+                    <td className="px-3 py-2.5 text-center tabular-nums">
                       {oq < 1 ? <span className="text-[var(--red)] font-semibold">หมด</span> : oq}
                     </td>
-                    <td className="px-4 py-2.5">{item.site}</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 py-2.5 text-center tabular-nums">{item.site}</td>
+                    <td className="sticky right-0 z-10 border-l border-[var(--g200)] bg-[var(--surface)] px-3 py-2.5 shadow-[-10px_0_10px_-10px_rgba(15,23,42,0.25)] group-hover:bg-[var(--surface2)]">
                       <RowActions
                         code={item.code}
                         total={item.total}
@@ -900,7 +900,7 @@ function Field({ label, value, onChange, placeholder, type = 'text' }) {
 function Modal({ title, onClose, children, busyLabel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-[var(--sh-lg)]">
+      <div className="w-full max-w-md rounded-2xl bg-[var(--surface)] shadow-[var(--sh-lg)]">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--g100)]">
           <div className="text-[14px] font-semibold text-[var(--text)]">{title}</div>
           <button onClick={onClose} className="text-[var(--tmuted)] hover:text-[var(--text)]">

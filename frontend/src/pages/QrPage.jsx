@@ -323,7 +323,7 @@ export default function QrPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4 items-start">
         {/* ── LEFT / เลือกอุปกรณ์ ── */}
-        <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[var(--g100)]">
             <span className="text-[var(--blue)]"><Icon name="assignment" /></span>
             <h2 className="text-[15px] font-bold text-[var(--text)]">เลือกอุปกรณ์เพื่อพิมพ์</h2>
@@ -350,7 +350,7 @@ export default function QrPage() {
                   className={`px-2.5 py-1 rounded-full text-[12px] font-medium border transition-colors ${
                     statusFilter === k
                       ? 'bg-[var(--blue)] text-white border-[var(--blue)]'
-                      : 'bg-white text-[var(--tsub)] border-[var(--g200)] hover:bg-[var(--surface2)]'
+                      : 'bg-[var(--surface)] text-[var(--tsub)] border-[var(--g200)] hover:bg-[var(--surface2)]'
                   }`}
                 >
                   {lab}
@@ -451,7 +451,7 @@ export default function QrPage() {
         {/* ── RIGHT / ตัวควบคุม + Preview ── */}
         <div className="space-y-4">
           {/* ขั้น 2 — เลือกขนาดฉลาก (ปุ่มใหญ่ 3 ปุ่ม + คำนวณดวง/แผ่น A4 ให้) */}
-          <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
             <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--tmuted)] mb-2.5">ขนาดฉลาก</div>
             <div className="grid grid-cols-3 gap-2">
               {[['small', 'เล็ก'], ['medium', 'กลาง'], ['large', 'ใหญ่']].map(([id, label]) => (
@@ -461,7 +461,7 @@ export default function QrPage() {
                   className={`px-2 py-3 rounded-xl border-2 text-center transition-colors ${
                     lW === PRESETS[id][0] && lH === PRESETS[id][1]
                       ? 'bg-[var(--blue-l)] border-[var(--blue)] text-[var(--blue)]'
-                      : 'bg-white border-[var(--g200)] text-[var(--tsub)] hover:bg-[var(--surface2)]'
+                      : 'bg-[var(--surface)] border-[var(--g200)] text-[var(--tsub)] hover:bg-[var(--surface2)]'
                   }`}
                 >
                   <div className="text-[13px] font-bold">{label}</div>
@@ -508,7 +508,7 @@ export default function QrPage() {
           {/* ปรับแบบฉลาก — พับเก็บไว้ default (โหมด/ขนาด mm/margin/gap/สี/เทมเพลต โค้ดเดิมทุกตัวเลือกยังอยู่ครบ) */}
           <button
             onClick={() => setAdvOpen((v) => !v)}
-            className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)]"
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)]"
           >
             <span className="text-[12px] font-bold text-[var(--tsub)]">ปรับแบบฉลาก (โหมด / ขนาด / สี / เทมเพลต)</span>
             <span className="text-[var(--tmuted)]"><Icon name={advOpen ? 'expand_less' : 'expand_more'} size="sm" /></span>
@@ -516,7 +516,7 @@ export default function QrPage() {
           {advOpen && (
             <>
           {/* โหมด */}
-          <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
             <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--tmuted)] mb-2.5">โหมดการพิมพ์</div>
             <div className="grid grid-cols-2 gap-2">
               <ModeTab active={mode === 'label'} onClick={() => setMode('label')} icon="label" title="ฉลากเดี่ยว (Label)" sub="พิมพ์ทีละใบ" />
@@ -525,7 +525,7 @@ export default function QrPage() {
           </div>
 
           {/* ขนาด Label */}
-          <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
             <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--tmuted)] mb-2.5">ขนาด Label</div>
             <div className="grid grid-cols-2 gap-1.5 mb-3">
               {Object.keys(PRESETS).map((id) => (
@@ -535,7 +535,7 @@ export default function QrPage() {
                   className={`text-left px-3 py-2 rounded-lg border text-[12px] font-medium transition-colors ${
                     lW === PRESETS[id][0] && lH === PRESETS[id][1]
                       ? 'bg-[var(--blue-l)] border-[var(--blue)] text-[var(--blue)]'
-                      : 'bg-white border-[var(--g200)] text-[var(--tsub)] hover:bg-[var(--surface2)]'
+                      : 'bg-[var(--surface)] border-[var(--g200)] text-[var(--tsub)] hover:bg-[var(--surface2)]'
                   }`}
                 >
                   <div className="font-semibold capitalize">{id}</div>
@@ -555,7 +555,7 @@ export default function QrPage() {
 
           {/* A4 Layout */}
           {mode === 'a4' && (
-            <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+            <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
               <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--tmuted)] mb-2.5">การจัดวาง A4</div>
               <div className="space-y-2.5">
                 <NumField label="ขอบกระดาษ (ทุกด้าน)" value={pm} onChange={setPm} min={0} max={25} step={0.5} unit="mm" />
@@ -571,7 +571,7 @@ export default function QrPage() {
           )}
 
           {/* ดีไซน์ */}
-          <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
             <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--tmuted)] mb-2.5">ดีไซน์</div>
             <div className="text-[12px] font-medium text-[var(--tsub)] mb-1.5">สีพื้นหลัง Label</div>
             <div className="flex items-center gap-2.5 mb-2">
@@ -603,13 +603,13 @@ export default function QrPage() {
                 className={`w-10 h-5.5 rounded-full relative transition-colors ${showBadge ? 'bg-[var(--blue)]' : 'bg-[var(--g300)]'}`}
                 aria-pressed={showBadge}
               >
-                <span className={`absolute top-0.5 w-4.5 h-4.5 rounded-full bg-white shadow transition-all ${showBadge ? 'left-5' : 'left-0.5'}`} />
+                <span className={`absolute top-0.5 w-4.5 h-4.5 rounded-full bg-[var(--surface)] shadow transition-all ${showBadge ? 'left-5' : 'left-0.5'}`} />
               </button>
             </div>
           </div>
 
           {/* Templates */}
-          <div className="bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
             <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--tmuted)] mb-2.5">เทมเพลตการตั้งค่า</div>
             {!templates.length ? (
               <div className="text-[12px] text-[var(--tmuted)] py-2">ยังไม่มีเทมเพลต</div>
@@ -648,7 +648,7 @@ export default function QrPage() {
       </div>
 
       {/* ── PREVIEW ── */}
-      <div className="mt-4 bg-white rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
+      <div className="mt-4 bg-[var(--surface)] rounded-2xl border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
         {/* หัวการ์ดตัวอย่าง — ไม่มีปุ่ม (ปุ่มพิมพ์/PDF อยู่ชุดเดียวในการ์ด "ขนาดฉลาก" ด้านบน) */}
         <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--g100)]">
           <h3 className="text-[14px] font-bold text-[var(--text)]">ตัวอย่างก่อนพิมพ์</h3>
@@ -732,7 +732,7 @@ function ModeTab({ active, onClick, icon, title, sub }) {
   return (
     <button
       onClick={onClick}
-      className={`text-left px-3 py-2.5 rounded-xl border transition-colors ${active ? 'bg-[var(--blue-l)] border-[var(--blue)]' : 'bg-white border-[var(--g200)] hover:bg-[var(--surface2)]'}`}
+      className={`text-left px-3 py-2.5 rounded-xl border transition-colors ${active ? 'bg-[var(--blue-l)] border-[var(--blue)]' : 'bg-[var(--surface)] border-[var(--g200)] hover:bg-[var(--surface2)]'}`}
     >
       <div className={`flex items-center gap-1.5 text-[13px] font-semibold ${active ? 'text-[var(--blue)]' : 'text-[var(--text)]'}`}>
         <Icon name={icon} size="sm" /> {title}
@@ -913,7 +913,7 @@ function A4Preview({ items, nameOf, statusOf, lw, lh, lm, pm, gapX, gapY, bg, sh
     <div className="space-y-3">
       <div className="overflow-x-auto pb-2">
         <div className="mx-auto" style={{ width: A4W_MM * SC }}>
-          <div className="print-sheet rounded-xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)]" style={{ width: A4W_MM * SC, height: A4H_MM * SC }}>
+          <div className="print-sheet rounded-xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)]" style={{ width: A4W_MM * SC, height: A4H_MM * SC }}>
             <div className="absolute border border-dashed border-[var(--blue)]/25" style={{ left: pm * SC, top: pm * SC, width: innerW * SC, height: innerH * SC }} />
             {cells.map((c, i) => (
               <div key={c.item.serial + i} className="lcell" style={{ left: c.x * SC, top: c.y * SC, width: c.cellW, height: c.cellH, background: isLight ? bg : bg }}>

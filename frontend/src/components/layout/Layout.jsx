@@ -162,7 +162,7 @@ export default function Layout() {
       {/* Main */}
       <div className="min-w-0 flex-1 lg:ml-[var(--sb-w)] flex flex-col min-h-screen">
         {/* Topbar */}
-        <header className="sticky top-0 z-20 h-[var(--topbar-h)] flex items-center justify-between gap-3 px-4 sm:px-6 bg-white/80 backdrop-blur border-b border-[var(--g200)]">
+        <header className="sticky top-0 z-20 h-[var(--topbar-h)] flex items-center justify-between gap-3 px-4 sm:px-6 bg-[var(--surface)]/85 backdrop-blur border-b border-[var(--g200)]">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setSidebarOpen(true)}

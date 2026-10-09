@@ -37,6 +37,12 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
   const [receivedAt, setReceivedAt] = useState(() => toLocalDateTimeValue(new Date()));
   const [poNumber, setPoNumber] = useState('');
   const [supplier, setSupplier] = useState('');
+  const [batchMode, setBatchMode] = useState('new');
+  const [batchId, setBatchId] = useState('');
+  const [batchQuery, setBatchQuery] = useState('');
+  const [availableBatches, setAvailableBatches] = useState([]);
+  const [batchesLoading, setBatchesLoading] = useState(false);
+  const [batchListLoaded, setBatchListLoaded] = useState(false);
   const [sites, setSites] = useState([]);
   const [parts, setParts] = useState([]);
   const [result, setResult] = useState(null); // { serials, added, partCreated }
@@ -55,12 +61,40 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     setReceivedAt(toLocalDateTimeValue(new Date()));
     setPoNumber('');
     setSupplier('');
+    setBatchMode('new');
+    setBatchId('');
+    setBatchQuery('');
+    setBatchListLoaded(false);
     setAdvanced(false);
     setResult(null);
     setNewPart(null);
     axios.get('/api/farm-sites').then(({ data }) => setSites(data || [])).catch(() => {});
     axios.get('/api/part-catalog').then(({ data }) => setParts(data || [])).catch(() => {});
+    setAvailableBatches([]);
+    setBatchListLoaded(false);
   }, [open, presetName]);
+
+  const selectedBatch = availableBatches.find((batch) => batch.batchId === batchId);
+  const filteredBatches = useMemo(() => {
+    const term = batchQuery.trim().toLowerCase();
+    if (!term) return availableBatches;
+    return availableBatches.filter((batch) => [batch.batchId, batch.poNumber, batch.supplier].some((value) => String(value || '').toLowerCase().includes(term)));
+  }, [availableBatches, batchQuery]);
+
+  async function chooseExistingBatchMode() {
+    setBatchMode('existing');
+    if (batchListLoaded || batchesLoading) return;
+    setBatchesLoading(true);
+    try {
+      const { data } = await axios.get('/api/inbound-batches');
+      setAvailableBatches(data || []);
+      setBatchListLoaded(true);
+    } catch {
+      showToast('โหลดรายการล็อตไม่สำเร็จ กรุณาลองอีกครั้ง', { type: 'err' });
+    } finally {
+      setBatchesLoading(false);
+    }
+  }
 
   const pn = selected
     ? selected.partNumber
@@ -107,6 +141,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
   }
 
   async function submit() {
+    if (batchMode === 'existing' && !selectedBatch) return showToast('กรุณาเลือกล็อตเดิมก่อน', { type: 'warn' });
     if (!selected) return showToast('เลือกอุปกรณ์จากรายการ หรือกด "สร้าง Part ใหม่" ก่อน', { type: 'warn' });
     if (!qtyNum || qtyNum < 1) return showToast('ระบุจำนวนชิ้นให้ถูกต้อง', { type: 'warn' });
     const partNumber = selected.partNumber;
@@ -130,6 +165,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
           receivedAt: new Date(receivedAt).toISOString(),
           poNumber: poNumber.trim(),
           supplier: supplier.trim(),
+          ...(batchMode === 'existing' ? { batchId } : {}),
         });
         if (!r2.data.success) throw new Error(r2.data.error || 'เพิ่ม Asset ไม่สำเร็จ');
         setResult({ serials: r2.data.serials || [], added: r2.data.added || qtyNum, partCreated: !!selected.isNew, batchId: r2.data.batchId, receivedAt: r2.data.receivedAt, poNumber: r2.data.poNumber, supplier: r2.data.supplier, inboundStorage: r2.data.inboundStorage });
@@ -152,12 +188,16 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     setReceivedAt(toLocalDateTimeValue(new Date()));
     setPoNumber('');
     setSupplier('');
+    setBatchMode('new');
+    setBatchId('');
+    setBatchQuery('');
+    setBatchListLoaded(false);
     setAdvanced(false);
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-lg bg-[var(--surface)] rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--g100)]">
           <div className="flex items-center gap-2">
             <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--blue-l)] text-[var(--blue)]"><Icon name="add" size="sm" /></span>
@@ -252,7 +292,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
                     autoFocus
                   />
                   {suggestions && !newPart && (
-                    <div className="absolute z-10 mt-1 w-full rounded-xl border border-[var(--g200)] bg-white shadow-[var(--sh-md)] overflow-hidden max-h-56 overflow-y-auto">
+                    <div className="absolute z-10 mt-1 w-full rounded-xl border border-[var(--g200)] bg-[var(--surface)] shadow-[var(--sh-md)] overflow-hidden max-h-56 overflow-y-auto">
                       {suggestions.hits.map((p) => (
                         <button
                           key={p.partNumber}
@@ -304,11 +344,31 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
             {advanced && (
               <div className="space-y-3 pl-3 border-l-2 border-[var(--g100)]">
                 <div className="rounded-xl border border-[var(--blue-b)] bg-[var(--blue-l)] p-3 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button type="button" onClick={() => { setBatchMode('new'); setBatchId(''); }} className={`min-h-11 rounded-lg border px-3 text-[12px] font-semibold ${batchMode === 'new' ? 'border-[var(--blue)] bg-[var(--surface)] text-[var(--blue)]' : 'border-[var(--g200)] text-[var(--tsub)]'}`}>สร้างล็อตใหม่</button>
+                    <button type="button" onClick={chooseExistingBatchMode} className={`min-h-11 rounded-lg border px-3 text-[12px] font-semibold ${batchMode === 'existing' ? 'border-[var(--blue)] bg-[var(--surface)] text-[var(--blue)]' : 'border-[var(--g200)] text-[var(--tsub)]'}`}>ต่อล็อตเดิม</button>
+                  </div>
+                  {batchMode === 'existing' && (
+                    <div className="space-y-2">
+                      <input value={batchQuery} onChange={(e) => setBatchQuery(e.target.value)} placeholder="ค้น Batch ID / PO / Supplier" className={ain + ' min-h-11'} />
+                      <select value={batchId} onChange={(e) => {
+                        const next = availableBatches.find((batch) => batch.batchId === e.target.value);
+                        setBatchId(next?.batchId || '');
+                        if (next?.receivedAt) setReceivedAt(toLocalDateTimeValue(new Date(next.receivedAt)));
+                        setPoNumber(next?.poNumber || '');
+                        setSupplier(next?.supplier || '');
+                      }} className={ain + ' min-h-11'}>
+                        <option value="">{batchesLoading ? 'กำลังโหลดล็อต...' : 'เลือก Batch ID'}</option>
+                        {filteredBatches.map((batch) => <option key={batch.batchId} value={batch.batchId}>{batch.batchId} · PO {batch.poNumber || '-'} · {batch.count} ชิ้น · {formatReceivedAt(batch.receivedAt)}</option>)}
+                      </select>
+                      {!batchesLoading && filteredBatches.length === 0 && <div className="text-[12px] text-[var(--tmuted)]">ไม่พบล็อตที่ค้นหา</div>}
+                    </div>
+                  )}
                   <div className="text-[12px] font-semibold text-[var(--blue)]">ข้อมูลรับเข้า · สร้างล็อตให้อัตโนมัติ</div>
-                  <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">วันที่และเวลารับเข้า</label><input type="datetime-local" value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} className={ain + ' min-h-11'} /></div>
+                  <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">วันที่และเวลารับเข้า</label><input type="datetime-local" value={receivedAt} disabled={batchMode === 'existing' && !!selectedBatch} onChange={(e) => setReceivedAt(e.target.value)} className={ain + ' min-h-11'} /></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">เลข PO (ไม่บังคับ)</label><input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} maxLength={100} className={ain + ' min-h-11'} /></div>
-                    <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">Supplier (ไม่บังคับ)</label><input value={supplier} onChange={(e) => setSupplier(e.target.value)} maxLength={100} className={ain + ' min-h-11'} /></div>
+                    <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">เลข PO (ไม่บังคับ)</label><input value={poNumber} disabled={batchMode === 'existing' && !!selectedBatch} onChange={(e) => setPoNumber(e.target.value)} maxLength={100} className={ain + ' min-h-11'} /></div>
+                    <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">Supplier (ไม่บังคับ)</label><input value={supplier} disabled={batchMode === 'existing' && !!selectedBatch} onChange={(e) => setSupplier(e.target.value)} maxLength={100} className={ain + ' min-h-11'} /></div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

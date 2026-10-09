@@ -14,14 +14,14 @@ import Icon from './ui/Icon.jsx';
 import { FARM_TYPES, suggestSiteId, suggestHouseId } from '../utils/farmId.js';
 
 const inp =
-  'w-full h-9 px-3 rounded-lg border border-[var(--g200)] bg-white text-[13px] focus:outline-none focus:border-[var(--blue)]';
+  'w-full h-9 px-3 rounded-lg border border-[var(--g200)] bg-[var(--surface)] text-[13px] focus:outline-none focus:border-[var(--blue)]';
 
 function PanelShell({ title, err, onClose, onSave, saving, saveLabel, children }) {
   return (
     <div className="rounded-xl border border-[var(--g200)] bg-[var(--surface2)] p-3 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-bold text-[var(--text)]">{title}</span>
-        <button type="button" onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-white">
+        <button type="button" onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--surface)]">
           <Icon name="close" size="sm" />
         </button>
       </div>
@@ -32,7 +32,7 @@ function PanelShell({ title, err, onClose, onSave, saving, saveLabel, children }
       )}
       {children}
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onClose} className="px-3 h-8 rounded-lg border border-[var(--g300)] bg-white text-[12px] text-[var(--tsub)]">
+        <button type="button" onClick={onClose} className="px-3 h-8 rounded-lg border border-[var(--g300)] bg-[var(--surface)] text-[12px] text-[var(--tsub)]">
           ยกเลิก
         </button>
         <button
@@ -63,7 +63,7 @@ function TriggerBtn({ onClick, label, disabled }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1 px-2.5 h-9 rounded-lg border border-[var(--g300)] bg-white text-[12px] font-semibold text-[var(--blue)] hover:bg-[var(--blue-l)] whitespace-nowrap"
+      className="flex items-center gap-1 px-2.5 h-9 rounded-lg border border-[var(--g300)] bg-[var(--surface)] text-[12px] font-semibold text-[var(--blue)] hover:bg-[var(--blue-l)] whitespace-nowrap"
     >
       <Icon name="add" size="sm" /> {label}
     </button>
