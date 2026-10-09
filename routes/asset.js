@@ -13,6 +13,9 @@ const {
 } = require("../services/sheets");
 const { requireLogin, validate } = require("../middleware/auth");
 const { logAudit } = require("../services/audit");
+const { normalizeReceivedAt, createBatchId, createInboundRows, inboundMap } = require("../utils/inbound");
+const { readInboundRows, prepareInboundWrite, appendInboundRows } = require("../services/inboundStore");
+const { isLocalInventoryMode, readLocalInventory, addLocalAsset, addLocalAssets } = require("../services/localInventory");
 
 // -------------------- SYNC ASSET HISTORY --------------------
 // แบบ batch: สร้างแถวที่ต้อง sync ทั้งหมดก่อนแล้ว append เป็นก้อน
@@ -88,6 +91,22 @@ async function syncInitialAssetHistory() {
 
 // -------------------- GET ASSETS --------------------
 router.get("/api/assets", requireLogin, async (req, res) => {
+  if (isLocalInventoryMode()) {
+    try {
+      const [inventory, inboundRows] = await Promise.all([readLocalInventory(), readInboundRows(null, SPREADSHEET_ID)]);
+      const bySerial = inboundMap(inboundRows);
+      return res.json(inventory.assets.map((asset) => ({
+        ...asset,
+        batchId: bySerial.get(asset.serialNumber)?.batchId || "",
+        receivedAt: bySerial.get(asset.serialNumber)?.receivedAt || "",
+        poNumber: bySerial.get(asset.serialNumber)?.poNumber || "",
+        supplier: bySerial.get(asset.serialNumber)?.supplier || "",
+      })));
+    } catch (error) {
+      console.error("Local asset list error:", error);
+      return res.status(500).json([]);
+    }
+  }
   const cacheKey = "assetData";
   let assets = cache.get(cacheKey);
   if (assets) return res.json(assets);
@@ -100,6 +119,7 @@ router.get("/api/assets", requireLogin, async (req, res) => {
       range: "Asset_List!A2:P",
     });
     const assetRows = assetResponse.data.values || [];
+    const inboundBySerial = inboundMap(await readInboundRows(sheets, SPREADSHEET_ID));
 
     // ดึงชื่อชุดอุปกรณ์มาไว้แนบ เพื่อให้หน้า Asset แสดงได้ว่า "อยู่ในชุดอะไร"
     // (Asset_List เก็บแค่ BundleID ที่คอลัมน์ N — ชื่อชุดต้องมาจาก sheet Bundles)
@@ -120,7 +140,9 @@ router.get("/api/assets", requireLogin, async (req, res) => {
       }
     }
 
-    assets = assetRows.map((row) => ({
+    assets = assetRows.map((row) => {
+      const inbound = inboundBySerial.get(String(row[4] || "").trim()) || {};
+      return ({
       assetId: row[0] || "-",
       code: row[1] || "-",
       name: row[2] || "-",
@@ -135,7 +157,12 @@ router.get("/api/assets", requireLogin, async (req, res) => {
       houseName: row[12] || "-",
       bundleId: row[13] || "", // ว่าง = ไม่ได้อยู่ใน Bundle ไหน
       bundleName: row[13] ? bundleNameMap[row[13]] || row[13] : "",
-    }));
+      batchId: inbound.batchId || "",
+      receivedAt: inbound.receivedAt || "",
+      poNumber: inbound.poNumber || "",
+      supplier: inbound.supplier || "",
+    });
+    });
     cache.set(cacheKey, assets);
     res.json(assets);
   } catch (error) {
@@ -241,6 +268,28 @@ router.get("/api/asset-history-recent", requireLogin, async (req, res) => {
     res.json(recent);
   } catch (error) {
     console.error("❌ Recent Asset History Error:", error);
+    res.status(500).json([]);
+  }
+});
+
+router.get("/api/inbound-batches/recent", requireLogin, async (req, res) => {
+  try {
+    let sheets = null;
+    if (!isLocalInventoryMode()) {
+      try { sheets = await getSheetsClient(); } catch (error) { console.warn(`[inbound] Google Sheets client unavailable; using local metadata (${error.message})`); }
+    }
+    const rows = await readInboundRows(sheets, SPREADSHEET_ID);
+    const grouped = new Map();
+    for (const row of rows) {
+      if (!row[0]) continue;
+      const batch = grouped.get(row[0]) || { batchId: row[0], receivedAt: row[1] || "", poNumber: row[2] || "", supplier: row[3] || "", count: 0 };
+      batch.count += 1;
+      grouped.set(row[0], batch);
+    }
+    res.json([...grouped.values()].sort((a, b) => String(b.receivedAt).localeCompare(String(a.receivedAt))).slice(0, 12));
+  } catch (err) {
+    if (String(err.message || "").includes("Unable to parse range")) return res.json([]);
+    console.error("Recent inbound batches:", err);
     res.status(500).json([]);
   }
 });
@@ -415,6 +464,9 @@ router.post("/api/add-asset",
     body("location").optional().isString(),
     body("siteName").optional().isString(),
     body("user").optional().isString(),
+    body("receivedAt").optional().isString(),
+    body("poNumber").optional().isString(),
+    body("supplier").optional().isString(),
   ],
   validate,
   async (req, res) => {
@@ -429,8 +481,27 @@ router.post("/api/add-asset",
         location,
         siteName,
         user,
+        receivedAt: receivedAtInput,
+        poNumber = "",
+        supplier = "",
       } = req.body;
+      if (isLocalInventoryMode()) {
+        const created = await addLocalAsset({ assetId, code, name, partNumber, serialNumber, status, location, siteName, user }, req.session.user.username);
+        if (!created.success) return res.status(409).json(created);
+        let inbound = null;
+        if (serialNumber) {
+          const receivedAt = normalizeReceivedAt(receivedAtInput);
+          const existing = await readInboundRows(null, SPREADSHEET_ID);
+          const batchId = createBatchId(receivedAt, existing.map((row) => row[0]));
+          const [row] = createInboundRows({ batchId, receivedAt, poNumber: String(poNumber || "").slice(0, 100), supplier: String(supplier || "").slice(0, 100), serials: [serialNumber], assetIds: [assetId], receivedBy: req.session.user.username });
+          const storage = await appendInboundRows(null, SPREADSHEET_ID, [row]);
+          inbound = { batchId, receivedAt, poNumber: String(poNumber || "").trim(), supplier: String(supplier || "").trim(), inboundStorage: storage };
+        }
+        clearAssetCache();
+        return res.json({ success: true, ...inbound });
+      }
       const sheets = await getSheetsClient();
+      const receivedAt = serialNumber ? normalizeReceivedAt(receivedAtInput) : null;
       const currentDate = new Date().toLocaleString("th-TH");
       const rowValues = [
         assetId,
@@ -444,12 +515,21 @@ router.post("/api/add-asset",
         user,
         currentDate,
       ];
+      if (serialNumber) await prepareInboundWrite();
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
         range: "Asset_List!A:J",
         valueInputOption: "USER_ENTERED",
         requestBody: { values: [rowValues] },
       });
+      let inbound = null;
+      if (serialNumber) {
+        const existing = await readInboundRows(sheets, SPREADSHEET_ID);
+        const batchId = createBatchId(receivedAt, existing.map((row) => row[0]));
+        const [inboundRow] = createInboundRows({ batchId, receivedAt, poNumber: String(poNumber || "").slice(0, 100), supplier: String(supplier || "").slice(0, 100), serials: [serialNumber], assetIds: [assetId], receivedBy: req.session.user.username });
+        const storage = await appendInboundRows(sheets, SPREADSHEET_ID, [inboundRow]);
+        inbound = { batchId, receivedAt, poNumber: String(poNumber || "").trim(), supplier: String(supplier || "").trim(), inboundStorage: storage };
+      }
       await saveAssetHistory(
         serialNumber,
         "ลงทะเบียนอุปกรณ์ใหม่",
@@ -471,7 +551,7 @@ await logAudit(
   req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress
 );
 
-res.json({ success: true });   // ✅ ส่ง Response ทีหลัง
+res.json({ success: true, ...(inbound || {}) });   // ✅ ส่ง Response ทีหลัง
     } catch (error) {
       console.error("❌ Add Asset Error:", error);
       res.status(500).json({ success: false, error: error.message });
@@ -830,7 +910,20 @@ router.post("/api/bulk-add-asset",
         farmType,
         houseId,
         houseName,
+        receivedAt: receivedAtInput,
+        poNumber = "",
+        supplier = "",
       } = req.body;
+      if (isLocalInventoryMode()) {
+        const receivedAt = normalizeReceivedAt(receivedAtInput);
+        const inboundExisting = await readInboundRows(null, SPREADSHEET_ID);
+        const batchId = createBatchId(receivedAt, inboundExisting.map((row) => row[0]));
+        const created = await addLocalAssets({ partNumber, partName, qty, status, siteName, location, user, farmType, houseId, houseName }, req.session.user.username);
+        const inboundRows = createInboundRows({ batchId, receivedAt, poNumber: String(poNumber || "").slice(0, 100), supplier: String(supplier || "").slice(0, 100), serials: created.assets.map((asset) => asset.serialNumber), assetIds: created.assets.map((asset) => asset.assetId), receivedBy: req.session.user.username });
+        await appendInboundRows(null, SPREADSHEET_ID, inboundRows);
+        cache.del("partCatalog");
+        return res.json({ success: true, ...created, serials: created.assets.map((asset) => asset.serialNumber), batchId, receivedAt, poNumber, supplier, inboundStorage: "local-file" });
+      }
       const sheets = await getSheetsClient();
 
       const now = new Date();
@@ -928,6 +1021,20 @@ router.post("/api/bulk-add-asset",
         });
       }
 
+      const receivedAt = normalizeReceivedAt(receivedAtInput);
+      const inboundExisting = await readInboundRows(sheets, SPREADSHEET_ID);
+      const batchId = createBatchId(receivedAt, inboundExisting.map((row) => row[0]));
+      const inboundRows = createInboundRows({
+        batchId,
+        receivedAt,
+        poNumber: String(poNumber || "").slice(0, 100),
+        supplier: String(supplier || "").slice(0, 100),
+        serials: newRows.map((row) => row[4]),
+        assetIds: newRows.map((row) => row[0]),
+        receivedBy: req.session.user.username,
+      });
+      await prepareInboundWrite();
+
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
         range: "Asset_List!A:M",
@@ -941,6 +1048,8 @@ router.post("/api/bulk-add-asset",
         valueInputOption: "USER_ENTERED",
         requestBody: { values: historyRows },
       });
+
+      const inboundStorage = await appendInboundRows(sheets, SPREADSHEET_ID, inboundRows);
 
       const catRes = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
@@ -976,6 +1085,11 @@ res.json({
   success: true,
   added: qty,
   serials: newRows.map((r) => r[4]),
+  batchId,
+  receivedAt,
+  poNumber: String(poNumber || "").trim(),
+  supplier: String(supplier || "").trim(),
+  inboundStorage,
   firstSerial: newRows[0][4],
   lastSerial: newRows[newRows.length - 1][4],
 });

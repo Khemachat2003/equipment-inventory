@@ -741,6 +741,7 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
                   <StatusBadge status={a.status} />
                 </div>
                 <div className="text-[12px] text-[var(--tsub)] truncate">{a.name} <span className="text-[var(--tmuted)]">· {a.assetId} · {a.code}</span></div>
+                <div className="mt-1 text-[11px] text-[var(--tsub)]">{a.batchId ? `ล็อต ${a.batchId} · รับเข้า ${formatInboundDate(a.receivedAt)}` : 'ไม่ระบุล็อต'}</div>
               </div>
               <div className="flex w-full sm:w-auto items-center justify-end sm:justify-start gap-1">
                 <button onClick={() => onHistory(a)} disabled={!a.serial} title="ประวัติ" className="h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)] disabled:opacity-40"><Icon name="description" size="sm" /></button>
@@ -973,6 +974,10 @@ function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
       />
     </Modal>
   );
+}
+
+function formatInboundDate(value) {
+  return value ? new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium' }).format(new Date(value)) : 'ไม่ระบุวัน';
 }
 
 function AddAssetModal({ pending, setPending, results, onSearch, onClose, onCommit }) {

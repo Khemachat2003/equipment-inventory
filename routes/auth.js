@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 const { body } = require("express-validator");
 const { getSheetsClient, cache, SPREADSHEET_ID } = require("../services/sheets");
 const { requireLogin, validate } = require("../middleware/auth");
+const { isLocalInventoryMode } = require("../services/localInventory");
 
 const saltRounds = 10;
 
@@ -18,6 +19,15 @@ router.post("/api/login",
   async (req, res) => {
     try {
       const { username, password } = req.body;
+      if (isLocalInventoryMode()) {
+        const localUsername = process.env.INBOUND_LOCAL_USERNAME || "local";
+        const localPassword = process.env.INBOUND_LOCAL_PASSWORD || "local-dev";
+        if (username.trim() !== localUsername || password.trim() !== localPassword) {
+          return res.status(401).json({ error: "Username หรือ Password ไม่ถูกต้อง" });
+        }
+        req.session.user = { username: localUsername, role: "user" };
+        return req.session.save(() => res.json({ success: true, role: "user", localInventory: true }));
+      }
       const sheets = await getSheetsClient();
       const userRes = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,

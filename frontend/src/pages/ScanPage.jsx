@@ -556,6 +556,9 @@ function ResultCard({ asset, history, onHistory, onTransfer, onScanAgain, onRefr
             <div className="text-[12px] text-[var(--tmuted)]">Serial Number</div>
             <div className="font-mono text-[14px] text-[var(--blue)]">{asset.serialNumber}</div>
           </div>
+          <div className="rounded-lg border border-[var(--g200)] bg-white px-3 py-2 text-[12px]">
+            {asset.batchId ? <><div className="font-semibold text-[var(--blue)]">ล็อต {asset.batchId}</div><div className="text-[var(--tsub)]">รับเข้า {formatInboundAt(asset.receivedAt)}{asset.receivedAt ? ` (${inboundAge(asset.receivedAt)})` : ''}{asset.poNumber ? ` · PO ${asset.poNumber}` : ''}{asset.supplier ? ` · ${asset.supplier}` : ''}</div></> : <div className="text-[var(--tsub)]">ไม่ระบุล็อต</div>}
+          </div>
         </div>
         <div className="p-4 space-y-2">
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--emerald-l)] border border-[var(--emerald-b)]">
@@ -618,6 +621,15 @@ function ResultCard({ asset, history, onHistory, onTransfer, onScanAgain, onRefr
       </button>
     </Card>
   );
+}
+
+function formatInboundAt(value) {
+  return value ? new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'ไม่ระบุวัน';
+}
+
+function inboundAge(value) {
+  const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
+  return days === 0 ? 'วันนี้' : `${days} วันที่แล้ว`;
 }
 
 function Card({ title, accent, children }) {

@@ -12,6 +12,7 @@ import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 import { CATEGORY_FALLBACK, categoryIcon, categoryLabel } from '../data/categories.js';
 import { buildLocation } from '../utils/location.js';
+import { matchesInboundFilters } from '../utils/inbound.js';
 
 export default function Asset() {
   const [assets, setAssets] = useState([]);
@@ -22,6 +23,10 @@ export default function Asset() {
   const [currentPart, setCurrentPart] = useState('');
   const [partSearch, setPartSearch] = useState('');
   const [assetSearch, setAssetSearch] = useState('');
+  const [batchSearch, setBatchSearch] = useState('');
+  const [receivedFrom, setReceivedFrom] = useState('');
+  const [receivedTo, setReceivedTo] = useState('');
+  const [recentBatches, setRecentBatches] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [transfer, setTransfer] = useState(null);
@@ -34,16 +39,18 @@ export default function Asset() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, p, s, c] = await Promise.all([
+      const [a, p, s, c, b] = await Promise.all([
         axios.get('/api/assets'),
         axios.get('/api/part-catalog'),
         axios.get('/api/farm-sites'),
         axios.get('/api/categories'),
+        axios.get('/api/inbound-batches/recent').catch(() => ({ data: [] })),
       ]);
       setAssets(a.data || []);
       setParts(p.data || []);
       setSites(s.data || []);
       if (c.data && c.data.length) setCategoryList(c.data);
+      setRecentBatches(b.data || []);
     } catch (e) {
       console.error('load asset', e);
     } finally {
@@ -77,9 +84,11 @@ export default function Asset() {
   const catOf = useCallback((a) => parts.find((p) => p.partNumber === (a.partNumber || a.code))?.category || '', [parts]);
   const filtered = useMemo(() => {
     const k = assetSearch.toLowerCase();
+    const bk = batchSearch.trim().toLowerCase();
     return assets.filter((a) => {
       if (currentPart && a.partNumber !== currentPart) return false;
       if (categoryFilter && catOf(a) !== categoryFilter) return false;
+      if (!matchesInboundFilters(a, { query: bk, from: receivedFrom, to: receivedTo })) return false;
       if (!k) return true;
       return (
         (a.assetId || '').toLowerCase().includes(k) ||
@@ -88,11 +97,11 @@ export default function Asset() {
         (a.serialNumber || '').toLowerCase().includes(k)
       );
     });
-  }, [assets, currentPart, categoryFilter, catOf, assetSearch]);
+  }, [assets, currentPart, categoryFilter, catOf, assetSearch, batchSearch, receivedFrom, receivedTo]);
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  useEffect(() => { setPage(1); }, [currentPart, categoryFilter, assetSearch, pageSize]);
+  useEffect(() => { setPage(1); }, [currentPart, categoryFilter, assetSearch, batchSearch, receivedFrom, receivedTo, pageSize]);
 
   const currentPartName = currentPart ? (parts.find((p) => p.partNumber === currentPart)?.partName || currentPart) : '';
   const stats = useMemo(() => {
@@ -120,11 +129,21 @@ export default function Asset() {
     if (selected.length) setTransfer({ assets: selected });
   }
 
+  function selectBatch(batchId) {
+    const serials = assets.filter((a) => a.batchId === batchId && a.serialNumber).map((a) => a.serialNumber);
+    setCurrentPart('');
+    setCategoryFilter('');
+    setBatchSearch(batchId);
+    setSelectedSerials(serials);
+    if (serials.length) showToast(`เลือกล็อต ${batchId} จำนวน ${serials.length} ชิ้นแล้ว`);
+    else showToast('ไม่พบอุปกรณ์ในล็อตนี้', { type: 'warn' });
+  }
+
   function exportCSV() {
-    const heads = ['Asset ID', 'Code', 'Name', 'Serial', 'Status', 'อยู่ในชุด', 'ตำแหน่ง (ฟาร์ม › โรงเรือน › จุดติดตั้ง)', 'User', 'Category'];
+    const heads = ['Asset ID', 'Code', 'Name', 'Serial', 'Batch ID', 'Received At', 'PO Number', 'Supplier', 'Status', 'อยู่ในชุด', 'ตำแหน่ง (ฟาร์ม › โรงเรือน › จุดติดตั้ง)', 'User', 'Category'];
     const rows = [heads];
     filtered.forEach((a) => rows.push([
-      a.assetId, a.code, a.name, a.serialNumber, a.status,
+      a.assetId, a.code, a.name, a.serialNumber, a.batchId || '', a.receivedAt || '', a.poNumber || '', a.supplier || '', a.status,
       a.bundleName || a.bundleId || '',
       buildLocation({ siteName: a.siteName, houseName: a.houseName, houseId: a.houseId, location: a.location, bundleId: a.bundleId }).full,
       a.user, catOf(a),
@@ -167,6 +186,20 @@ export default function Asset() {
         {stats.repair > 0 && <StatPill label="ซ่อม" value={stats.repair} icon="build" tone="red" />}
         {currentPartName && <div className="px-3 py-1.5 rounded-full bg-[var(--g100)] text-[12px] text-[var(--tsub)]"><Icon name="inventory_2" size="xs" /> {currentPartName}</div>}
       </div>
+
+      {recentBatches.length > 0 && (
+        <section className="rounded-xl border border-[var(--g200)] bg-white p-3 sm:p-4 space-y-2">
+          <div className="text-[13px] font-semibold text-[var(--text)]">ล็อตสินค้าล่าสุด</div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {recentBatches.map((batch) => (
+              <button key={batch.batchId} onClick={() => selectBatch(batch.batchId)} className="min-h-11 shrink-0 rounded-lg border border-[var(--g200)] px-3 text-left hover:border-[var(--blue)]">
+                <span className="block text-[12px] font-semibold text-[var(--blue)]">{batch.batchId}</span>
+                <span className="block text-[11px] text-[var(--tsub)]">{batch.count} ชิ้น · {formatBatchDate(batch.receivedAt)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
         {/* Part sidebar — จอใหญ่เท่านั้น */}
@@ -235,6 +268,11 @@ export default function Asset() {
             <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
               <Icon name="download" size="sm" /> CSV
             </button>
+            <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input value={batchSearch} onChange={(e) => setBatchSearch(e.target.value)} placeholder="ค้นหา Batch ID / PO / Supplier" className="h-11 min-w-0 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] px-3 text-[13px]" />
+              <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--g200)] px-2"><span className="shrink-0 text-[11px] text-[var(--tsub)]">รับเข้าตั้งแต่</span><input aria-label="รับเข้าตั้งแต่" type="date" value={receivedFrom} onChange={(e) => setReceivedFrom(e.target.value)} className="h-10 min-w-0 flex-1 bg-transparent text-[12px]" /></label>
+              <label className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--g200)] px-2"><span className="shrink-0 text-[11px] text-[var(--tsub)]">ถึง</span><input aria-label="รับเข้าถึง" type="date" value={receivedTo} onChange={(e) => setReceivedTo(e.target.value)} className="h-10 min-w-0 flex-1 bg-transparent text-[12px]" /></label>
+            </div>
           </div>
 
           {/* Table (จอใหญ่) */}
@@ -246,6 +284,7 @@ export default function Asset() {
                   <th className="px-3 py-2.5 font-medium">รหัส</th>
                   <th className="px-3 py-2.5 font-medium">ชื่อ</th>
                   <th className="px-3 py-2.5 font-medium">Serial</th>
+                  <th className="px-3 py-2.5 font-medium">ล็อตรับเข้า</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
                   <th className="px-3 py-2.5 font-medium">ชุด / ตำแหน่ง</th>
                   <th className="px-3 py-2.5 font-medium">User</th>
@@ -253,9 +292,9 @@ export default function Asset() {
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={8} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
+                {loading && <tr><td colSpan={9} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
                 {!loading && paged.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
+                  <tr><td colSpan={9} className="text-center py-10 text-[var(--tmuted)]">ไม่พบอุปกรณ์ใน Part นี้</td></tr>
                 )}
                 {paged.map((a) => (
                   <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--g100)] hover:bg-[var(--surface2)]">
@@ -266,6 +305,7 @@ export default function Asset() {
                     </td>
                     <td className="px-3 py-2 font-medium"><span title={categoryLabel(catOf(a))} className="inline-flex items-center gap-1"><Icon name={categoryIcon(catOf(a))} size="xs" className="text-[var(--tsub)]" /> {a.name}</span></td>
                     <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]"><span className="block max-w-[150px] truncate" title={a.serialNumber}>{a.serialNumber}</span></td>
+                    <td className="px-3 py-2"><InboundBadge asset={a} /></td>
                     <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
                     <td className="px-3 py-2">
                       <div className="min-w-0 max-w-[260px]">
@@ -328,6 +368,7 @@ export default function Asset() {
                 </div>
                 <div className="pl-[42px] grid grid-cols-1 gap-1 text-[12px]">
                   <div className="text-[var(--tsub)]">Serial: <span className="font-mono text-[var(--text)]">{a.serialNumber}</span></div>
+                  <InboundBadge asset={a} />
                   {a.bundleId && (
                     <div className="flex items-center gap-1.5">
                       <span className="text-[var(--tsub)]">อยู่ในชุด:</span>
@@ -390,6 +431,20 @@ export default function Asset() {
       <BusyOverlay label={busy.busyLabel} />
     </div>
   );
+}
+
+function formatBatchDate(value) {
+  return value ? new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium' }).format(new Date(value)) : 'ไม่ระบุวัน';
+}
+
+function InboundBadge({ asset }) {
+  if (!asset.batchId) return <span className="inline-flex rounded-full bg-[var(--g100)] px-2 py-1 text-[11px] text-[var(--tsub)]">ไม่ระบุล็อต</span>;
+  return <span className="inline-flex flex-wrap items-center gap-x-1 rounded-lg bg-[var(--blue-l)] px-2 py-1 text-[11px] text-[var(--blue)]"><strong>{asset.batchId}</strong><span>· {formatBatchDate(asset.receivedAt)}{asset.receivedAt ? ` (${inboundAge(asset.receivedAt)})` : ''}</span></span>;
+}
+
+function inboundAge(value) {
+  const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
+  return days === 0 ? 'วันนี้' : `${days} วันที่แล้ว`;
 }
 
 function PartItem({ icon, label, sub, count, active, onClick }) {

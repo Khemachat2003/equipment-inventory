@@ -81,6 +81,25 @@ const DAMAGED_HEADER = [
   "Status", "OldLocation", "OldSite", "TransferredBy", "Remark", "Action",
 ];
 
+const INBOUND_SHEET = "Inbound_Log";
+const INBOUND_HEADER = ["batchId", "receivedAt", "poNumber", "supplier", "serial", "assetId", "createdBy", "createdAt"];
+
+async function ensureInboundLogSheet() {
+  const sheets = await getSheetsClient();
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  if ((meta.data.sheets || []).some((s) => s.properties?.title === INBOUND_SHEET)) return true;
+  try {
+    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SPREADSHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: INBOUND_SHEET, gridProperties: { rowCount: 1000, columnCount: INBOUND_HEADER.length } } } }] } });
+  } catch (err) {
+    // Another request may have created it after the metadata read.
+    const refreshed = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    if (!(refreshed.data.sheets || []).some((s) => s.properties?.title === INBOUND_SHEET)) throw err;
+  }
+  const header = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: `${INBOUND_SHEET}!A1:H1` });
+  if (!header.data.values?.length) await sheets.spreadsheets.values.update({ spreadsheetId: SPREADSHEET_ID, range: `${INBOUND_SHEET}!A1:H1`, valueInputOption: "RAW", requestBody: { values: [INBOUND_HEADER] } });
+  return true;
+}
+
 // ── ตรวจว่ามี sheet "Damaged_Assets" แล้วหรือยัง ถ้ายังไม่มีให้สร้าง + ตั้ง header ──
 async function ensureDamagedAssetsSheet() {
   const sheets = await getSheetsClient();
@@ -150,5 +169,7 @@ module.exports = {
   SPREADSHEET_ID,
   DAMAGED_SHEET,
   ensureDamagedAssetsSheet,
+  INBOUND_SHEET,
+  ensureInboundLogSheet,
   logDamagedAsset,
 };

@@ -4,9 +4,14 @@ const router = express.Router();
 const { body } = require("express-validator");
 const { getSheetsClient, cache, SPREADSHEET_ID } = require("../services/sheets");
 const { requireLogin, validate } = require("../middleware/auth");
+const { isLocalInventoryMode, readLocalInventory, addLocalPart } = require("../services/localInventory");
 
 // -------------------- GET PART CATALOG --------------------
 router.get("/api/part-catalog", requireLogin, async (req, res) => {
+  if (isLocalInventoryMode()) {
+    const inventory = await readLocalInventory();
+    return res.json(inventory.parts.map((part) => ({ ...part, totalQty: inventory.assets.filter((asset) => asset.partNumber === part.partNumber).length })));
+  }
   const cacheKey = "partCatalog";
   let parts = cache.get(cacheKey);
   if (parts) return res.json(parts);
@@ -98,6 +103,10 @@ router.post("/api/add-part",
   async (req, res) => {
     try {
       const { partNumber, partName, category, description, unit } = req.body;
+      if (isLocalInventoryMode()) {
+        const result = await addLocalPart({ partNumber, partName, category, description, unit: unit || "ชิ้น" });
+        return res.status(result.success ? 200 : 400).json(result);
+      }
       const sheets = await getSheetsClient();
 
       // 🔒 กัน Part ซ้ำ — Part Number เดียวต้องมีแถวเดียวใน Part_Catalog

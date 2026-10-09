@@ -4,6 +4,8 @@ credentials2.json
 *.pdf
 .env
 logs/
+data/inbound-log.local.json
+data/local-inventory.dev.json
 ecosystem.config.js
 node_modules/
 *.log

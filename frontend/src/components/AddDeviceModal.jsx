@@ -11,6 +11,16 @@ import { showToast, ToastHost } from './ui/Toast.jsx';
 
 const ain = 'w-full h-9 px-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px] focus:outline-none focus:border-[var(--blue)]';
 
+function toLocalDateTimeValue(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function formatReceivedAt(value) {
+  if (!value) return 'ไม่ระบุวัน';
+  return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
 function sanitizePartNumber(v) {
   return (v || '').trim().toUpperCase().replace(/\s+/g, '-');
 }
@@ -24,6 +34,9 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
   const [siteName, setSiteName] = useState('Intranin');
   const [location, setLocation] = useState('Stock');
   const [user, setUser] = useState('');
+  const [receivedAt, setReceivedAt] = useState(() => toLocalDateTimeValue(new Date()));
+  const [poNumber, setPoNumber] = useState('');
+  const [supplier, setSupplier] = useState('');
   const [sites, setSites] = useState([]);
   const [parts, setParts] = useState([]);
   const [result, setResult] = useState(null); // { serials, added, partCreated }
@@ -39,6 +52,9 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     setSiteName('Intranin');
     setLocation('Stock');
     setUser('');
+    setReceivedAt(toLocalDateTimeValue(new Date()));
+    setPoNumber('');
+    setSupplier('');
     setAdvanced(false);
     setResult(null);
     setNewPart(null);
@@ -111,9 +127,12 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
           siteName,
           location: location.trim() || '-',
           user: user.trim(),
+          receivedAt: new Date(receivedAt).toISOString(),
+          poNumber: poNumber.trim(),
+          supplier: supplier.trim(),
         });
         if (!r2.data.success) throw new Error(r2.data.error || 'เพิ่ม Asset ไม่สำเร็จ');
-        setResult({ serials: r2.data.serials || [], added: r2.data.added || qtyNum, partCreated: !!selected.isNew });
+        setResult({ serials: r2.data.serials || [], added: r2.data.added || qtyNum, partCreated: !!selected.isNew, batchId: r2.data.batchId, receivedAt: r2.data.receivedAt, poNumber: r2.data.poNumber, supplier: r2.data.supplier, inboundStorage: r2.data.inboundStorage });
       } catch (e) {
         showToast('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message), { type: 'err' });
       }
@@ -130,6 +149,9 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     setSiteName('Intranin');
     setLocation('Stock');
     setUser('');
+    setReceivedAt(toLocalDateTimeValue(new Date()));
+    setPoNumber('');
+    setSupplier('');
     setAdvanced(false);
   }
 
@@ -152,6 +174,9 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
               <div className="text-[15px] font-bold text-[var(--text)]">เพิ่ม {result.added} ชิ้นสำเร็จ</div>
               {result.partCreated && <div className="text-[12px] text-[var(--tmuted)]">สร้าง Part "{selected.partNumber}" ให้อัตโนมัติแล้ว</div>}
             </div>
+            {result.batchId && <div className="text-center text-[13px] font-semibold text-[var(--blue)]">ล็อต {result.batchId} · รับเข้า {formatReceivedAt(result.receivedAt)}</div>}
+            {(result.poNumber || result.supplier) && <div className="text-center text-[12px] text-[var(--tsub)]">{[result.poNumber && `PO ${result.poNumber}`, result.supplier].filter(Boolean).join(' · ')}</div>}
+            {result.inboundStorage === 'local-file' && <div role="status" className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">บันทึกข้อมูลล็อตไว้ใน Localhost แล้ว (Google Sheets ยังไม่พร้อม)</div>}
             <div className="px-3 py-2.5 rounded-lg bg-[var(--blue-l)] border border-[var(--blue-b)]">
               <div className="text-[11px] font-bold text-[var(--blue)] mb-1">Serial ที่สร้าง (ตรวจซ้ำโดยระบบแล้ว):</div>
               <div className="max-h-40 overflow-y-auto space-y-0.5">
@@ -274,10 +299,18 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
 
             {/* ขั้นสูง — พับเก็บ มี default ให้ครบ ไม่ต้องแตะก็เพิ่มได้ */}
             <button onClick={() => setAdvanced(!advanced)} className="text-[12px] font-semibold text-[var(--blue)] flex items-center gap-1">
-              <Icon name="chevron_right" size="xs" className={advanced ? 'rotate-90' : ''} /> รายละเอียดเพิ่ม (สถานะ · ตำแหน่ง · ผู้รับผิดชอบ)
+              <Icon name="chevron_right" size="xs" className={advanced ? 'rotate-90' : ''} /> รายละเอียดเพิ่ม (สถานะ · ตำแหน่ง · ผู้รับผิดชอบ · ข้อมูลรับเข้า)
             </button>
             {advanced && (
               <div className="space-y-3 pl-3 border-l-2 border-[var(--g100)]">
+                <div className="rounded-xl border border-[var(--blue-b)] bg-[var(--blue-l)] p-3 space-y-3">
+                  <div className="text-[12px] font-semibold text-[var(--blue)]">ข้อมูลรับเข้า · สร้างล็อตให้อัตโนมัติ</div>
+                  <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">วันที่และเวลารับเข้า</label><input type="datetime-local" value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} className={ain + ' min-h-11'} /></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">เลข PO (ไม่บังคับ)</label><input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} maxLength={100} className={ain + ' min-h-11'} /></div>
+                    <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">Supplier (ไม่บังคับ)</label><input value={supplier} onChange={(e) => setSupplier(e.target.value)} maxLength={100} className={ain + ' min-h-11'} /></div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="block text-[12px] font-medium text-[var(--tsub)]">สถานะ</label>

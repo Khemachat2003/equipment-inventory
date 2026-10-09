@@ -19,6 +19,7 @@ const assetRouter = require("./routes/asset");
 const { requireLogin, requireAdmin, validate } = require("./middleware/auth");
 // ========== CACHE ==========
 const { cache, getSheetsClient } = require("./services/sheets");
+const { isLocalInventoryMode } = require("./services/localInventory");
 
 // -------------------- CONFIG --------------------
 const PORT = process.env.PORT || 3000;
@@ -26,7 +27,12 @@ const CACHE_TTL = parseInt(process.env.CACHE_TTL) || 120; // 2 นาที (จ
 const CACHE_TTL_HISTORY = parseInt(process.env.CACHE_TTL_HISTORY) || 60; // 1 นาที
 
 // ========== ENV VALIDATION ==========
-const requiredEnv = ["SPREADSHEET_ID", "GOOGLE_CREDENTIALS_ACCOUNT", "SESSION_SECRET"];
+const localInventoryMode = isLocalInventoryMode();
+if (localInventoryMode && !process.env.SESSION_SECRET) {
+  process.env.SESSION_SECRET = require("node:crypto").randomBytes(32).toString("hex");
+  console.warn("[local-inventory] Google credentials missing; using local development inventory and a temporary session secret.");
+}
+const requiredEnv = localInventoryMode ? [] : ["SPREADSHEET_ID", "GOOGLE_CREDENTIALS_ACCOUNT", "SESSION_SECRET"];
 requiredEnv.forEach(key => {
   if (!process.env[key]) {
     console.error(`❌ Missing critical environment variable: ${key}`);
@@ -77,11 +83,13 @@ if (process.env.GOOGLE_OAUTH) {
     console.error("❌ Invalid GOOGLE_OAUTH JSON:", e.message);
   }
 }
-if (!credentials || !credentials.web) {
+let oAuth2Client = null;
+if (credentials?.web) {
+  const { client_id, client_secret, redirect_uris } = credentials.web;
+  oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+} else if (!localInventoryMode) {
   throw new Error("❌ Invalid GOOGLE_OAUTH JSON format");
 }
-const { client_id, client_secret, redirect_uris } = credentials.web;
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
 // ========== EXPRESS APP ==========
 const app = express();
@@ -240,6 +248,7 @@ app.use("/api", createCheckAdminSessionLock(cache));
 
 // ========== GOOGLE LOGIN ==========
 app.get("/auth/google", (req, res) => {
+  if (!oAuth2Client) return res.status(404).send("Google OAuth is unavailable in local inventory mode");
   const state = JSON.stringify({ user: req.session.user || null });
   const url = oAuth2Client.generateAuthUrl({
     access_type: "offline",
@@ -341,6 +350,7 @@ app.get('/api/backup-data', requireLogin, requireAdmin, async (req, res) => {
 });
 
 app.get("/auth/google/callback", async (req, res) => {
+  if (!oAuth2Client) return res.status(404).send("Google OAuth is unavailable in local inventory mode");
   try {
     const code = req.query.code;
     const state = JSON.parse(req.query.state || "{}");
@@ -441,10 +451,10 @@ app.use((err, req, res, next) => {
 });
 
 // ========== START SERVER ==========
-const server = app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+const server = app.listen(PORT, localInventoryMode ? "127.0.0.1" : "0.0.0.0", () => {
+  console.log(`✅ Server running on port ${PORT}${localInventoryMode ? " (local inventory mode)" : ""}`);
   // เรียก sync asset history
-  assetRouter.syncInitialAssetHistory().catch(console.error);
+  if (!localInventoryMode) assetRouter.syncInitialAssetHistory().catch(console.error);
 });
 
 // ========== GRACEFUL SHUTDOWN ==========

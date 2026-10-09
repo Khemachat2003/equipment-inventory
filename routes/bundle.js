@@ -39,6 +39,7 @@ const {
 } = require("../services/sheets");
 const { requireLogin, validate } = require("../middleware/auth");
 const { logAudit } = require("../services/audit");
+const { readInboundRows } = require("../services/inboundStore");
 
 const BUNDLE_SHEET  = "Bundles";         // ชื่อ Sheet ที่สร้างใหม่
 const ASSET_SHEET   = "Asset_List";      // ชื่อเดียวกับ asset.js
@@ -761,6 +762,7 @@ router.get("/api/bundles/asset-info", requireLogin, async (req, res) => {
       range: `${ASSET_SHEET}!A2:P`,
     });
     const assetRows = resp.data.values || [];
+    const inboundBySerial = new Map((await readInboundRows(sheets, SPREADSHEET_ID)).filter((row) => row[4]).map((row) => [String(row[4]).trim(), { batchId: row[0] || "", receivedAt: row[1] || "", poNumber: row[2] || "", supplier: row[3] || "" }]));
 
     const results = assetRows
       .filter((r) => r[0] && ids.includes(r[0]))
@@ -776,6 +778,7 @@ router.get("/api/bundles/asset-info", requireLogin, async (req, res) => {
         houseId:  r[11] || "",
         houseName: r[12] || "",
         bundleId: r[13] || "",
+        ...(inboundBySerial.get(String(r[4] || "").trim()) || { batchId: "", receivedAt: "", poNumber: "", supplier: "" }),
       }));
 
     res.json(results);

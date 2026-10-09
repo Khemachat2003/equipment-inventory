@@ -9,9 +9,11 @@ const { cache, SPREADSHEET_ID } = sheetsSvc;
 const { logAudit } = require("../services/audit");
 const { requireLogin, validate } = require("../middleware/auth");
 const { findSiteDuplicate, findHouseDuplicate } = require("../services/farmGuard");
+const { isLocalInventoryMode } = require("../services/localInventory");
 
 // -------------------- GET FARM SITES --------------------
 router.get("/api/farm-sites", requireLogin, async (req, res) => {
+  if (isLocalInventoryMode()) return res.json([]);
   const cacheKey = "farmSites";
   let sites = cache.get(cacheKey);
   if (sites) return res.json(sites);
