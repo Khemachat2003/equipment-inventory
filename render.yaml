@@ -27,6 +27,8 @@ services:
         value: "true"
       - key: PORTAL_USERNAME
         value: portal_user
+      - key: ICON_SYNC_DISABLE
+        value: "1"
       - key: PORTAL_HOME_URL
         sync: false
       - key: SPREADSHEET_ID

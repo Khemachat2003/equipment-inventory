@@ -53,15 +53,18 @@ def collect_icon_names() -> set:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     if not FULL_FONT.exists():
         print(f"❌ ไม่พบ full font: {FULL_FONT}")
         return 1
     names = collect_icon_names()
     # ดึง glyph name ที่มีอยู่จริงใน full font → ตัดชื่อที่ไม่ใช่ icon ออกก่อนส่ง fonttools
     from fontTools.ttLib import TTFont  # noqa: E402
-    _pre = TTFont(str(FULL_FONT))
-    _cmap = _pre.getBestCmap()
-    _valid_glyphs = set(_cmap.values())
+    full = TTFont(str(FULL_FONT))
+    cmap = full.getBestCmap()
+    _valid_glyphs = set(cmap.values())
     valid_names = {n for n in names if n in _valid_glyphs}
     skipped = sorted(names - valid_names)
     if skipped:
@@ -104,10 +107,6 @@ def main() -> int:
     # ── สร้าง map ชื่อ icon → codepoint จาก cmap ของ full font ──
     # font subset ที่ได้ (woff2) ถูกลบ glyph names ทิ้ง → การแสดงผลผ่านชื่อ
     # (ligature) จึงพัง → Icon component ใช้ codepoint ตรงๆ จากไฟล์นี้แทน
-    from fontTools.ttLib import TTFont  # noqa: E402
-
-    full = TTFont(str(FULL_FONT))
-    cmap = full.getBestCmap()
     # reverse cmap: glyph name → codepoint
     rev = {g: cp for cp, g in cmap.items()}
     codepoints = {}

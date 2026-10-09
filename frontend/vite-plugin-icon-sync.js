@@ -104,11 +104,7 @@ function findPython() {
 function runSubsetScript() {
   const py = findPython();
   if (!py) {
-    console.warn(
-      '[icon-sync] ⚠️ ไม่พบ python บนเครื่องนี้ — ข้ามการ regen subset ' +
-        '(icon ใหม่ยังแสดงผ่าน full-font fallback ของ <Icon> อยู่)'
-    );
-    return Promise.resolve(false);
+    return Promise.resolve({ ok: false, code: null, signal: null, timedOut: false, ms: 0, reason: 'python-not-found' });
   }
   const env = { ...process.env };
   // บน Render: fonttools ถูก pip install ลง ./python_modules ตอน build → ต่อ PYTHONPATH ให้ import เจอ
@@ -117,6 +113,15 @@ function runSubsetScript() {
     env.PYTHONPATH = env.PYTHONPATH ? `${pyModules}${path.delimiter}${env.PYTHONPATH}` : pyModules;
   }
   return new Promise((resolve) => {
+    const startedAt = Date.now();
+    let settled = false;
+    let timedOut = false;
+    const finish = (code, signal, reason) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({ ok: code === 0 && !timedOut && !reason, code, signal, timedOut, ms: Date.now() - startedAt, reason });
+    };
     const child = spawn(py, [SUBSET_SCRIPT], {
       cwd: PROJECT_ROOT,
       env,
@@ -124,21 +129,16 @@ function runSubsetScript() {
       stdio: 'inherit',
     });
     const timer = setTimeout(() => {
+      timedOut = true;
       try {
         child.kill();
       } catch {
         /* ปล่อยได้ */
       }
-      resolve(false);
+      finish(null, null, 'timeout');
     }, 180000);
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      resolve(code === 0);
-    });
-    child.on('error', () => {
-      clearTimeout(timer);
-      resolve(false);
-    });
+    child.on('close', (code, signal) => finish(code, signal));
+    child.on('error', (error) => finish(null, null, error.message));
   });
 }
 
@@ -147,8 +147,16 @@ export default function iconSyncPlugin() {
   let debounceTimer = null;
   let pythonBroken = false; // python ใช้ไม่ได้ → หยุด retry กัน log รก (restart dev server เพื่อลองใหม่)
   let running = false;
+  let disabledLogged = false;
 
   async function syncNow(cause) {
+    if (process.env.ICON_SYNC_DISABLE === '1') {
+      if (!disabledLogged) {
+        console.info('[icon-sync] disabled by ICON_SYNC_DISABLE=1');
+        disabledLogged = true;
+      }
+      return false;
+    }
     if (pythonBroken || running) return false;
     running = true;
     try {
@@ -156,12 +164,14 @@ export default function iconSyncPlugin() {
       if (!missing.length) return false;
       console.log(`[icon-sync] เจอ icon ใหม่ที่ยังไม่อยู่ใน subset (${cause}): ${missing.join(', ')}`);
       console.log('[icon-sync] กำลัง regen subset font + iconCodepoints.js …');
-      const ok = await runSubsetScript();
-      if (!ok) {
+      const result = await runSubsetScript();
+      if (!result.ok) {
         pythonBroken = true;
+        const failure = result.timedOut
+          ? 'timeout'
+          : result.reason || `exit=${result.code ?? 'unknown'} signal=${result.signal || 'none'}`;
         console.warn(
-          '[icon-sync] ❌ regen ไม่สำเร็จ — ข้ามไปก่อน (icon ใหม่ยังแสดงผ่าน full-font fallback ของ <Icon>) ' +
-            'แก้เรียบร้อยแล้วให้ restart dev server เพื่อเปิด auto-regen อีกครั้ง'
+          `[icon-sync] ❌ regen failed (${failure}, ${result.ms}ms) — skipped; <Icon> retains full-font fallback`
         );
         return false;
       }

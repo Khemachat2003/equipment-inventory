@@ -16,19 +16,11 @@ frontend/node_modules/
 frontend/dist/
 frontend/.oxlintrc.json
 
-# React frontend build artifacts (source is in frontend/src)
-frontend/node_modules/
-frontend/dist/
-frontend/.oxlintrc.json
-
 # Font: เฉพาะ SUBSET (ที่ build ใช้จริง) ถูก track ใน git — full font (5.1MB) เก็บที่ fonts/
 # ที่ frontend/public/fonts/ เท่านั้น (subset สร้างด้วย scripts/make_icon_subset.py)
 frontend/public/fonts/*
 !frontend/public/fonts/
 !frontend/public/fonts/material-symbols-rounded.subset.woff2
-
-# skip-cache ของ vite-plugin-icon-sync (generate โดย scripts/make_icon_subset.py)
-frontend/.icon-skip-cache.json
 
 # Python bytecode cache
 __pycache__/

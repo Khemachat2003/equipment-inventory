@@ -65,6 +65,7 @@ export const ICON_CODEPOINTS = {
   'label': 0xe893,
   'light': 0xf02a,
   'lightbulb': 0xe90f,
+  'list': 0xe896,
   'list_alt': 0xe0ee,
   'local_shipping': 0xe558,
   'lock': 0xe899,
@@ -117,4 +118,4 @@ export const ICON_CODEPOINTS = {
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
 };
-// 115/115 icons mapped
+// 116/116 icons mapped
