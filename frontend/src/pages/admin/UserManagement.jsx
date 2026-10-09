@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Icon from '../../components/ui/Icon.jsx';
 import { useBusy, BusyOverlay } from '../../components/ui/Busy.jsx';
+import { showToast, ToastHost } from '../../components/ui/Toast.jsx';
+import { showConfirm, ConfirmHost } from '../../components/ui/Confirm.jsx';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -16,7 +18,7 @@ export default function UserManagement() {
       setUsers(data);
     } catch (e) {
       console.error('load users', e);
-      alert('โหลดผู้ใช้ไม่ได้ (ต้องเป็น admin)');
+      showToast('โหลดผู้ใช้ไม่ได้ (ต้องเป็น admin)', { type: 'err' });
     } finally {
       setLoading(false);
     }
@@ -32,7 +34,7 @@ export default function UserManagement() {
         await axios.put(`/api/admin/users/${encodeURIComponent(username)}`, { role });
         await load();
       } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
@@ -42,13 +44,19 @@ export default function UserManagement() {
   }
 
   async function deleteUser(username) {
-    if (!confirm(`ยืนยันลบผู้ใช้ ${username}?`)) return;
+    // ยืนยันด้วยกล่องในระบบ (แทน window.confirm) — ยกเลิก/Esc/คลิกพื้นหลัง = ไม่ลบ
+    if (!(await showConfirm({
+      title: `ยืนยันลบผู้ใช้ ${username}?`,
+      message: 'ผู้ใช้จะถูกลบออกจากระบบ เข้าสู่ระบบด้วยบัญชีนี้ไม่ได้อีก',
+      confirmLabel: 'ลบผู้ใช้',
+      danger: true,
+    }))) return;
     await busy.run('กำลังลบผู้ใช้...', async () => {
       try {
         await axios.delete(`/api/admin/users/${encodeURIComponent(username)}`);
         await load();
       } catch (e) {
-        alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+        showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
     });
   }
@@ -115,6 +123,8 @@ export default function UserManagement() {
         </div>
       </div>
       <BusyOverlay label={busy.busyLabel} />
+      <ToastHost />
+      <ConfirmHost />
       {resetTarget && (
         <PasswordResetModal
           username={resetTarget}
@@ -131,15 +141,15 @@ function PasswordResetModal({ username, onClose, onDone }) {
   const [busy, setBusy] = useState(false);
 
   async function confirm() {
-    if (!pwd) return alert('กรอกรหัสผ่านใหม่');
-    if (pwd.length < 4) return alert('รหัสผ่านสั้นเกินไป (ขั้นต่ำ 4)');
+    if (!pwd) return showToast('กรอกรหัสผ่านใหม่', { type: 'warn' });
+    if (pwd.length < 4) return showToast('รหัสผ่านสั้นเกินไป (ขั้นต่ำ 4)', { type: 'warn' });
     setBusy(true);
     try {
       await axios.post(`/api/admin/users/${encodeURIComponent(username)}/reset-password`, { newPassword: pwd });
-      alert('เปลี่ยนรหัสผ่านสำเร็จ');
+      showToast('เปลี่ยนรหัสผ่านสำเร็จ');
       onDone();
     } catch (e) {
-      alert(e.response?.data?.error || 'เกิดข้อผิดพลาด');
+      showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
     } finally {
       setBusy(false);
     }

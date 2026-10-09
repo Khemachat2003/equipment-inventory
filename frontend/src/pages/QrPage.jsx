@@ -4,6 +4,8 @@ import axios from 'axios';
 import JsBarcode from 'jsbarcode';
 import Icon from '../components/ui/Icon.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
+import { showToast, ToastHost } from '../components/ui/Toast.jsx';
+import { saveReprint, readReprint } from '../utils/labelReprint.js';
 
 // QrPage — สร้างฉลาก QR/Barcode สำหรับอุปกรณ์ (แปลงจาก public/qr.html เป็น React)
 // ฟีเจอร์ครบ: เลือกอุปกรณ์ + presets ขนาด + A4 layout + ดีไซน์ + templates + live preview + PDF/พิมพ์
@@ -158,6 +160,14 @@ export default function QrPage() {
     } catch { /* ignore */ }
   }, [mode, lW, lH, lMargin, pm, gapX, gapY, bgColor, showBadge]);
 
+  // ก้อน C2 — สแนปช็อต "พิมพ์ครั้งล่าสุด" สำหรับปุ่มพิมพ์ซ้ำ (จับตอนกดพิมพ์จริง ไม่ใช่ทุกครั้งที่แก้ค่า)
+  const [reprint, setReprint] = useState(() => readReprint());
+  const [autoPrintTick, setAutoPrintTick] = useState(0); // >0 = มีคำสั่งพิมพ์รอ render รอบใหม่เสร็จ
+  useEffect(() => {
+    if (!autoPrintTick) return;
+    window.print();
+  }, [autoPrintTick]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return assets.filter((a) => {
@@ -276,9 +286,26 @@ export default function QrPage() {
     });
   }
 
+  // ก้อน C2 — พิมพ์ซ้ำ: apply ค่าตั้งค่าจากสแนปช็อต + เลือก Serial ชุดเดิม → พิมพ์ทันทีที่ render รอบใหม่เสร็จ
+  function reprintNow() {
+    if (!reprint) return;
+    const c = reprint.cfg || {};
+    if (c.mode) setMode(c.mode);
+    if (c.lW) setLW(Number(c.lW));
+    if (c.lH) setLH(Number(c.lH));
+    if (c.lMargin != null) setLMargin(Number(c.lMargin));
+    if (c.pm != null) setPm(Number(c.pm));
+    if (c.gapX != null) setGapX(Number(c.gapX));
+    if (c.gapY != null) setGapY(Number(c.gapY));
+    if (c.bgColor) setBgColor(c.bgColor);
+    if (c.showBadge != null) setShowBadge(!!c.showBadge);
+    setSelected(new Set(reprint.serials));
+    setAutoPrintTick((t) => t + 1);
+  }
+
   function toast(msg, type = 'ok') {
     const el = document.getElementById('qtoast');
-    if (!el) return alert(msg);
+    if (!el) return showToast(msg, { type: type || 'ok' }); // ไม่มี #qtoast → ใช้ Toast กลางแทน alert
     el.textContent = msg;
     el.className = 'qtoast show ' + (type === 'err' ? 'q-err' : type === 'warn' ? 'q-warn' : '');
     setTimeout(() => { el.className = 'qtoast'; }, 2500);
@@ -292,6 +319,7 @@ export default function QrPage() {
       </div>
 
       <BusyOverlay label={busy.busyLabel} />
+      <ToastHost />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4 items-start">
         {/* ── LEFT / เลือกอุปกรณ์ ── */}
@@ -465,6 +493,16 @@ export default function QrPage() {
                 <Icon name="description" size="sm" /> {mode === 'a4' ? 'ดาวน์โหลด PDF A4' : 'ดาวน์โหลด PDF ฉลากนี้'}
               </button>
             </div>
+            {/* ก้อน C2 — พิมพ์ซ้ำด้วยค่า + Serial ที่ใช้พิมพ์ล่าสุด (ไม่ต้องเลือกใหม่/ตั้งค่าใหม่) */}
+            {reprint && (
+              <button
+                onClick={reprintNow}
+                title={`พิมพ์ครั้งล่าสุด ${reprint.at ? new Date(reprint.at).toLocaleString() : ''} — ${reprint.cfg?.mode === 'a4' ? 'แผ่น A4' : 'ฉลากเดี่ยว'} ${reprint.cfg?.lW ?? '?'}×${reprint.cfg?.lH ?? '?'} mm`}
+                className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--g200)] text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)]"
+              >
+                <Icon name="print" size="sm" /> พิมพ์ซ้ำชุดเดิม ({reprint.serials.length} ดวง · ค่าที่ใช้ล่าสุด)
+              </button>
+            )}
           </div>
 
           {/* ปรับแบบฉลาก — พับเก็บไว้ default (โหมด/ขนาด mm/margin/gap/สี/เทมเพลต โค้ดเดิมทุกตัวเลือกยังอยู่ครบ) */}
@@ -682,6 +720,8 @@ export default function QrPage() {
   // เดิมชื่อ printA4 — กดพิมพ์ในโหมดฉลากเดี่ยวแล้วได้กระดาษเปล่า (printroot ว่าง) เพราะ PrintSheet มีเงื่อนไข mode === 'a4'
   function printNow() {
     if (!selected.size) { toast('⚠ เลือกอุปกรณ์ก่อน', 'warn'); return; }
+    // ก้อน C2 — จับสแนปช็อตค่าตั้งค่า + Serial ที่พิมพ์จริง ไว้ให้ปุ่ม "พิมพ์ซ้ำชุดเดิม"
+    setReprint(saveReprint({ mode, lW, lH, lMargin, pm, gapX, gapY, bgColor, showBadge }, [...selected]));
     window.print();
   }
 }

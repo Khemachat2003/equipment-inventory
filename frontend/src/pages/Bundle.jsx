@@ -6,6 +6,7 @@ import StatusBadge from '../components/ui/StatusBadge.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
+import { showConfirm, ConfirmHost } from '../components/ui/Confirm.jsx';
 import { buildLocation, buildBundleLocation } from '../utils/location.js';
 import { farmKeyOf, STOCK_KEY } from '../utils/bundleGroups.js';
 import { FarmInlineAdd, HouseInlineAdd } from '../components/InlineFarmAdd.jsx';
@@ -206,7 +207,13 @@ export default function Bundle() {
   }
 
   async function removeAsset(bundleId, assetId) {
-    if (!confirm(`นำ ${assetId} ออกจากชุด?`)) return;
+    // ยืนยันด้วยกล่องในระบบ (แทน window.confirm) — ยกเลิก/Esc/คลิกพื้นหลัง = ไม่ทำอะไร
+    if (!(await showConfirm({
+      title: `นำ ${assetId} ออกจากชุด?`,
+      message: 'อุปกรณ์จะหลุดออกจากชุดนี้ — ข้อมูลชิ้นงานยังอยู่ครบในระบบตามเดิม',
+      confirmLabel: 'นำออกจากชุด',
+      danger: true,
+    }))) return;
     await busy.run('กำลังนำอุปกรณ์ออกจากชุด...', async () => {
       try {
         await axios.delete(`/api/bundles/${bundleId}/assets/${assetId}`);
@@ -235,7 +242,12 @@ export default function Bundle() {
   }
 
   async function recall(bundleId) {
-    if (!confirm('คืนชุดนี้กลับเข้าคลัง?')) return;
+    // ยืนยันด้วยกล่องในระบบ (แทน window.confirm) — ยกเลิก/Esc/คลิกพื้นหลัง = ไม่ทำอะไร
+    if (!(await showConfirm({
+      title: 'คืนชุดนี้กลับเข้าคลัง?',
+      message: 'อุปกรณ์ทุกชิ้นในชุดจะถูกคืนเข้าคลังกลางด้วย',
+      confirmLabel: 'คืนเข้าคลัง',
+    }))) return;
     await busy.run('กำลังคืนชุดกลับเข้าคลัง...', async () => {
       try {
         const { data } = await axios.post(`/api/bundles/${bundleId}/recall`);
@@ -298,6 +310,7 @@ export default function Bundle() {
     <div className="space-y-4">
       <BusyOverlay label={busy.busyLabel} />
       <ToastHost />
+      <ConfirmHost />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)] whitespace-nowrap">
