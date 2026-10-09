@@ -17,16 +17,8 @@ const BTONES = {
   Maintenance: 'amber',
 };
 
-// ── ก้อน ⑥ (Issue A): จัดกลุ่มอัตโนมัติ + chip ฟาร์ม ─────────────────────────────
+// ── ก้อน ⑥ (Issue A): จัดกลุ่มอัตโนมัติ + ตัวกรองฟาร์ม ──────────────────────────
 // เกณฑ์ "ชุดนี้อยู่คลังหรือฟาร์มไหน" = farmKeyOf / STOCK_KEY จาก utils/bundleGroups.js (import ด้านบน)
-
-// ปุ่ม chip (active = พื้นน้ำเงิน) — shrink-0 + nowrap เพื่อให้อยู่แถบเลื่อนแนวนอนแถวเดียวไม่ตัดคำ
-const chipCls = (active) =>
-  `flex shrink-0 items-center gap-1 whitespace-nowrap px-3 h-8 rounded-full border text-[12px] font-medium transition-colors ${
-    active
-      ? 'bg-[var(--blue)] border-[var(--blue)] text-white'
-      : 'bg-white border-[var(--g200)] text-[var(--tsub)] hover:border-[var(--blue)] hover:text-[var(--blue)]'
-  }`;
 
 export default function Bundle() {
   const [bundles, setBundles] = useState([]);
@@ -109,9 +101,8 @@ export default function Bundle() {
     });
   }, [bundles, search, filterStatus, filterFarm]);
 
-  // ── ก้อน ⑥ (opt2): chip ฟาร์ม — นับจากผลค้นหา + ตัวกรองสถานะปัจจุบัน (ยังไม่กลั่นด้วยฟาร์ม)
-  // เพื่อให้ chip บอก "การกระจายตามฟาร์ม" ของสิ่งที่กำลังค้นหาอยู่เสมอ
-  const farmChips = useMemo(() => {
+  // จำนวน Bundle ต่อฟาร์ม คำนวณจากคำค้นหาและสถานะที่เลือกอยู่
+  const farmCounts = useMemo(() => {
     const q = search.toLowerCase();
     const base = bundles.filter((b) => {
       if (q && !(b.bundleId.toLowerCase().includes(q) || b.bundleName.toLowerCase().includes(q) || (b.description || '').toLowerCase().includes(q))) return false;
@@ -128,9 +119,14 @@ export default function Bundle() {
       if (b.farmName && !nameHint[k]) nameHint[k] = b.farmName;
     });
     const th = (x, y) => x.localeCompare(y, 'th');
-    const list = Object.keys(counts)
-      .map((k) => ({ key: k, name: farms.find((f) => f.farmId === k)?.farmName || nameHint[k] || k, count: counts[k] }))
-      .sort((a, b2) => th(a.name, b2.name));
+    const list = farms
+      .filter((farm) => farm.farmId)
+      .map((farm) => ({ key: farm.farmId, name: farm.farmName || farm.farmId, count: counts[farm.farmId] || 0 }));
+    const knownKeys = new Set(list.map((farm) => farm.key));
+    Object.keys(counts).forEach((key) => {
+      if (!knownKeys.has(key)) list.push({ key, name: nameHint[key] || key, count: counts[key] });
+    });
+    list.sort((a, b2) => th(a.name, b2.name));
     return { list, stock, total: base.length };
   }, [bundles, farms, search, filterStatus]);
 
@@ -160,32 +156,6 @@ export default function Bundle() {
   }, [filtered, farms]);
 
   const toggleFarmGroup = (k) => setCollapsedFarms((p) => ({ ...p, [k]: !p[k] }));
-
-  // ── ก้อน ⑥ (opt2): แถบ chip เลื่อนแนวนอน — แถวเดียวไม่ตัดบรรทัด ฟาร์มเพิ่มเท่าไรก็ไม่ลก
-  // เงาขอบซ้าย/ขวาโชว์เฉพาะตอนเนื้อหาล้นอีกฝั่ง + ไล่เลื่อน chip ที่เลือกไว้ให้อยู่กลางแถบเสมอ
-  const stripRef = useRef(null);
-  const activeChipRef = useRef(null);
-  const [stripEdge, setStripEdge] = useState({ left: false, right: false });
-  const updateStripEdge = useCallback(() => {
-    const s = stripRef.current;
-    if (!s) return;
-    setStripEdge({
-      left: s.scrollLeft > 8,
-      right: s.scrollLeft + s.clientWidth < s.scrollWidth - 8,
-    });
-  }, []);
-  useEffect(() => {
-    updateStripEdge();
-    window.addEventListener('resize', updateStripEdge);
-    return () => window.removeEventListener('resize', updateStripEdge);
-  }, [updateStripEdge, farmChips]);
-  // เปลี่ยนฟาร์มที่เลือก → เลื่อน chip ตัวนั้นมาอยู่กลางแถบ (ไม่ต้องตามหาเอง)
-  useEffect(() => {
-    const el = activeChipRef.current;
-    const s = stripRef.current;
-    if (!el || !s) return;
-    s.scrollTo({ left: Math.max(0, el.offsetLeft - (s.clientWidth - el.offsetWidth) / 2), behavior: 'smooth' });
-  }, [filterFarm]);
 
   // Detail
   const detailBundle = useMemo(() => bundles.find((b) => b.bundleId === detail), [bundles, detail]);
@@ -302,7 +272,7 @@ export default function Bundle() {
 
   // ก้อน ⑥ — grid การ์ดชุด (ใช้ซ้ำทั้งโซนคลังและกลุ่มย่อยฟาร์ม)
   const renderCards = (list) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="grid w-full min-w-0 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {list.map((b) => (
         <BundleCard
           key={b.bundleId}
@@ -316,16 +286,16 @@ export default function Bundle() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 space-y-4">
       <BusyOverlay label={busy.busyLabel} />
       <ToastHost />
       <ConfirmHost />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[13px] hover:bg-[var(--surface2)] whitespace-nowrap">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button onClick={exportCSV} className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[14px] sm:text-[13px] hover:bg-[var(--surface2)] whitespace-nowrap">
             <Icon name="download" size="sm" /> CSV
           </button>
-          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)] whitespace-nowrap">
+          <button onClick={() => setCreateOpen(true)} className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[14px] sm:text-[13px] font-semibold hover:bg-[var(--blue-d)] whitespace-nowrap">
             <Icon name="add" size="sm" /> สร้างชุดใหม่ (Bundle)
           </button>
         </div>
@@ -335,7 +305,7 @@ export default function Bundle() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <StatCard label="ชุดทั้งหมด" value={stats.all} icon="folder_open" tone="blue" />
         <StatCard label="อยู่ในคลัง (In Stock)" value={stats.inStock} icon="inventory_2" tone="green" />
-        <StatCard label="ติดตั้งที่ฟาร์มแล้ว (Deployed)" value={stats.deployed} icon="local_shipping" tone="amber" />
+        <StatCard label={<>ติดตั้งที่ฟาร์มแล้ว <span className="hidden sm:inline">(Deployed)</span></>} value={stats.deployed} icon="local_shipping" tone="amber" />
         <StatCard label="อุปกรณ์ในชุด" value={stats.devices} icon="devices_other" tone="red" />
       </div>
 
@@ -344,9 +314,9 @@ export default function Bundle() {
         <div className="relative sm:max-w-xs sm:flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)]"><Icon name="search" size="sm" /></span>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาชุดอุปกรณ์..."
-            className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px]" />
+            className="w-full h-11 sm:h-9 pl-9 pr-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[14px] sm:text-[13px]" />
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full sm:w-auto h-9 px-3 rounded-lg border border-[var(--g200)] text-[13px]">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full sm:w-auto h-11 sm:h-9 px-3 rounded-lg border border-[var(--g200)] text-[14px] sm:text-[13px]">
           <option value="">ทุกสถานะ</option>
           <option value="In Stock">อยู่ในคลัง (In Stock)</option>
           <option value="Deployed">ติดตั้งที่ฟาร์มแล้ว (Deployed)</option>
@@ -354,35 +324,7 @@ export default function Bundle() {
         </select>
         </div>
 
-      {/* ก้อน ⑥ (opt2) — แถบ chip ฟาร์ม: กดกรองเร็วแทน dropdown (ค้นหา + ตัวกรองสถานะเดิมยังทำงานตามปกติ)
-          แถบเลื่อนแนวนอนแถวเดียว ไม่ตัดบรรทัด — ฟาร์มเพิ่มขึ้นเรื่อย ๆ ก็ไม่ลก ความสูงคงที่ตลอด */}
-      <div className="relative">
-        <div
-          ref={stripRef}
-          onScroll={updateStripEdge}
-          className="flex items-center gap-1.5 overflow-x-auto scroll-smooth pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          <button ref={filterFarm === '' ? activeChipRef : undefined} onClick={() => setFilterFarm('')} className={chipCls(filterFarm === '')}>
-            <Icon name="grid_on" size="xs" /> ทุกฟาร์ม <span className="opacity-60">({farmChips.total})</span>
-          </button>
-          {farmChips.list.map((f) => (
-            <button
-              key={f.key}
-              ref={filterFarm === f.key ? activeChipRef : undefined}
-              onClick={() => setFilterFarm(filterFarm === f.key ? '' : f.key)}
-              className={chipCls(filterFarm === f.key)}
-            >
-              <Icon name="agriculture" size="xs" /> {f.name} <span className="opacity-60">({f.count})</span>
-            </button>
-          ))}
-          <button ref={filterFarm === STOCK_KEY ? activeChipRef : undefined} onClick={() => setFilterFarm(filterFarm === STOCK_KEY ? '' : STOCK_KEY)} className={chipCls(filterFarm === STOCK_KEY)}>
-            <Icon name="inventory_2" size="xs" /> คลัง <span className="opacity-60">({farmChips.stock})</span>
-          </button>
-        </div>
-        {/* เงาขอบซ้าย/ขวา — เตือนว่ายังเลื่อนดูต่อได้ (โชว์เฉพาะตอนมีเนื้อหาล้นอีกฝั่งนั้น) */}
-        {stripEdge.left && <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-[var(--bg)] to-transparent" />}
-        {stripEdge.right && <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[var(--bg)] to-transparent" />}
-      </div>
+      <FarmFilterCombobox value={filterFarm} onChange={setFilterFarm} counts={farmCounts} />
 
       {/* Detail view or list */}
       {detailBundle ? (
@@ -481,6 +423,163 @@ export default function Bundle() {
   );
 }
 
+function FarmFilterCombobox({ value, onChange, counts }) {
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const inputRef = useRef(null);
+  const optionRefs = useRef([]);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const options = useMemo(() => [
+    { key: '', name: 'ทุกฟาร์ม', count: counts.total, icon: 'grid_on' },
+    ...counts.list.map((farm) => ({ ...farm, icon: 'agriculture' })),
+    { key: STOCK_KEY, name: 'คลัง', count: counts.stock, icon: 'inventory_2' },
+  ], [counts]);
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visibleOptions = options.filter((option) => (
+    !normalizedQuery
+    || option.name.toLocaleLowerCase().includes(normalizedQuery)
+    || option.key.toLocaleLowerCase().includes(normalizedQuery)
+  ));
+  const currentActiveIndex = Math.min(activeIndex, visibleOptions.length - 1);
+  const selected = options.find((option) => option.key === value) || options[0];
+  const listboxId = 'bundle-farm-listbox';
+
+  useEffect(() => {
+    if (!open) return undefined;
+    inputRef.current?.focus();
+    const onPointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (currentActiveIndex >= 0) optionRefs.current[currentActiveIndex]?.scrollIntoView?.({ block: 'nearest' });
+  }, [currentActiveIndex]);
+
+  function showOptions() {
+    setQuery('');
+    setActiveIndex(Math.max(0, options.findIndex((option) => option.key === value)));
+    setOpen(true);
+  }
+
+  function selectOption(option) {
+    onChange(option.key);
+    setOpen(false);
+    setQuery('');
+    triggerRef.current?.focus();
+  }
+
+  function handleSearchKeyDown(event) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveIndex(Math.min(currentActiveIndex + 1, visibleOptions.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveIndex(Math.max(currentActiveIndex - 1, 0));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (visibleOptions[currentActiveIndex]) selectOption(visibleOptions[currentActiveIndex]);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    } else if (event.key === 'Tab') {
+      setOpen(false);
+    }
+  }
+
+  return (
+    <div ref={rootRef} className="relative w-full sm:w-72">
+      <div className="flex gap-2">
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-label={`เลือกฟาร์ม, ค่าปัจจุบัน ${selected.name}`}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={listboxId}
+          onClick={() => (open ? setOpen(false) : showOptions())}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--g200)] bg-white px-3 min-h-11 text-left text-[14px] text-[var(--text)] hover:border-[var(--blue)] focus:outline-none focus:ring-2 focus:ring-[var(--blue)]/20"
+        >
+          <Icon name={selected.icon} size="sm" className="shrink-0 text-[var(--blue)]" />
+          <span className="min-w-0 flex-1 truncate">{selected.name}</span>
+          <span className="shrink-0 text-[12px] text-[var(--tmuted)]">{selected.count} ชุด</span>
+          <Icon name={open ? 'expand_less' : 'expand_more'} size="sm" className="shrink-0 text-[var(--tmuted)]" />
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => { onChange(''); setOpen(false); }}
+            aria-label="ล้างตัวกรองฟาร์ม"
+            title="ล้างตัวกรองฟาร์ม"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--g200)] bg-white text-[var(--tsub)] hover:border-[var(--blue)] hover:text-[var(--blue)] focus:outline-none focus:ring-2 focus:ring-[var(--blue)]/20"
+          >
+            <Icon name="close" size="sm" />
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-[var(--g200)] bg-white shadow-[var(--sh-md)]">
+          <label htmlFor="bundle-farm-search" className="sr-only">ค้นหาชื่อฟาร์มหรือ Farm ID</label>
+          <div className="relative border-b border-[var(--g100)] p-2">
+            <Icon name="search" size="sm" className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--tmuted)]" />
+            <input
+              ref={inputRef}
+              id="bundle-farm-search"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={open}
+              aria-controls={listboxId}
+              aria-activedescendant={currentActiveIndex >= 0 && visibleOptions[currentActiveIndex] ? `${listboxId}-option-${currentActiveIndex}` : undefined}
+              value={query}
+              onChange={(event) => { setQuery(event.target.value); setActiveIndex(0); }}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="ค้นหาชื่อฟาร์มหรือ Farm ID..."
+              autoComplete="off"
+              className="h-11 w-full rounded-lg border border-[var(--g200)] bg-[var(--surface2)] pl-10 pr-3 text-[14px] text-[var(--text)] outline-none focus:border-[var(--blue)]"
+            />
+          </div>
+          <div id={listboxId} role="listbox" aria-label="ฟาร์ม" className="max-h-[55vh] overflow-y-auto p-1.5 sm:max-h-80">
+            {visibleOptions.map((option, index) => {
+              const isSelected = option.key === value;
+              const isActive = index === currentActiveIndex;
+              return (
+                <div
+                  key={option.key || 'all-farms'}
+                  ref={(node) => { optionRefs.current[index] = node; }}
+                  id={`${listboxId}-option-${index}`}
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => selectOption(option)}
+                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-[14px] ${
+                    isActive ? 'bg-[var(--blue-l)]' : 'hover:bg-[var(--surface2)]'
+                  } ${isSelected ? 'font-semibold text-[var(--blue)]' : 'text-[var(--text)]'}`}
+                >
+                  <Icon name={option.icon} size="sm" className="shrink-0 text-[var(--tsub)]" />
+                  <span className="min-w-0 flex-1 truncate">{option.name}</span>
+                  <span className="shrink-0 text-[12px] text-[var(--tmuted)]">{option.count} ชุด</span>
+                  {isSelected && <Icon name="check" size="sm" className="shrink-0" />}
+                </div>
+              );
+            })}
+            {visibleOptions.length === 0 && (
+              <div className="px-3 py-6 text-center text-[13px] text-[var(--tmuted)]">ไม่พบฟาร์มที่ค้นหา</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatCard({ label, value, icon, tone }) {
   const tones = {
     blue: 'bg-[var(--blue-l)] text-[var(--blue)]',
@@ -492,7 +591,7 @@ function StatCard({ label, value, icon, tone }) {
     <div className="rounded-2xl bg-white border border-[var(--g200)] shadow-[var(--sh-sm)] p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 min-w-0">
       <span className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex-shrink-0 ${tones[tone]}`}><Icon name={icon} size="md" /></span>
       <div className="min-w-0">
-        <div className="text-[11px] sm:text-[12px] text-[var(--tmuted)] leading-tight">{label}</div>
+        <div className="text-[12px] text-[var(--tmuted)] leading-tight">{label}</div>
         <div className="text-lg sm:text-xl font-bold text-[var(--text)]">{value}</div>
       </div>
     </div>
@@ -525,7 +624,7 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
       <div className="flex items-start justify-between">
         <div>
           <div className="font-mono text-[13px] font-bold text-[var(--text)]">{b.bundleId}</div>
-          <div className="text-[13px] font-semibold text-[var(--text)]">{b.bundleName}</div>
+          <div className="text-[14px] sm:text-[13px] font-semibold text-[var(--text)]">{b.bundleName}</div>
           {b.description && <div className="text-[11px] text-[var(--tmuted)] mt-0.5 line-clamp-2">{b.description}</div>}
         </div>
         <StatusBadge status={b.status} tone={BTONES[b.status]} />
@@ -544,11 +643,11 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
           </button>
         )}
       </div>
-      <div className="flex items-center gap-2 pt-2 border-t border-[var(--g100)]">
-        <button onClick={onDetail} className="flex items-center justify-center gap-1 flex-1 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)] whitespace-nowrap"><Icon name="search" size="xs" /> รายละเอียด</button>
+      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[var(--g100)]">
+        <button onClick={onDetail} className="flex items-center justify-center gap-1 w-full sm:flex-1 sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg border border-[var(--g300)] text-[13px] sm:text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)] whitespace-nowrap"><Icon name="search" size="xs" /> รายละเอียด</button>
         {b.status === 'In Stock'
-          ? <button onClick={onDeploy} className="px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold whitespace-nowrap">ย้ายไปฟาร์ม (Deploy)</button>
-          : <button onClick={onRecall} className="px-3 py-1.5 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold whitespace-nowrap">คืนเข้าคลัง (Recall)</button>}
+          ? <button onClick={onDeploy} className="w-full sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold whitespace-nowrap">ย้ายไปฟาร์ม (Deploy)</button>
+          : <button onClick={onRecall} className="w-full sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg bg-[var(--amber)] text-white text-[13px] sm:text-[12px] font-semibold whitespace-nowrap">คืนเข้าคลัง (Recall)</button>}
       </div>
     </div>
   );
@@ -582,11 +681,14 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
               {b.description && <div className="text-[12px] text-[var(--tmuted)]">{b.description}</div>}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full sm:w-auto flex-wrap items-center gap-2">
             {b.status === 'In Stock'
-              ? <button onClick={onDeploy} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ย้ายไปฟาร์ม (Deploy)</button>
-              : <button onClick={onRecall} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--amber)] text-white text-[12px] font-semibold">คืนเข้าคลัง (Recall)</button>}
-            <button onClick={onAdd} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--emerald)] text-white text-[12px] font-semibold"><Icon name="add" size="sm" /> เพิ่มอุปกรณ์</button>
+              ? <button onClick={onDeploy} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ย้ายไปฟาร์ม (Deploy)</button>
+              : <>
+                <button onClick={onDeploy} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ย้ายทั้งชุดไปฟาร์ม</button>
+                <button onClick={onRecall} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--amber)] text-white text-[13px] sm:text-[12px] font-semibold">คืนเข้าคลัง (Recall)</button>
+              </>}
+            <button onClick={onAdd} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--emerald)] text-white text-[13px] sm:text-[12px] font-semibold"><Icon name="add" size="sm" /> เพิ่มอุปกรณ์</button>
           </div>
         </div>
         <div className="flex flex-wrap gap-4 mt-3 text-[12px] text-[var(--tsub)]">
@@ -628,23 +730,23 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
         )}
         <div className="space-y-2">
           {assets.map((a) => (
-            <div key={a.assetId} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 rounded-xl border border-[var(--g100)] hover:bg-[var(--surface2)]">
-              <div className="flex-1 min-w-[150px]">
+            <div key={a.assetId} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:py-2.5 rounded-xl border border-[var(--g100)] hover:bg-[var(--surface2)]">
+              <div className="flex-1 min-w-0 sm:min-w-[150px]">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-[12px] font-semibold text-[var(--text)]">{a.serial || a.assetId}</span>
                   <StatusBadge status={a.status} />
                 </div>
                 <div className="text-[12px] text-[var(--tsub)] truncate">{a.name} <span className="text-[var(--tmuted)]">· {a.assetId} · {a.code}</span></div>
               </div>
-              <div className="flex items-center gap-1">
-                <a href={`/trace/${encodeURIComponent(a.serial)}`} target="_blank" title="Trace" className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="description" size="sm" /></a>
-                <a href={`/qr?serial=${encodeURIComponent(a.serial)}`} target="_blank" title="QR" className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="qr_code" size="sm" /></a>
-                <button onClick={() => onTransfer(a)} title="โอนย้าย" className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="local_shipping" size="sm" /></button>
+              <div className="flex w-full sm:w-auto items-center justify-end sm:justify-start gap-1">
+                <a href={`/trace/${encodeURIComponent(a.serial)}`} target="_blank" title="Trace" className="h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="description" size="sm" /></a>
+                <a href={`/qr?serial=${encodeURIComponent(a.serial)}`} target="_blank" title="QR" className="h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="qr_code" size="sm" /></a>
+                <button onClick={() => onTransfer(a)} title="โอนย้าย" className="h-11 w-11 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="local_shipping" size="sm" /></button>
                 <span className="w-px h-6 bg-[var(--g200)] mx-1" aria-hidden="true" />
                 <button
                   onClick={() => onRemove(a.assetId)}
                   title="ถอดออกจากชุด"
-                  className="h-9 px-2.5 flex items-center gap-1 rounded-lg bg-[var(--red-l)] text-[var(--red)] text-[12px] font-semibold hover:bg-[var(--red)] hover:text-white"
+                  className="h-11 sm:h-9 px-2.5 flex items-center gap-1 rounded-lg bg-[var(--red-l)] text-[13px] sm:text-[12px] text-[var(--red)] font-semibold hover:bg-[var(--red)] hover:text-white"
                 >
                   <Icon name="close" size="xs" /> ถอดออก
                 </button>
@@ -914,13 +1016,13 @@ function AddAssetModal({ pending, setPending, results, onSearch, onClose, onComm
 
 function Modal({ onClose, title, children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--g100)]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl my-3 sm:my-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-[var(--g100)]">
           <span className="text-[15px] font-bold text-[var(--text)]">{title}</span>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--surface2)]"><Icon name="close" size="sm" /></button>
         </div>
-        <div className="p-5 space-y-4">{children}</div>
+        <div className="p-4 sm:p-5 space-y-4">{children}</div>
       </div>
     </div>
   );
@@ -928,18 +1030,18 @@ function Modal({ onClose, title, children }) {
 
 function ModalFooter({ onClose, onSubmit, submitLabel, submitDisabled }) {
   return (
-    <div className="flex justify-end gap-2 pt-3 border-t border-[var(--g100)]">
-      <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[var(--g300)] text-[13px] text-[var(--tsub)]">ยกเลิก</button>
-      <button onClick={onSubmit} disabled={submitDisabled} className="px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold disabled:opacity-50">✓ {submitLabel}</button>
+    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-[var(--g100)]">
+      <button onClick={onClose} className="w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 rounded-lg border border-[var(--g300)] text-[14px] sm:text-[13px] text-[var(--tsub)]">ยกเลิก</button>
+      <button onClick={onSubmit} disabled={submitDisabled} className="w-full sm:w-auto min-h-11 sm:min-h-0 px-4 py-2 rounded-lg bg-[var(--blue)] text-white text-[14px] sm:text-[13px] font-semibold disabled:opacity-50">✓ {submitLabel}</button>
     </div>
   );
 }
 
 function Field({ label, children }) {
-  return <div className="space-y-1"><label className="block text-[12px] font-medium text-[var(--tsub)]">{label}</label>{children}</div>;
+  return <div className="space-y-1"><label className="block text-[13px] sm:text-[12px] font-medium text-[var(--tsub)]">{label}</label>{children}</div>;
 }
 
-const inp = 'w-full h-9 px-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px] focus:outline-none focus:border-[var(--blue)]';
+const inp = 'w-full h-11 sm:h-9 px-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[14px] sm:text-[13px] focus:outline-none focus:border-[var(--blue)]';
 
 function dlCSV(filename, rows) {
   const csv = rows.map((r) => r.map((c) => {

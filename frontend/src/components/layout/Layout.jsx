@@ -160,7 +160,7 @@ export default function Layout() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 lg:ml-[var(--sb-w)] flex flex-col min-h-screen">
+      <div className="min-w-0 flex-1 lg:ml-[var(--sb-w)] flex flex-col min-h-screen">
         {/* Topbar */}
         <header className="sticky top-0 z-20 h-[var(--topbar-h)] flex items-center justify-between gap-3 px-4 sm:px-6 bg-white/80 backdrop-blur border-b border-[var(--g200)]">
           <div className="flex items-center gap-3 min-w-0">
@@ -183,7 +183,7 @@ export default function Layout() {
         </header>
 
         {/* Content — pb เผื่อที่ให้ bottom nav มือถือ */}
-        <main className="flex-1 p-4 sm:p-6 pb-24 md:pb-6">
+        <main className="min-w-0 w-full flex-1 p-4 sm:p-6 pb-24 md:pb-6">
           <Outlet />
         </main>
       </div>
