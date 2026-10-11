@@ -20,22 +20,30 @@ html.icons-loading .msi {
   visibility: hidden;
 }
 
-/* ── Base ── */
-html, body {
-  margin: 0;
-  padding: 0;
-}
+/* ── Base ──
+   หมายเหตุ (Step 1 — Fix Active Tab Contrast): ทุก base rule ต้องอยู่ใน @layer base เท่านั้น
+   Tailwind v4 วาง utilities ไว้ใน @layer utilities — กฎที่เขียนนอก layer (unlayered)
+   จะชนะ cascade เสมอ (ต่อให้ specificity ต่ำกว่าก็ตาม)
+   เดิม `a { color: inherit }` อยู่นอก layer → ทับ utility `text-white` บน <a> ทุกตัว
+   → แท็บ active บน Topbar (Nav Pills) เป็นพื้นเข้ม --ink แต่ตัวอักษร/ไอคอนยังสีเข้มจาก body (dark-on-dark มองไม่เห็น)
+   ครอบด้วย @layer base แล้ว utility เช่น text-white / text-[var(--g500)] จะทับได้ถูกต้อง */
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
 
-a {
-  text-decoration: none;
-  color: inherit;
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
 }
 
 /* ── Material Symbols icon helper (React usage: <span className="msi">name</span>) ── */
@@ -72,4 +80,12 @@ a {
 
 .msi.msi-full {
   font-family: 'Material Symbols Full';
+}
+
+/* ── Nav Pills track (Topbar B2): จอแคบกว่าแถบเม็ด → เลื่อนแนวนอนได้โดยไม่โชว์ scrollbar ── */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

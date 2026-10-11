@@ -1,6 +1,6 @@
 // navigation.test.jsx — เทสต์โครงเมนูหลัง UX simplify + Step 3 (Farm Monitor ขึ้นเมนูหลัก)
 import { describe, it, expect } from 'vitest';
-import { NAV_GROUPS, MOBILE_NAV, ROUTE_META, getRouteMeta } from '../navigation.js';
+import { NAV_GROUPS, MOBILE_NAV, ROUTE_META, getRouteMeta, TOPBAR_PILLS, DRAWER_GROUPS } from '../navigation.js';
 import { UI_FLAGS } from '../uiConfig.js';
 
 describe('navigation — โครงเมนูใหม่ (Step 3: Farm Monitor ขึ้นเมนูหลัก)', () => {
@@ -15,9 +15,10 @@ describe('navigation — โครงเมนูใหม่ (Step 3: Farm Moni
     expect(more.items.map((i) => i.to)).not.toContain('/bundle');
   });
 
-  it('กลุ่ม "เพิ่มเติม" ถูกพับเก็บไว้ (collapsed) และมีหน้าข้อมูลครบทุกหน้า', () => {
+  it('กลุ่ม "เพิ่มเติม" แสดงตรงเป็น Clean List (ไม่มีชั้นพับ collapsed แล้ว) และมีหน้าข้อมูลครบทุกหน้า', () => {
     const more = NAV_GROUPS.find((g) => g.label === 'เพิ่มเติม');
-    expect(more.collapsed).toBe(true);
+    // accordion "เพิ่มเติม" ถูกถอนออกถาวรตาม spec — ไม่มี property collapsed อีกต่อไป
+    expect(more.collapsed).toBeFalsy();
     const tos = more.items.map((i) => i.to);
     ['/asset', '/qr', '/history', '/report', '/dashboard'].forEach((p) =>
       expect(tos).toContain(p)
@@ -55,8 +56,29 @@ describe('navigation — โครงเมนูใหม่ (Step 3: Farm Moni
 });
 
 describe('UI_FLAGS — หลักการ "มีแต่ไม่แสดง"', () => {
-  it('กราฟซ่อน / เมนูแบบย่อเปิด', () => {
+  it('กราฟซ่อน; flag simpleMenu (พับเมนูเสริม) ถูกถอนออกพร้อม accordion ตาม spec', () => {
     expect(UI_FLAGS.charts).toBe(false);
-    expect(UI_FLAGS.simpleMenu).toBe(true);
+    expect('simpleMenu' in UI_FLAGS).toBe(false);
+  });
+});
+
+describe('navigation — B2 Topbar Nav Pills + Drawer เมนูเสริม', () => {
+  it('TOPBAR_PILLS = เมนูหลัก 5 รายการตามลำดับ (งานประจำวัน)', () => {
+    expect(TOPBAR_PILLS.map((i) => i.to)).toEqual(['/', '/farm', '/bundle', '/stock', '/scan']);
+  });
+
+  it('pill ที่ชื่อยาวมีชื่อย่อ (short) และ short ต้องเป็น substring ของชื่อเต็ม', () => {
+    TOPBAR_PILLS.forEach((i) => {
+      const short = i.short || i.label;
+      expect(i.label.includes(short)).toBe(true);
+    });
+  });
+
+  it('DRAWER_GROUPS ไม่มีกลุ่ม "งานประจำวัน" (เมนูหลักอยู่บน Topbar แล้ว) และครบกลุ่มเสริม', () => {
+    expect(DRAWER_GROUPS.map((g) => g.label)).toEqual(['เพิ่มเติม', 'ผู้ดูแลระบบ']);
+  });
+
+  it('เมนูหลักบน pills ไม่มีรายการ adminOnly (แสดงได้ทุก user)', () => {
+    TOPBAR_PILLS.forEach((i) => expect(i.adminOnly).toBeFalsy());
   });
 });

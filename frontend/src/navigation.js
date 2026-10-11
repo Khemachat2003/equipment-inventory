@@ -1,14 +1,15 @@
 // ── Central navigation + page meta ───────────────────────────────────────────
-// แหล่งเดียวสำหรับ: เมนู sidebar (NAV_GROUPS) + ชื่อ/ชื่อรองหน้า (ROUTE_META)
-// ถ้าเพิ่มหน้าใหม่ ต้องลงทะเบียนที่นี่ครบทั้ง 2 ตัว (topbar จะขึ้นชื่อให้ตรงกันเอง)
+// แหล่งเดียวสำหรับ: Nav Pills บน Topbar (TOPBAR_PILLS), เมนูเสริมใน drawer (DRAWER_GROUPS),
+// เมนูบนมือถือ (MOBILE_NAV) และชื่อ/ชื่อรองหน้า (ROUTE_META)
+// ถ้าเพิ่มหน้าใหม่ ต้องลงทะเบียนที่นี่ครบ (NAV_GROUPS + ROUTE_META)
 // ─────────────────────────────────────────────────────────────────────────────
 // แนวคิด UX (UX simplify): เมนูเรียงตาม "งานที่ผู้ใช้ต้องทำ" ไม่ใช่ "โครงสร้างข้อมูล"
 //   - งานประจำวัน = สิ่งที่ใช้ทุกวัน มองเห็นทันที
 //     Step 3: **Farm Monitor** (ของอยู่ฟาร์มไหน) ยกขึ้นเมนูหลักติดอันดับ 2 — จุดขายหลักสำหรับ
 //     Executive/เจ้านายและช่างหน้างาน เข้าถึงภาพรวมฟาร์มได้ 1-Click (เดิมซ่อนใน "เพิ่มเติม")
 //     รวมถึง **ชุดติดตั้งฟาร์ม/Bundle** ที่ขึ้นเมนูหลักแล้วเช่นกัน (เดิมซ่อนใน "เพิ่มเติม")
-//   - เพิ่มเติม (collapsed) = หน้าข้อมูล/เครื่องมือที่ใช้ไม่บ่อย — พับเก็บ กางเมื่อต้องการ
-//     (กลุ่มนี้ถูกพับหรือไม่ ขึ้นกับ UI_FLAGS.simpleMenu — ดู Layout.jsx)
+//   - เพิ่มเติม = หน้าข้อมูล/เครื่องมือที่ใช้ไม่บ่อย — โชว์ตรงเป็น Clean List ทันทีเมื่อเปิด drawer
+//     (ชั้นพับ/accordion "เพิ่มเติม" ถูกถอนออกถาวรตาม spec — ไม่มี flag UI_FLAGS.simpleMenu แล้ว)
 //   - ผู้ดูแลระบบ (adminOnly) = ซ่อนจากผู้ใช้ทั่วไป
 // Route เดิมทุกเส้นยังใช้งานได้ตามลิงก์เดิม เพียงแค่ไม่โชว์ในเมนูหลัก
 
@@ -16,16 +17,17 @@ export const NAV_GROUPS = [
   {
     label: 'งานประจำวัน',
     items: [
+      // short = ชื่อย่อบน Nav Pills กลาง Topbar เมื่อจอกว้างระดับ lg (ชื่อเต็มโชว์ที่จอ ≥xl)
+      // กติกา: short ต้องเป็น substring ของ label (กัน label-in-name ตอนใช้ aria-label)
       { to: '/', label: 'หน้าแรก', icon: 'home', end: true },
       { to: '/farm', label: 'Farm Monitor', icon: 'monitoring' },
-      { to: '/bundle', label: 'ชุดติดตั้งฟาร์ม (Bundle)', icon: 'folder_open' },
-      { to: '/stock', label: 'เบิก–คืนของ', icon: 'inventory_2' },
-      { to: '/scan', label: 'ย้าย/โอนอุปกรณ์', icon: 'document_scanner' },
+      { to: '/bundle', label: 'ชุดติดตั้งฟาร์ม (Bundle)', short: 'Bundle', icon: 'folder_open' },
+      { to: '/stock', label: 'เบิก–คืนของ', short: 'เบิก–คืน', icon: 'inventory_2' },
+      { to: '/scan', label: 'ย้าย/โอนอุปกรณ์', short: 'ย้าย/โอน', icon: 'document_scanner' },
     ],
   },
   {
     label: 'เพิ่มเติม',
-    collapsed: true,
     items: [
       { to: '/asset', label: 'ทะเบียนรายชิ้น (Asset)', icon: 'devices' },
       { to: '/qr', label: 'พิมพ์ฉลาก QR', icon: 'qr_code_2' },
@@ -47,6 +49,12 @@ export const NAV_GROUPS = [
     ],
   },
 ];
+
+// ── B2 Concept — Topbar Nav Pills + Drawer "เมนูเสริม" ───────────────────────
+// TOPBAR_PILLS: เมนูหลัก 5 รายการ (กลุ่ม "งานประจำวัน") ขึ้นแถบเม็ดกลาง Topbar
+// DRAWER_GROUPS: กลุ่มที่เหลือ ("เพิ่มเติม" + "ผู้ดูแลระบบ") — เปิดด้วยปุ่มสามขีดขวาบน
+export const TOPBAR_PILLS = NAV_GROUPS[0].items;
+export const DRAWER_GROUPS = NAV_GROUPS.slice(1);
 
 // Bottom nav บนมือถือ — 3 งานหลัก (md:hidden ใน Layout)
 export const MOBILE_NAV = [

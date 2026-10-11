@@ -57,6 +57,7 @@
   --tmuted:    #94A3B8;
 
   /* Borders */
+  --border: #E2E8F0;  /* ขอบการ์ดมาตรฐาน 1px (alias ของ --g200 — Step 2: การ์ดสรุปสถานะหน้าแรกอ้างอิง var(--border)) */
   --g100:  #F1F5F9;
   --g200:  #E2E8F0;
   --g300:  #CBD5E1;
@@ -70,12 +71,15 @@
   --sh-sm: 0 1px 4px rgba(0,0,0,.07), 0 2px 8px rgba(0,0,0,.04);
   --sh-md: 0 4px 16px rgba(0,0,0,.09), 0 1px 4px rgba(0,0,0,.05);
   --sh-lg: 0 12px 40px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
+  /* Navigation surfaces (sidebar drawer / bottom nav) — Layout อ้างอิง var(--sh-nav) */
+  --sh-nav: 0 8px 30px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.10);
 
   /* Radius */
   --r:  6px;
   --r2: 10px;
   --r3: 14px;
   --r4: 18px;
+  --r5: 28px;   /* B2 Home — การ์ดมุมโค้งใหญ่ (เพิ่ม token เท่านั้น ไม่แตะค่าเดิม) */
 
   /* Sidebar */
   --sb-w: 240px;

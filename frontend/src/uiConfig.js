@@ -6,7 +6,6 @@ export const UI_FLAGS = {
   // (โค้ดกราฟยังอยู่ครบใน Dashboard.jsx แค่ไม่ render เท่านั้น)
   charts: false,
 
-  // เมนูแบบย่อ: กลุ่ม "เพิ่มเติม" ใน sidebar ถูกพับเก็บไว้เริ่มต้น (ต้องกดกางก่อน)
-  // false = กางทุกกลุ่มไว้ตลอด เหมือนเมนูเดิม
-  simpleMenu: true,
+  // หมายเหตุ: flag `simpleMenu` (พับกลุ่ม "เพิ่มเติม" ใน drawer) ถูกถอนออกถาวรตาม spec
+  // — drawer แสดงทุกรายการเป็น Clean List ทันทีเมื่อเปิด (accordion ถูกลบ — ดู Layout.jsx)
 };

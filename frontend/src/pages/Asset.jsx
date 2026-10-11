@@ -37,6 +37,12 @@ export default function Asset() {
   const [loading, setLoading] = useState(true);
   const busy = useBusy();
 
+  // รับ ?status= จากหน้าแรก (การ์ดสรุปสถานะ 3 ใบ) → เปิดมากรองสถานะไว้ให้เลย
+  // (อ่านจาก window.location ตรง ๆ แนวเดียวกับ Stock ?q= — ไม่ต้องพึ่ง Router context)
+  const [statusFilter, setStatusFilter] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('status') || ''; } catch { return ''; }
+  });
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -87,6 +93,7 @@ export default function Asset() {
     const k = assetSearch.toLowerCase();
     const bk = batchSearch.trim().toLowerCase();
     return assets.filter((a) => {
+      if (statusFilter && !(a.status || '').includes(statusFilter)) return false;
       if (currentPart && a.partNumber !== currentPart) return false;
       if (categoryFilter && catOf(a) !== categoryFilter) return false;
       if (!matchesInboundFilters(a, { query: bk, from: receivedFrom, to: receivedTo })) return false;
@@ -98,11 +105,11 @@ export default function Asset() {
         (a.serialNumber || '').toLowerCase().includes(k)
       );
     });
-  }, [assets, currentPart, categoryFilter, catOf, assetSearch, batchSearch, receivedFrom, receivedTo]);
+  }, [assets, statusFilter, currentPart, categoryFilter, catOf, assetSearch, batchSearch, receivedFrom, receivedTo]);
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  useEffect(() => { setPage(1); }, [currentPart, categoryFilter, assetSearch, batchSearch, receivedFrom, receivedTo, pageSize]);
+  useEffect(() => { setPage(1); }, [currentPart, categoryFilter, assetSearch, batchSearch, receivedFrom, receivedTo, pageSize, statusFilter]);
 
   const currentPartName = currentPart ? (parts.find((p) => p.partNumber === currentPart)?.partName || currentPart) : '';
   const stats = useMemo(() => {
@@ -185,6 +192,18 @@ export default function Asset() {
         <StatPill label="ใช้งาน" value={stats.usable} icon="check_circle" tone="green" />
         {stats.repair > 0 && <StatPill label="ซ่อม" value={stats.repair} icon="build" tone="red" />}
         {currentPartName && <div className="px-3 py-1.5 rounded-full bg-[var(--g100)] text-[12px] text-[var(--tsub)]"><Icon name="inventory_2" size="xs" /> {currentPartName}</div>}
+        {statusFilter && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--blue-l)] border border-[var(--blue-b)] text-[12px] font-semibold text-[var(--blue-d)]">
+            <Icon name="filter_alt" size="xs" /> สถานะ: {statusFilter}
+            <button
+              onClick={() => setStatusFilter('')}
+              title="ล้างตัวกรองสถานะ"
+              className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-[var(--blue-b)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue-glow)]"
+            >
+              <Icon name="close" size="xs" />
+            </button>
+          </div>
+        )}
       </div>
 
       <section className="rounded-xl border border-[var(--g200)] bg-[var(--surface)] p-3 sm:p-4 space-y-2">

@@ -47,6 +47,7 @@ export const ICON_CODEPOINTS = {
   'expand_more': 0xe5cf,
   'fact_check': 0xf0c5,
   'factory': 0xebbc,
+  'filter_alt': 0xef4f,
   'folder_open': 0xe2c8,
   'format_list_bulleted': 0xe241,
   'grass': 0xf205,
@@ -67,6 +68,7 @@ export const ICON_CODEPOINTS = {
   'label': 0xe893,
   'light': 0xf02a,
   'lightbulb': 0xe90f,
+  'link': 0xe250,
   'list': 0xe896,
   'list_alt': 0xe0ee,
   'local_shipping': 0xe558,
@@ -101,6 +103,7 @@ export const ICON_CODEPOINTS = {
   'route': 0xeacd,
   'router': 0xe328,
   'save': 0xe161,
+  'scan': 0xf74e,
   'search': 0xef7a,
   'search_off': 0xea76,
   'select': 0xf74d,
@@ -108,6 +111,7 @@ export const ICON_CODEPOINTS = {
   'settings': 0xe8b8,
   'settings_input_component': 0xe8c1,
   'shield': 0xe9e0,
+  'start': 0xe089,
   'storage': 0xe1db,
   'summarize': 0xf071,
   'sync': 0xe627,
@@ -126,4 +130,4 @@ export const ICON_CODEPOINTS = {
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
 };
-// 124/124 icons mapped
+// 128/128 icons mapped
