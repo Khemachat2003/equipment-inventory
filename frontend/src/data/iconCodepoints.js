@@ -50,6 +50,7 @@ export const ICON_CODEPOINTS = {
   'filter_alt': 0xef4f,
   'folder_open': 0xe2c8,
   'format_list_bulleted': 0xe241,
+  'function': 0xf866,
   'grass': 0xf205,
   'grid_on': 0xe3ec,
   'group': 0xea21,
@@ -130,4 +131,4 @@ export const ICON_CODEPOINTS = {
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
 };
-// 128/128 icons mapped
+// 129/129 icons mapped

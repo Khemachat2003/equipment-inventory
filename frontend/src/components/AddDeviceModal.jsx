@@ -2,12 +2,19 @@
 // การเลือก Part: พิมพ์แล้วมี suggestion — เจอ Part เดิมกดเลือก, ไม่เจอกด "สร้าง Part ใหม่"
 // Serial สร้างโดย backend (SN-PART-DDMMYYYY-XXXX) + backend ตรวจซ้ำแบบ all-or-nothing
 // (preview ในฟอร์มเป็นเพียง "คำเดาก่อนส่ง" — ตัวจริงคืนจาก backend ตอน success)
+//
+// Episode 2 — Fast-Track Multi-Step Guided Flow: หลังรับเข้าสำเร็จ (Step 1) เดินต่อใน Modal เดียว
+//   Step 2 จัดชุดติดตั้ง (เลือกชุดเดิม / สร้างชุดใหม่ทันทีผ่าน CreateBundleModal)
+//   Step 3 โอนย้ายไปฟาร์ม/โรงเรือน/คลัง (เพิ่มฟาร์ม/โรงเรือนใหม่ได้ทันทีใน Modal ด้วย InlineFarmAdd)
+//   Step 4 พิมพ์ฉลาก QR (Direct-to-Print จาก Episode 1) — ทุกขั้นถัดจาก Step 1 ไม่บังคับ ข้ามได้
 
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Icon from './ui/Icon.jsx';
 import { useBusy, BusyOverlay } from './ui/Busy.jsx';
 import { showToast, ToastHost } from './ui/Toast.jsx';
+import CreateBundleModal from './CreateBundleModal.jsx';
+import { FarmInlineAdd, HouseInlineAdd } from './InlineFarmAdd.jsx';
 
 const ain = 'w-full h-9 px-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px] focus:outline-none focus:border-[var(--blue)]';
 
@@ -25,7 +32,48 @@ function sanitizePartNumber(v) {
   return (v || '').trim().toUpperCase().replace(/\s+/g, '-');
 }
 
-export default function AddDeviceModal({ open, presetName = '', onClose, onDone }) {
+// ── Episode 2: แถบขั้นตอนของ Fast-Track Flow (Step 1 รับเข้า → 2 จัดชุด → 3 โอนย้าย → 4 พิมพ์ฉลาก) ──
+const FLOW_STEPS = [
+  { n: 1, label: 'รับเข้าอุปกรณ์' },
+  { n: 2, label: 'จัดชุดติดตั้ง' },
+  { n: 3, label: 'โอนย้ายปลายทาง' },
+  { n: 4, label: 'พิมพ์ฉลาก QR' },
+];
+
+function FlowStepper({ current }) {
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {FLOW_STEPS.map((s) => {
+        const done = s.n < current;
+        const active = s.n === current;
+        return (
+          <span
+            key={s.n}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold border ${active ? 'bg-[var(--blue)] text-white border-[var(--blue)]' : done ? 'bg-[var(--emerald-l)] text-[var(--emerald-d)] border-[var(--emerald-b)]' : 'bg-[var(--surface2)] text-[var(--tmuted)] border-[var(--g200)]'}`}
+          >
+            {done ? <Icon name="check" size="xs" /> : <span className="w-3 text-center">{s.n}</span>}
+            {s.label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// หัวแผงของแต่ละ Step — บอกชัดว่า "ไม่บังคับ ข้ามได้" + ปุ่มย้อนกลับ (สำหรับขั้นที่เลยมาแล้ว)
+function StepPanel({ title, onBack, children }) {
+  return (
+    <div className="rounded-xl border border-[var(--g200)] bg-[var(--surface2)] p-3 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[12px] font-bold text-[var(--text)]">{title} <span className="font-medium text-[var(--tmuted)]">(ไม่บังคับ — ข้ามได้)</span></div>
+        {onBack && <button onClick={onBack} className="text-[11px] font-semibold text-[var(--blue)] shrink-0">← ย้อนกลับ</button>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export default function AddDeviceModal({ open, presetName = '', presetAdvanced = false, onClose, onDone }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null); // { partNumber, partName, isNew }
   const [qty, setQty] = useState('1');
@@ -49,6 +97,28 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
   const [newPart, setNewPart] = useState(null); // โหมดกรอก Part ใหม่ { partNumber, partName }
   const busy = useBusy();
 
+  // ── Episode 2: state ของ Fast-Track Multi-Step Flow ──────────────────────────
+  // flowStep: 0 = ยังอยู่ฟอร์มรับเข้า (Step 1) | 2/3/4 = ขั้นตอนเสริมหลังรับเข้าสำเร็จ (ข้ามได้ทุกขั้น)
+  const [flowStep, setFlowStep] = useState(0);
+  const [bundleOptions, setBundleOptions] = useState([]); // ชุดติดตั้งที่มีอยู่ (โหลดเมื่อเข้า Step 2)
+  const [bundlesLoaded, setBundlesLoaded] = useState(false);
+  const [bundlesLoading, setBundlesLoading] = useState(false);
+  const [bundleQuery, setBundleQuery] = useState('');
+  const [pickedBundleId, setPickedBundleId] = useState('');
+  const [createBundleOpen, setCreateBundleOpen] = useState(false); // สร้างชุดใหม่ทันที (nested modal)
+  // Step 3 — ปลายทาง
+  const [destMode, setDestMode] = useState('stock'); // 'stock' = คงเก็บคลังกลาง | 'farm' = ฟาร์ม/โรงเรือน
+  const [farmId, setFarmId] = useState('');
+  const [houseId, setHouseId] = useState('');
+  const [houses, setHouses] = useState([]);
+  const [loadingHouses, setLoadingHouses] = useState(false);
+  const [installPoint, setInstallPoint] = useState('');
+  const [extraFarms, setExtraFarms] = useState([]); // ฟาร์มที่เพิ่งสร้างจากฟอร์มย่อ — เติม dropdown ทันที
+  const [farmAddOpen, setFarmAddOpen] = useState(false);
+  const [houseAddOpen, setHouseAddOpen] = useState(false);
+  const [stepNote, setStepNote] = useState(null); // ผลลัพธ์ของขั้นตอนล่าสุด { tone: 'ok'|'err', text }
+  const [transferFailed, setTransferFailed] = useState([]); // Serial ที่ย้ายไม่สำเร็จ (Step 3)
+
   useEffect(() => {
     if (!open) return;
     setQuery(presetName || '');
@@ -65,14 +135,34 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     setBatchId('');
     setBatchQuery('');
     setBatchListLoaded(false);
-    setAdvanced(false);
+    // "รับเข้า" เปิดมาพร้อมแผนล็อต/PO ขยายไว้ล่วงหน้า (presetAdvanced)
+    setAdvanced(Boolean(presetAdvanced));
     setResult(null);
     setNewPart(null);
+    // Episode 2 — เคลียร์ Fast-Track Flow ทุกครั้งที่เปิดใหม่
+    setFlowStep(0);
+    setBundleOptions([]);
+    setBundlesLoaded(false);
+    setBundlesLoading(false);
+    setBundleQuery('');
+    setPickedBundleId('');
+    setCreateBundleOpen(false);
+    setDestMode('stock');
+    setFarmId('');
+    setHouseId('');
+    setHouses([]);
+    setLoadingHouses(false);
+    setInstallPoint('');
+    setExtraFarms([]);
+    setFarmAddOpen(false);
+    setHouseAddOpen(false);
+    setStepNote(null);
+    setTransferFailed([]);
     axios.get('/api/farm-sites').then(({ data }) => setSites(data || [])).catch(() => {});
     axios.get('/api/part-catalog').then(({ data }) => setParts(data || [])).catch(() => {});
     setAvailableBatches([]);
     setBatchListLoaded(false);
-  }, [open, presetName]);
+  }, [open, presetName, presetAdvanced]);
 
   const selectedBatch = availableBatches.find((batch) => batch.batchId === batchId);
   const filteredBatches = useMemo(() => {
@@ -94,6 +184,155 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     } finally {
       setBatchesLoading(false);
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Episode 2 — Fast-Track Multi-Step Guided Flow (Step 2 → 3 → 4)
+  // ทุกขั้น "ไม่บังคับ" — กดข้ามได้ตามความเร่งด่วนหน้างาน และย้อนกลับมาแก้ได้
+  // ═══════════════════════════════════════════════════════════════════
+  const flowSerials = result?.serials || [];
+  const flowAssetIds = result?.assetIds || (Array.isArray(result?.assets) ? result.assets.map((a) => a.assetId) : []);
+
+  const filteredBundleOptions = useMemo(() => {
+    const term = bundleQuery.trim().toLowerCase();
+    if (!term) return bundleOptions;
+    return bundleOptions.filter((b) => [b.bundleId, b.bundleName, b.description].some((v) => String(v || '').toLowerCase().includes(term)));
+  }, [bundleOptions, bundleQuery]);
+  const pickedBundle = bundleOptions.find((b) => b.bundleId === pickedBundleId);
+
+  // ฟาร์มทั้งหมดสำหรับ Step 3 = ที่โหลดไว้ตั้งแต่เปิด Modal + ที่เพิ่งสร้างจากฟอร์มย่อ (ไม่ซ้ำ)
+  const flowFarms = [...(sites || []), ...extraFarms].filter(
+    (s, i, arr) => s?.siteId && s.siteId !== 'Intranin' && s.siteName && arr.findIndex((x) => x.siteId === s.siteId) === i
+  );
+  const selectedFarm = flowFarms.find((s) => s.siteId === farmId);
+  const flowHouseName = houses.find((h) => h.houseId === houseId)?.houseName || '';
+
+  // เข้า Step 2 → โหลดชุดติดตั้งที่มีอยู่ให้เลือก (event-driven: เรียกจากจุดที่ย้ายเข้า Step 2 เท่านั้น)
+  function enterStep2() {
+    setFlowStep(2);
+    if (bundlesLoaded || bundlesLoading) return;
+    setBundlesLoading(true);
+    axios.get('/api/bundles')
+      .then(({ data }) => { setBundleOptions(data || []); setBundlesLoaded(true); })
+      .catch(() => { setBundlesLoaded(true); })
+      .finally(() => setBundlesLoading(false));
+  }
+
+  // Step 3 — โหลดโรงเรือนของฟาร์มที่เลือก (เปลี่ยนฟาร์ม = ล้างโรงเรือนเดิมเสมอ เหมือน DeployModal)
+  function refreshHouses(fid) {
+    if (!fid) { setHouses([]); return; }
+    setLoadingHouses(true);
+    axios.get(`/api/farm-houses/${encodeURIComponent(fid)}`)
+      .then(({ data }) => setHouses(data || []))
+      .catch(() => setHouses([]))
+      .finally(() => setLoadingHouses(false));
+  }
+
+  function chooseFarm(siteId) {
+    setFarmId(siteId);
+    setHouseId('');
+    setHouseAddOpen(false);
+    refreshHouses(siteId);
+  }
+
+  // Step 2 — เพิ่มอุปกรณ์ที่เพิ่งรับเข้าเข้า "ชุดที่เลือก" (bulk: ทั้งหมดในคำสั่งเดียว)
+  async function confirmAddToBundle() {
+    if (!pickedBundleId) return;
+    if (!flowAssetIds.length) return showToast('ไม่พบรหัสอุปกรณ์ (Asset ID) ของชิ้นที่เพิ่งรับเข้า — ไม่สามารถเพิ่มเข้าชุดได้', { type: 'warn' });
+    await busy.run('กำลังเพิ่มเข้าชุด...', async () => {
+      try {
+        const { data } = await axios.post(`/api/bundles/${encodeURIComponent(pickedBundleId)}/assets/bulk`, { assetIds: flowAssetIds });
+        if (!data.success) throw new Error(data.error || 'เพิ่มเข้าชุดไม่สำเร็จ');
+        setStepNote({ tone: 'ok', text: `เพิ่ม ${flowAssetIds.length} ชิ้นเข้าชุด ${pickedBundle?.bundleName || ''} (${pickedBundleId}) แล้ว` });
+        setFlowStep(3);
+      } catch (e) {
+        showToast('เพิ่มเข้าชุดไม่สำเร็จ: ' + (e.response?.data?.error || e.message), { type: 'err' });
+      }
+    });
+  }
+
+  // Step 2 — สร้างชุดใหม่ทันทีจากฟอร์มย่อ (CreateBundleModal รันเลขรหัสให้) แล้วเพิ่มอุปกรณ์เข้าชุดนั้นเลย
+  async function handleCreateBundleNow(form) {
+    await busy.run('กำลังสร้างชุดใหม่...', async () => {
+      try {
+        const { data } = await axios.post('/api/bundles', form);
+        if (data && data.error) throw new Error(data.error);
+        let addedNote = `สร้างชุด ${form.bundleId} — ${form.bundleName} แล้ว (ยังไม่ได้เพิ่มอุปกรณ์เข้าชุด)`;
+        if (flowAssetIds.length) {
+          const r2 = await axios.post(`/api/bundles/${encodeURIComponent(form.bundleId)}/assets/bulk`, { assetIds: flowAssetIds });
+          if (!r2.data.success) throw new Error(r2.data.error || 'เพิ่มอุปกรณ์เข้าชุดไม่สำเร็จ');
+          addedNote = `สร้างชุด ${form.bundleId} — ${form.bundleName} และเพิ่ม ${flowAssetIds.length} ชิ้นเข้าชุดแล้ว`;
+        }
+        setBundleOptions((prev) => [...prev, { bundleId: form.bundleId, bundleName: form.bundleName, description: form.description || '', status: form.status || 'In Stock', location: 'Stock', assetIds: [...flowAssetIds] }]);
+        setPickedBundleId(form.bundleId);
+        setCreateBundleOpen(false);
+        setStepNote({ tone: 'ok', text: addedNote });
+        setFlowStep(3);
+      } catch (e) {
+        showToast('สร้างชุดไม่สำเร็จ: ' + (e.response?.data?.error || e.message), { type: 'err' });
+      }
+    });
+  }
+
+  // Step 3 — เพิ่มฟาร์ม/โรงเรือนใหม่จากฟอร์มย่อ → เติม dropdown + เลือกให้เลย (ไม่ต้องออกจาก Modal)
+  function handleFlowFarmAdded(site) {
+    const f = { siteId: site.siteId, siteName: site.siteName, farmType: site.farmType || '' };
+    setExtraFarms((prev) => (prev.some((x) => x.siteId === f.siteId) ? prev : [...prev, f]));
+    chooseFarm(f.siteId);
+    setFarmAddOpen(false);
+  }
+
+  function handleFlowHouseAdded(house) {
+    if (house?.houseId) setHouseId(house.houseId);
+    setHouseAddOpen(false);
+    refreshHouses(farmId);
+  }
+
+  // Step 3 — ยืนยันโอนย้ายรายชิ้นที่เพิ่งรับเข้า ไปยังปลายทางที่เลือก (payload เดียวกับ TransferModal)
+  async function confirmFlowTransfer() {
+    if (destMode === 'stock') {
+      setStepNote({ tone: 'ok', text: 'คงเก็บที่คลังกลาง (Intranin · Stock) ตามที่รับเข้า' });
+      setFlowStep(4);
+      return;
+    }
+    if (!farmId) return showToast('เลือกฟาร์ม/ไซต์ปลายทางก่อน', { type: 'warn' });
+    await busy.run('กำลังโอนย้าย...', async () => {
+      const fromLocation = pickedBundle
+        ? `${pickedBundle.bundleName || pickedBundleId} (${pickedBundleId}) — ${pickedBundle.location || 'Stock'}`
+        : `${siteName} (${location.trim() || '-'})`;
+      const succeeded = [];
+      const failed = [];
+      for (const s of flowSerials) {
+        try {
+          const { data } = await axios.post('/api/transfer-asset', {
+            serialNumber: s,
+            action: 'ย้ายตำแหน่งอุปกรณ์',
+            status,
+            location: installPoint.trim() || '-',
+            siteName: selectedFarm?.siteName || '',
+            remark: '',
+            farmType: selectedFarm?.farmType || '-',
+            animalType: '-',
+            houseId: houseId || '-',
+            houseName: houseId ? (flowHouseName || '-') : '-',
+            user: user.trim(),
+            fromLocation,
+          });
+          if (!data.success) throw new Error(data.error || 'โอนย้ายไม่สำเร็จ');
+          succeeded.push(s);
+        } catch (e) {
+          failed.push({ serialNumber: s, error: e.response?.data?.error || e.message || 'โอนย้ายไม่สำเร็จ' });
+        }
+      }
+      if (failed.length) {
+        setTransferFailed(failed.map((f) => f.serialNumber));
+        setStepNote({ tone: 'err', text: `ย้ายสำเร็จ ${succeeded.length} ชิ้น · ไม่สำเร็จ ${failed.length} ชิ้น (${failed.map((f) => f.serialNumber).join(', ')}) — กดยืนยันโอนย้ายอีกครั้งเพื่อลองใหม่` });
+        return;
+      }
+      setTransferFailed([]);
+      setStepNote({ tone: 'ok', text: `ย้าย ${flowSerials.length} ชิ้นไป ${selectedFarm?.siteName || ''}${houseId ? ` › ${flowHouseName || houseId}` : ''} แล้ว` });
+      setFlowStep(4);
+    });
   }
 
   const pn = selected
@@ -168,7 +407,9 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
           ...(batchMode === 'existing' ? { batchId } : {}),
         });
         if (!r2.data.success) throw new Error(r2.data.error || 'เพิ่ม Asset ไม่สำเร็จ');
-        setResult({ serials: r2.data.serials || [], added: r2.data.added || qtyNum, partCreated: !!selected.isNew, batchId: r2.data.batchId, receivedAt: r2.data.receivedAt, poNumber: r2.data.poNumber, supplier: r2.data.supplier, inboundStorage: r2.data.inboundStorage });
+        setResult({ serials: r2.data.serials || [], assetIds: r2.data.assetIds || (Array.isArray(r2.data.assets) ? r2.data.assets.map((a) => a.assetId) : []), added: r2.data.added || qtyNum, partCreated: !!selected.isNew, batchId: r2.data.batchId, receivedAt: r2.data.receivedAt, poNumber: r2.data.poNumber, supplier: r2.data.supplier, inboundStorage: r2.data.inboundStorage });
+        // Episode 2 — รับเข้าสำเร็จ → เข้าสู่ Fast-Track Flow ที่ Step 2 (จัดชุด — ข้ามได้)
+        enterStep2();
       } catch (e) {
         showToast('เกิดข้อผิดพลาด: ' + (e.response?.data?.error || e.message), { type: 'err' });
       }
@@ -193,6 +434,33 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
     setBatchQuery('');
     setBatchListLoaded(false);
     setAdvanced(false);
+    // Episode 2 — กลับไปเริ่มที่ฟอร์ม (Step 1) และเคลียร์ Fast-Track Flow ให้สะอาด
+    setFlowStep(0);
+    setBundleOptions([]);
+    setBundlesLoaded(false);
+    setBundlesLoading(false);
+    setBundleQuery('');
+    setPickedBundleId('');
+    setCreateBundleOpen(false);
+    setDestMode('stock');
+    setFarmId('');
+    setHouseId('');
+    setHouses([]);
+    setLoadingHouses(false);
+    setInstallPoint('');
+    setFarmAddOpen(false);
+    setHouseAddOpen(false);
+    setStepNote(null);
+    setTransferFailed([]);
+  }
+
+  // Episode 1 — Direct-to-Print: เปิดหน้าพิมพ์ฉลาก QR (/qr) ของอุปกรณ์ที่เพิ่งเพิ่มทันที
+  // ส่ง Serial ทั้งชุดผ่าน deep-link ?serials=... → หน้า /qr เลือกไว้ให้พร้อมพิมพ์เลย
+  // (เปิดแท็บใหม่ตาม pattern ปุ่มฉลากทุกจุดในระบบ — หน้าเดิมทำงานต่อได้ทันที)
+  function openLabelPrint() {
+    const serials = (result?.serials || []).filter(Boolean);
+    if (!serials.length) return;
+    window.open(`/qr?serials=${encodeURIComponent(serials.join(','))}`, '_blank', 'noopener');
   }
 
   return (
@@ -223,7 +491,114 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
                 {result.serials.map((s) => <div key={s} className="font-mono text-[12px] text-[var(--blue)]">{s}</div>)}
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-4">
+            {/* Episode 1 — Direct-to-Print: ปุ่มพิมพ์ฉลากทันทีหลังบันทึกสำเร็จ (ไม่ต้องไปหน้าพิมพ์ฉลากแล้วไล่หา Serial ใหม่) */}
+            {result.serials.length > 0 && (
+              <button
+                onClick={openLabelPrint}
+                title="เปิดหน้าพิมพ์ฉลาก QR พร้อมเลือก Serial ที่เพิ่งสร้างไว้ให้เลย"
+                className={`w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-bold hover:bg-[var(--blue-d)] mt-4 ${flowStep === 4 ? 'ring-2 ring-[var(--blue)] ring-offset-2 ring-offset-[var(--surface)]' : ''}`}
+              >
+                <Icon name="print" size="sm" /> พิมพ์ฉลาก QR ทันที ({result.serials.length} ดวง)
+              </button>
+            )}
+
+            {/* ── Episode 2: Fast-Track Multi-Step Flow — จัดชุด → โอนย้าย → พิมพ์ฉลาก (ทุกขั้น ข้ามได้) ── */}
+            <div className="mt-4 pt-3 border-t border-[var(--g100)] space-y-2.5">
+              <FlowStepper current={flowStep} />
+              {stepNote && (
+                <div role="status" className={`px-3 py-2 rounded-lg text-[12px] font-medium border ${stepNote.tone === 'err' ? 'bg-[var(--red-l)] border-[var(--red-b)] text-[var(--red)]' : 'bg-[var(--emerald-l)] border-[var(--emerald-b)] text-[var(--emerald-d)]'}`}>
+                  {stepNote.text}
+                </div>
+              )}
+
+              {/* Step 2 — จัดชุดติดตั้ง: เลือกชุดที่มีอยู่ / สร้างชุดใหม่ทันที / ข้าม */}
+              {flowStep === 2 && (
+                <StepPanel title="② จัดชุดติดตั้ง">
+                  <div className="space-y-2">
+                    <input value={bundleQuery} onChange={(e) => setBundleQuery(e.target.value)} placeholder="ค้นหาชุดติดตั้ง (รหัส/ชื่อ)" className={ain} aria-label="ค้นหาชุดติดตั้ง" />
+                    <select value={pickedBundleId} onChange={(e) => setPickedBundleId(e.target.value)} className={ain} aria-label="เลือกชุดติดตั้ง">
+                      <option value="">{bundlesLoading ? 'กำลังโหลดชุด...' : '— เลือกชุดติดตั้ง —'}</option>
+                      {filteredBundleOptions.map((b) => <option key={b.bundleId} value={b.bundleId}>{b.bundleId} · {b.bundleName} · {b.assetIds?.length || 0} ชิ้น</option>)}
+                    </select>
+                    {!bundlesLoading && bundlesLoaded && filteredBundleOptions.length === 0 && (
+                      <div className="text-[12px] text-[var(--tmuted)]">ไม่พบชุดที่ค้นหา — หรือกด "สร้างชุดใหม่ทันที" ด้านล่าง (รหัสชุดรันเลขให้อัตโนมัติ)</div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onClick={() => setCreateBundleOpen(true)} className="min-h-11 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-[var(--emerald)] text-white text-[12px] font-semibold hover:bg-[var(--emerald-d)] disabled:opacity-50">
+                      <Icon name="add" size="sm" /> สร้างชุดใหม่ทันที
+                    </button>
+                    <button onClick={confirmAddToBundle} disabled={!pickedBundleId || busy.busy} className="min-h-11 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold hover:bg-[var(--blue-d)] disabled:opacity-50">
+                      <Icon name="folder_open" size="sm" /> เพิ่ม {flowSerials.length} ชิ้นเข้าชุดนี้
+                    </button>
+                  </div>
+                  <button onClick={() => setFlowStep(3)} className="w-full text-[12px] font-semibold text-[var(--tsub)] hover:text-[var(--text)]">ข้าม — ไม่จัดชุดตอนนี้ →</button>
+                </StepPanel>
+              )}
+
+              {/* Step 3 — โอนย้ายไปฟาร์ม/โรงเรือน/คลัง: ปลายทาง + เพิ่มฟาร์ม/โรงเรือนใหม่ได้ทันทีใน Modal นี้ */}
+              {flowStep === 3 && (
+                <StepPanel title="③ โอนย้ายไปยังฟาร์ม/โรงเรือน/คลัง" onBack={enterStep2}>
+                  {pickedBundleId && (
+                    <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--amber-l)] border border-[var(--amber-b)] text-[11px] text-[var(--amber-d)]">
+                      <Icon name="info" size="sm" />
+                      <span>อุปกรณ์อยู่ในชุด {pickedBundleId} แล้ว — การย้ายรายชิ้นจะทำให้ตำแหน่งไม่ตรงกับชุด (ติดตามต่อในหน้าชุดติดตั้ง)</span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setDestMode('stock')} className={`min-h-11 rounded-lg border px-3 text-[12px] font-semibold ${destMode === 'stock' ? 'border-[var(--blue)] bg-[var(--surface)] text-[var(--blue)]' : 'border-[var(--g200)] text-[var(--tsub)]'}`}>คลังกลาง — เก็บต่อที่เดิม</button>
+                    <button type="button" onClick={() => setDestMode('farm')} className={`min-h-11 rounded-lg border px-3 text-[12px] font-semibold ${destMode === 'farm' ? 'border-[var(--blue)] bg-[var(--surface)] text-[var(--blue)]' : 'border-[var(--g200)] text-[var(--tsub)]'}`}>ฟาร์ม/โรงเรือน — ส่งปลายทางเลย</button>
+                  </div>
+                  {destMode === 'farm' && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <select value={farmId} onChange={(e) => chooseFarm(e.target.value)} className={ain} aria-label="ฟาร์มปลายทาง">
+                          <option value="">{flowFarms.length ? '— เลือกฟาร์ม/ไซต์ปลายทาง —' : 'ยังไม่มีฟาร์มในระบบ'}</option>
+                          {flowFarms.map((s) => <option key={s.siteId} value={s.siteId}>{s.siteName} ({s.farmType || '-'})</option>)}
+                        </select>
+                        <select value={houseId} onChange={(e) => setHouseId(e.target.value)} disabled={!farmId || loadingHouses} className={ain} aria-label="โรงเรือนปลายทาง">
+                          <option value="">{loadingHouses ? 'กำลังโหลดโรงเรือน...' : '— ไม่ระบุโรงเรือน —'}</option>
+                          {houses.map((h) => <option key={h.houseId} value={h.houseId}>{h.houseId} · {h.houseName}</option>)}
+                        </select>
+                      </div>
+                      {/* ปุ่มทางด่วน — เพิ่มฟาร์ม/โรงเรือนใหม่ได้ทันทีโดยไม่ต้องยกเลิกหรือสลับออกจากหน้าเพิ่มอุปกรณ์
+                          (ยังไม่เลือกฟาร์ม → เปิดฟอร์มเพิ่มฟาร์ม | เลือกฟาร์มแล้ว → เปิดฟอร์มเพิ่มโรงเรือนของฟาร์มนั้น) */}
+                      <button onClick={() => (farmId ? setHouseAddOpen(!houseAddOpen) : setFarmAddOpen(!farmAddOpen))} className="inline-flex items-center gap-1 px-3 min-h-9 rounded-lg border border-[var(--g300)] bg-[var(--surface)] text-[12px] font-semibold text-[var(--blue)] hover:bg-[var(--blue-l)]">
+                        <Icon name="add" size="sm" /> เพิ่มฟาร์ม/โรงเรือนใหม่
+                      </button>
+                      {farmAddOpen && <FarmInlineAdd mode="panel" open onOpenChange={setFarmAddOpen} onAdded={handleFlowFarmAdded} />}
+                      {houseAddOpen && <HouseInlineAdd mode="panel" open onOpenChange={setHouseAddOpen} siteId={farmId} houses={houses} onAdded={handleFlowHouseAdded} />}
+                      {farmId && !loadingHouses && houses.length === 0 && (
+                        <div className="text-[11px] text-[var(--tmuted)]">ฟาร์มนี้ยังไม่มีโรงเรือน — กดปุ่ม "เพิ่มฟาร์ม/โรงเรือนใหม่" เพื่อสร้างทันที</div>
+                      )}
+                      <input value={installPoint} onChange={(e) => setInstallPoint(e.target.value)} placeholder="จุดติดตั้ง (ไม่บังคับ) เช่น ชั้น 2, โซนให้อาหาร" className={ain} />
+                    </>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onClick={confirmFlowTransfer} disabled={busy.busy || (destMode === 'farm' && !farmId)} className="min-h-11 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold hover:bg-[var(--blue-d)] disabled:opacity-50">
+                      <Icon name="local_shipping" size="sm" /> {transferFailed.length ? `ลองย้ายใหม่ (${transferFailed.length} ชิ้น)` : `ยืนยันโอนย้าย (${flowSerials.length} ชิ้น)`}
+                    </button>
+                    <button onClick={() => setFlowStep(4)} className="min-h-11 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg border border-[var(--g300)] text-[12px] font-semibold text-[var(--tsub)]">
+                      ข้าม — เก็บที่เดิมไว้ก่อน →
+                    </button>
+                  </div>
+                </StepPanel>
+              )}
+
+              {/* Step 4 — พิมพ์ฉลาก QR (Direct-to-Print จาก Episode 1): สรุปก่อนจบ */}
+              {flowStep === 4 && (
+                <StepPanel title="④ พิมพ์ฉลาก QR" onBack={() => setFlowStep(3)}>
+                  <div className="text-[12px] text-[var(--tsub)]">
+                    สรุป: ชุด {pickedBundleId ? <b className="text-[var(--text)]">{pickedBundleId}</b> : '— ไม่จัดชุด'} · ปลายทาง {destMode === 'farm' && farmId && transferFailed.length === 0 ? <b className="text-[var(--text)]">{selectedFarm?.siteName || ''}{houseId ? ` › ${flowHouseName || houseId}` : ''}</b> : 'คลังกลาง'}
+                  </div>
+                  <button onClick={openLabelPrint} className="w-full min-h-11 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-[var(--blue)] text-white text-[13px] font-bold hover:bg-[var(--blue-d)]">
+                    <Icon name="print" size="sm" /> เปิดหน้าพิมพ์ฉลาก QR ({flowSerials.length} ดวง)
+                  </button>
+                  <div className="text-[11px] text-[var(--tmuted)]">เปิดหน้า /qr พร้อมเลือก Serial ที่เพิ่งรับเข้าไว้ให้พิมพ์เลย — หรือกดปุ่มพิมพ์ด้านบน (สรุปผล) ได้ทุกเมื่อ</div>
+                </StepPanel>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 mt-3">
               <button
                 onClick={startAnother}
                 title="เคลียร์ฟอร์มเพื่อเพิ่มอุปกรณ์ถัดไปทันที"
@@ -381,7 +756,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
                   <div className="space-y-1">
                     <label className="block text-[12px] font-medium text-[var(--tsub)]">ไซต์งาน</label>
                     <select value={siteName} onChange={(e) => setSiteName(e.target.value)} className={ain}>
-                      <option value="Intranin">บริษัท Intranin (คลังกลาง)</option>
+                      <option value="Intranin">คลังกลาง (บริษัท Intranin)</option>
                       {sites.filter((s) => s.siteName && s.siteName !== 'Intranin').map((s) => <option key={s.siteId} value={s.siteName}>{s.siteName}</option>)}
                     </select>
                   </div>
@@ -390,7 +765,7 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
                   <div className="space-y-1">
                     <label className="block text-[12px] font-medium text-[var(--tsub)]">จุดติดตั้ง</label>
                     <select value={location} onChange={(e) => setLocation(e.target.value)} className={ain}>
-                      <option value="Stock">Stock (คลังกลาง)</option>
+                      <option value="Stock">คลังกลาง</option>
                       {sites.filter((s) => s.siteName && s.siteName !== 'Intranin').map((s) => <option key={s.siteId} value={s.siteName}>{s.siteName}</option>)}
                     </select>
                   </div>
@@ -411,6 +786,17 @@ export default function AddDeviceModal({ open, presetName = '', onClose, onDone 
           </>
         )}
         <ToastHost />
+        {/* Episode 2 — สร้างชุดใหม่ทันทีจาก Step 2 (nested modal — wrapper กันคลิกทะลุปิด Modal หลัก) */}
+        {result && createBundleOpen && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <CreateBundleModal
+              existingIds={bundleOptions.map((b) => b.bundleId)}
+              saving={busy.busy}
+              onClose={() => setCreateBundleOpen(false)}
+              onSubmit={handleCreateBundleNow}
+            />
+          </div>
+        )}
         <BusyOverlay label={busy.busyLabel} />
       </div>
     </div>

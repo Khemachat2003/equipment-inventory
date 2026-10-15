@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import JsBarcode from 'jsbarcode';
@@ -6,9 +6,21 @@ import Icon from '../components/ui/Icon.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 import { saveReprint, readReprint } from '../utils/labelReprint.js';
+import ThaiDateInput from '../components/ui/ThaiDateInput.jsx';
+import {
+  compareLatestFirst,
+  groupRowsByDate,
+  lastNDaysRange,
+  matchesLabelFilters,
+  receivedTsOf,
+  serialsFromSearchParams,
+  thaiDayLabel,
+} from '../utils/labelQueue.js';
 
 // QrPage — สร้างฉลาก QR/Barcode สำหรับอุปกรณ์ (แปลงจาก public/qr.html เป็น React)
 // ฟีเจอร์ครบ: เลือกอุปกรณ์ + presets ขนาด + A4 layout + ดีไซน์ + templates + live preview + PDF/พิมพ์
+// Episode 1 (พิมพ์ฉลาก): รายการเรียง "ล่าสุดอยู่บนสุดเสมอ" (Created Date DESC) + ตัวกรองเลข PO/ช่วงวันรับเข้า
+//   + ปุ่มด่วน "รับเข้า 2 วันล่าสุด" + จัดกลุ่มตามวันรับเข้า + deep-link ?serials=SN1,SN2 จากปุ่มพิมพ์ทันทีหลังเพิ่มอุปกรณ์
 
 const MM2IN = 25.4;
 const SCREEN_DPI = 96;
@@ -70,6 +82,9 @@ export default function QrPage() {
   const [assets, setAssets] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [poFilter, setPoFilter] = useState(''); // กรองตามเลข PO (จากล็อตรับเข้า)
+  const [fromDate, setFromDate] = useState(''); // ช่วงวันรับเข้า: ตั้งแต่ (key 'YYYY-MM-DD' จาก ThaiDateInput)
+  const [toDate, setToDate] = useState('');     // ช่วงวันรับเข้า: ถึง
   const [selected, setSelected] = useState(new Set());
   const [mode, setMode] = useState('label');
   const [lW, setLW] = useState(50);
@@ -107,12 +122,18 @@ export default function QrPage() {
           serial: a.serial || a.serialNumber || '',
           name: a.name || a.assetName || '',
           status: a.status || 'ใช้งานได้',
+          createdAt: a.createdAt || '',   // โหมด Local Inventory มีวันสร้างจริง
+          receivedAt: a.receivedAt || '', // วันที่รับเข้า (จากล็อต)
+          poNumber: a.poNumber || '',
+          batchId: a.batchId || '',
         }));
         setAssets(rows);
-        const urlSerial = searchParams.get('serial');
-        if (urlSerial) {
-          setSelected((prev) => new Set(prev).add(urlSerial));
-          setMode('label');
+        // deep-link: ?serial=SN-1 (แบบเดิมจากหน้าทะเบียน) หรือ ?serials=SN-1,SN-2 (จากปุ่ม "พิมพ์ฉลาก QR ทันที" หลังเพิ่มอุปกรณ์)
+        const urlSerials = serialsFromSearchParams(searchParams);
+        if (urlSerials.length === 1) setMode('label');
+        if (urlSerials.length) {
+          setSelected((prev) => new Set([...prev, ...urlSerials]));
+          toast(`พร้อมพิมพ์ฉลาก ${urlSerials.length} ดวง — เลือกอุปกรณ์ที่เพิ่มใหม่ให้แล้ว`);
         }
         setLoaded(true);
       })
@@ -168,14 +189,24 @@ export default function QrPage() {
     window.print();
   }, [autoPrintTick]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return assets.filter((a) => {
-      const okStatus = statusFilter === 'all' || a.status === statusFilter;
-      const okQ = !q || a.serial.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
-      return okStatus && okQ;
-    });
-  }, [assets, search, statusFilter]);
+  // เรียง "ล่าสุดอยู่บนสุดเสมอ" (Created Date DESC) + ตัวกรองรวม: ค้นหา/สถานะ/เลข PO/ช่วงวันรับเข้า
+  const filtered = useMemo(() => (
+    assets
+      .filter((a) => matchesLabelFilters(a, { q: search, status: statusFilter, po: poFilter, from: fromDate, to: toDate }))
+      .sort(compareLatestFirst)
+  ), [assets, search, statusFilter, poFilter, fromDate, toDate]);
+
+  // จัดกลุ่มตามวันรับเข้า (จากรายการที่กรอง+เรียงแล้ว) — ใช้วาดหัวกลุ่มในตาราง/การ์ดมือถือ
+  const groups = useMemo(() => groupRowsByDate(filtered), [filtered]);
+
+  // ปุ่มด่วน "รับเข้า 2 วันล่าสุด" — กดเพื่อกรองวันนี้+เมื่อวานทันที, กดซ้ำเพื่อปิดตัวกรองวัน
+  const presetRange = lastNDaysRange(2);
+  const presetActive = Boolean(fromDate && toDate) && fromDate === presetRange.from && toDate === presetRange.to;
+  function applyRecentPreset() {
+    if (presetActive) { setFromDate(''); setToDate(''); return; }
+    setFromDate(presetRange.from);
+    setToDate(presetRange.to);
+  }
 
   const firstSerial = selected.size ? [...selected][0] : null;
   const layout = a4Layout(lW, lH, pm, gapX, gapY);
@@ -358,6 +389,43 @@ export default function QrPage() {
               ))}
             </div>
 
+            {/* ตัวกรองเฉพาะงานพิมพ์ฉลาก — เลข PO + ช่วงวันรับเข้า (พิมพ์แบบไทย/เลือกจากปฏิทินได้) + ปุ่มด่วน "รับเข้า 2 วันล่าสุด"
+                (ช่วยช่างกรองอุปกรณ์ที่เพิ่งรับเข้ามา ไม่ต้องไล่หา Serial ทีละตัว) */}
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)]"><Icon name="local_shipping" size="sm" /></span>
+                <input
+                  value={poFilter}
+                  onChange={(e) => setPoFilter(e.target.value)}
+                  placeholder="กรองเลข PO..."
+                  aria-label="กรองตามเลข PO"
+                  className="w-44 h-10 pl-9 pr-3 rounded-xl border border-[var(--g200)] bg-[var(--surface2)] text-[13px] focus:outline-none focus:border-[var(--blue)]"
+                />
+              </label>
+              <ThaiDateInput label="รับเข้าตั้งแต่" value={fromDate} onChange={setFromDate} />
+              <ThaiDateInput label="รับเข้าถึง" value={toDate} onChange={setToDate} />
+              <button
+                onClick={applyRecentPreset}
+                title="แสดงเฉพาะอุปกรณ์ที่รับเข้าในช่วง 2 วันล่าสุด (วันนี้ + เมื่อวาน) — กดซ้ำเพื่อปิด"
+                aria-pressed={presetActive}
+                className={`h-10 px-3 flex items-center gap-1.5 rounded-xl border text-[12.5px] font-semibold transition-colors ${
+                  presetActive
+                    ? 'bg-[var(--blue)] border-[var(--blue)] text-white'
+                    : 'bg-[var(--surface)] border-[var(--g200)] text-[var(--tsub)] hover:bg-[var(--surface2)]'
+                }`}
+              >
+                <Icon name="local_shipping" size="sm" /> รับเข้า 2 วันล่าสุด
+              </button>
+              {(poFilter || fromDate || toDate) && (
+                <button
+                  onClick={() => { setPoFilter(''); setFromDate(''); setToDate(''); }}
+                  className="h-10 px-3 flex items-center gap-1 rounded-xl text-[12px] text-[var(--tmuted)] hover:text-[var(--red)] hover:bg-[var(--surface2)]"
+                >
+                  <Icon name="close" size="sm" /> ล้างตัวกรอง
+                </button>
+              )}
+            </div>
+
             <div className="hidden md:block overflow-x-auto rounded-xl border border-[var(--g100)]">
               <table className="w-full text-[13px]">
                 <thead>
@@ -372,60 +440,88 @@ export default function QrPage() {
                     </th>
                     <th className="px-3 py-2">Serial Number</th>
                     <th className="px-3 py-2">ชื่ออุปกรณ์</th>
+                    <th className="px-3 py-2">รับเข้า</th>
+                    <th className="px-3 py-2">เลข PO</th>
                     <th className="px-3 py-2">สถานะ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--g100)]">
                   {!loaded ? (
-                    <tr><td colSpan="4" className="px-3 py-10 text-center text-[var(--tmuted)]">⏳ กำลังโหลด...</td></tr>
+                    <tr><td colSpan="6" className="px-3 py-10 text-center text-[var(--tmuted)]">⏳ กำลังโหลด...</td></tr>
                   ) : filtered.length === 0 ? (
-                    <tr><td colSpan="4" className="px-3 py-10 text-center text-[var(--tmuted)]">ไม่พบข้อมูล</td></tr>
-                  ) : filtered.map((a) => {
-                    const st = STATUS_MAP[a.status] || FALLBACK_STATUS;
-                    const isSel = selected.has(a.serial);
-                    return (
-                      <tr key={a.serial} onClick={() => toggleSn(a.serial)} className={`cursor-pointer ${isSel ? 'bg-[var(--blue-l)]/40' : 'hover:bg-[var(--surface2)]'}`}>
-                        <td className="px-3 py-2">
-                          <input type="checkbox" checked={isSel} onChange={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} className="accent-[var(--blue)]" />
-                        </td>
-                        <td className="px-3 py-2 font-mono text-[12px] text-[var(--text)]">{a.serial}</td>
-                        <td className="px-3 py-2 text-[var(--tsub)]">{a.name}</td>
-                        <td className="px-3 py-2">
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--surface2)] border border-[var(--g200)]">
-                            <span className="w-2 h-2 rounded-full" style={{ background: st.dotColor }} />
-                            {st.label}
-                          </span>
+                    <tr><td colSpan="6" className="px-3 py-10 text-center text-[var(--tmuted)]">ไม่พบข้อมูล</td></tr>
+                  ) : groups.map((g) => (
+                    <Fragment key={g.key}>
+                      {/* หัวกลุ่ม — จัดกลุ่มตามวันรับเข้า (รายการเรียงล่าสุดอยู่บนอยู่แล้ว) */}
+                      <tr className="bg-[var(--surface2)]">
+                        <td colSpan="6" className="px-3 py-1.5 text-[11.5px] font-semibold text-[var(--tsub)]">
+                          <span className="inline-flex items-center gap-1"><Icon name="local_shipping" size="xs" /> {g.key === 'unknown' ? 'ไม่ระบุวันที่รับเข้า' : `รับเข้า ${g.label}`}</span>
+                          <span className="ml-1.5 font-normal text-[var(--tmuted)]">{g.items.length} ดวง</span>
                         </td>
                       </tr>
-                    );
-                  })}
+                      {g.items.map((a) => {
+                        const st = STATUS_MAP[a.status] || FALLBACK_STATUS;
+                        const isSel = selected.has(a.serial);
+                        return (
+                          <tr key={a.serial} onClick={() => toggleSn(a.serial)} className={`cursor-pointer ${isSel ? 'bg-[var(--blue-l)]/40' : 'hover:bg-[var(--surface2)]'}`}>
+                            <td className="px-3 py-2">
+                              <input type="checkbox" checked={isSel} onChange={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} className="accent-[var(--blue)]" />
+                            </td>
+                            <td className="px-3 py-2 font-mono text-[12px] text-[var(--text)]">{a.serial}</td>
+                            <td className="px-3 py-2 text-[var(--tsub)]">{a.name}</td>
+                            <td className="px-3 py-2 text-[12px] text-[var(--tsub)] whitespace-nowrap">{thaiDayLabel(receivedTsOf(a)) || '—'}</td>
+                            <td className="px-3 py-2 text-[12px] font-mono text-[var(--tsub)]">{a.poNumber || '—'}</td>
+                            <td className="px-3 py-2">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--surface2)] border border-[var(--g200)]">
+                                <span className="w-2 h-2 rounded-full" style={{ background: st.dotColor }} />
+                                {st.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Mobile card list */}
+            {/* Mobile card list — จัดกลุ่มตามวันรับเข้าเหมือนตารางเดสก์ท็อป */}
             <div className="md:hidden rounded-xl border border-[var(--g100)] divide-y divide-[var(--g100)]">
               {!loaded ? (
                 <div className="px-4 py-10 text-center text-[var(--tmuted)]">⏳ กำลังโหลด...</div>
               ) : filtered.length === 0 ? (
                 <div className="px-4 py-10 text-center text-[var(--tmuted)]">ไม่พบข้อมูล</div>
-              ) : filtered.map((a) => {
-                const st = STATUS_MAP[a.status] || FALLBACK_STATUS;
-                const isSel = selected.has(a.serial);
-                return (
-                  <div key={a.serial} onClick={() => toggleSn(a.serial)} className={`flex items-center gap-3 px-3.5 py-3 cursor-pointer active:bg-[var(--surface2)] ${isSel ? 'bg-[var(--blue-l)]/40' : ''}`}>
-                    <input type="checkbox" checked={isSel} onChange={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} className="accent-[var(--blue)] shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-mono text-[13px] font-semibold text-[var(--text)] leading-tight break-all">{a.serial}</div>
-                      <div className="text-[12px] text-[var(--tsub)] leading-snug mt-0.5 line-clamp-2">{a.name}</div>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--surface2)] border border-[var(--g200)] shrink-0">
-                      <span className="w-2 h-2 rounded-full" style={{ background: st.dotColor }} />
-                      {st.label}
-                    </span>
+              ) : groups.map((g) => (
+                <Fragment key={g.key}>
+                  <div className="px-3.5 py-1.5 bg-[var(--surface2)] text-[11px] font-semibold text-[var(--tsub)] flex items-center gap-1">
+                    <Icon name="local_shipping" size="xs" />
+                    {g.key === 'unknown' ? 'ไม่ระบุวันที่รับเข้า' : `รับเข้า ${g.label}`}
+                    <span className="ml-1 font-normal text-[var(--tmuted)]">{g.items.length} ดวง</span>
                   </div>
-                );
-              })}
+                  {g.items.map((a) => {
+                    const st = STATUS_MAP[a.status] || FALLBACK_STATUS;
+                    const isSel = selected.has(a.serial);
+                    return (
+                      <div key={a.serial} onClick={() => toggleSn(a.serial)} className={`flex items-center gap-3 px-3.5 py-3 cursor-pointer active:bg-[var(--surface2)] ${isSel ? 'bg-[var(--blue-l)]/40' : ''}`}>
+                        <input type="checkbox" checked={isSel} onChange={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} className="accent-[var(--blue)] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-mono text-[13px] font-semibold text-[var(--text)] leading-tight break-all">{a.serial}</div>
+                          <div className="text-[12px] text-[var(--tsub)] leading-snug mt-0.5 line-clamp-2">{a.name}</div>
+                          <div className="flex flex-wrap items-center gap-x-2 text-[10.5px] text-[var(--tmuted)] mt-0.5">
+                            <span>{thaiDayLabel(receivedTsOf(a)) || 'ไม่ระบุวัน'}</span>
+                            {a.poNumber && <span className="font-mono">PO {a.poNumber}</span>}
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--surface2)] border border-[var(--g200)] shrink-0">
+                          <span className="w-2 h-2 rounded-full" style={{ background: st.dotColor }} />
+                          {st.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </Fragment>
+              ))}
             </div>
 
             <div className="flex items-center justify-between text-[11.5px] text-[var(--tmuted)]">

@@ -12,7 +12,7 @@ import { buildLocation } from '../../utils/location.js';
  *   • อยู่ที่ฟาร์ม → pill เขียว (emerald)
  *   • อยู่คลังกลาง → pill ฟ้า (blue)
  */
-export default function LocationPath({ siteName, houseName, houseId, location, bundleId, size = 'sm', showChips = false, className = '', variant = 'default' }) {
+export default function LocationPath({ siteName, houseName, houseId, location, bundleId, size = 'sm', showChips = false, className = '', variant = 'default', tone = 'sub' }) {
   const loc = buildLocation({ siteName, houseName, houseId, location, bundleId });
 
   if (variant === 'primary') {
@@ -45,9 +45,12 @@ export default function LocationPath({ siteName, houseName, houseId, location, b
   }
 
   const isMain = size === 'md';
+  // tone="ink" (ตารางรายชิ้น Farm Monitor) — ตัวหนังสือเข้ม var(--ink) อ่านชัด 100% · default = สีรอง --tsub เหมือนเดิม (ไม่กระทบหน้าอื่น)
   const textCls = isMain
     ? 'text-[14px] font-semibold text-[var(--text)]'
-    : 'text-[12px] text-[var(--tsub)]';
+    : tone === 'ink'
+      ? 'text-[12px] font-medium text-[var(--ink)]'
+      : 'text-[12px] text-[var(--tsub)]';
   const empty = loc.kind === 'stock' && !loc.chips.length;
 
   return (

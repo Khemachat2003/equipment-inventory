@@ -51,11 +51,11 @@ export function buildLocation(input = {}) {
 
   // อยู่คลังกลาง — ไม่มีชั้นโรงเรือน/จุดติดตั้ง
   if (isStocky(inBundle ? '' : siteName, inBundle ? rawLoc : rawLoc)) {
-    const inStock = rawLoc === 'Stock';
+    // B2 Strict Terminology: แสดง "คลังกลาง" ภาษาไทยเท่านั้น — ตัดวงเล็บศัพท์ระบบ (Stock)/(Intranin) ออกจากการแสดงผล
     return {
       kind: 'stock',
       farm: '', house: '', point: '',
-      full: inStock ? `${STOCK_LABEL} (Stock)` : `${STOCK_LABEL} (Intranin)`,
+      full: STOCK_LABEL,
       chips: [],
     };
   }

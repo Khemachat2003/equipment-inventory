@@ -21,7 +21,7 @@ export const NAV_GROUPS = [
       // กติกา: short ต้องเป็น substring ของ label (กัน label-in-name ตอนใช้ aria-label)
       { to: '/', label: 'หน้าแรก', icon: 'home', end: true },
       { to: '/farm', label: 'Farm Monitor', icon: 'monitoring' },
-      { to: '/bundle', label: 'ชุดติดตั้งฟาร์ม (Bundle)', short: 'Bundle', icon: 'folder_open' },
+      { to: '/bundle', label: 'ชุดติดตั้งฟาร์ม', short: 'ชุดติดตั้ง', icon: 'folder_open' },
       { to: '/stock', label: 'เบิก–คืนของ', short: 'เบิก–คืน', icon: 'inventory_2' },
       { to: '/scan', label: 'ย้าย/โอนอุปกรณ์', short: 'ย้าย/โอน', icon: 'document_scanner' },
     ],
@@ -29,7 +29,7 @@ export const NAV_GROUPS = [
   {
     label: 'เพิ่มเติม',
     items: [
-      { to: '/asset', label: 'ทะเบียนรายชิ้น (Asset)', icon: 'devices' },
+      { to: '/asset', label: 'ทะเบียนรายชิ้น', icon: 'devices' },
       { to: '/qr', label: 'พิมพ์ฉลาก QR', icon: 'qr_code_2' },
       { to: '/history', label: 'ประวัติการเบิก–คืน', icon: 'history' },
       { to: '/report', label: 'รายงาน PDF', icon: 'bar_chart' },
@@ -68,8 +68,8 @@ export const MOBILE_NAV = [
 export const ROUTE_META = {
   '/': { title: 'หน้าแรก', subtitle: 'ค้นหาอุปกรณ์และเริ่มงานได้จากที่เดียว' },
   '/stock': { title: 'เบิก–คืนของ', subtitle: 'รายการอุปกรณ์ในคลัง — เบิก / คืน / เพิ่มของ' },
-  '/asset': { title: 'ทะเบียนรายชิ้น (Asset)', subtitle: 'ติดตามอุปกรณ์แยกตาม Part Number' },
-  '/bundle': { title: 'ชุดติดตั้งฟาร์ม (Bundle)', subtitle: 'จัดการชุดอุปกรณ์ติดตั้งที่ฟาร์ม — เพิ่มอุปกรณ์เข้าชุด / ย้ายไปฟาร์ม / คืนเข้าคลัง' },
+  '/asset': { title: 'ทะเบียนรายชิ้น', subtitle: 'ติดตามอุปกรณ์ทุกชิ้น — สถานะ ตำแหน่ง และประวัติ' },
+  '/bundle': { title: 'ชุดติดตั้งฟาร์ม', subtitle: 'จัดการชุดอุปกรณ์ติดตั้งที่ฟาร์ม — เพิ่มอุปกรณ์เข้าชุด / ส่งไปติดตั้ง / เบิกคืนคลังกลาง' },
   '/farm': { title: 'Farm Monitor', subtitle: 'ภาพรวมสุขภาพฟาร์มและอุปกรณ์ทุกไซต์งาน — ค้นหาของว่าอยู่ฟาร์มไหน โรงเรือนใด' },
   '/scan': { title: 'ย้าย/โอนอุปกรณ์', subtitle: 'สแกน Barcode / Serial เพื่อระบุตำแหน่งหรือโอนย้าย' },
   '/qr': { title: 'พิมพ์ฉลาก QR', subtitle: 'สร้างฉลาก Barcode ตัวเดียวหรือ A4 หลายดวง' },

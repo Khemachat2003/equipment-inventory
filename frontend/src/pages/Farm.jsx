@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
-import StatPill from '../components/ui/StatPill.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
@@ -12,6 +11,96 @@ import { buildLocation } from '../utils/location.js';
 
 const TYPE_ICONS = { 'สัตว์ปีก': 'egg', 'สัตว์บก': 'pets', 'สุกร': 'agriculture', 'อื่นๆ': 'category', 'ไม่ระบุ': 'help' };
 const FARM_TYPES = ['สัตว์ปีก', 'สัตว์บก', 'สุกร', 'อื่นๆ'];
+
+// B2 Clean Titles — ซ่อนรหัสชุด "(BDL-xxx)" ออกจาก "ชื่อหลัก" ของการ์ด (โชว์เฉพาะชื่อไทย อ่านง่าย)
+// ใช้ตอน "แสดงผล" เท่านั้น — ค่าจริง (ค้นหา/ฟิลเตอร์/เปิดฟาร์ม) ยังอ้างชื่อเดิมเสมอ ไม่กระทบข้อมูล
+const BUNDLE_CODE_RE = /\s*\(\s*BDL[^)]*\)/gi;
+function cleanBundleTitle(value) {
+  const s = String(value || '');
+  const cleaned = s.replace(BUNDLE_CODE_RE, '').trim();
+  return cleaned || s.trim();
+}
+
+// ═══ Enterprise Data Table helpers — มุมมอง "ตารางรายชิ้น" (B2 Strict Terminology + Modern Data Table) ═══
+
+// สีสถานะของ "ชุดติดตั้ง" — เขียว = ติดตั้งแล้ว · น้ำเงิน = อยู่ในคลัง · ส้ม = ซ่อมบำรุง (ภาษาเดียวกับหน้า Bundle — BTONES)
+const BUNDLE_TONES = { 'In Stock': 'blue', Deployed: 'green', Maintenance: 'amber' };
+
+// สีสถานะของ "รายชิ้น" — เขียว = ใช้งานได้ · ส้ม = ส่งซ่อม · เทา = ชำรุด/สูญหาย
+function farmAssetTone(status) {
+  const s = String(status || '');
+  if (s.includes('ซ่อม')) return 'amber';
+  if (s.includes('ชำรุด') || s.includes('สูญ')) return 'gray';
+  return 'green';
+}
+
+// CodeBadge — รหัสรอง (BDL-xxx / รหัสอุปกรณ์) เป็น Badge เทารองขนาดเล็ก — B2: ชื่อไทยเป็นตัวหนาหลัก รหัสย่อเป็นรอง
+function CodeBadge({ children }) {
+  return (
+    <span className="inline-flex items-center whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--g100)] px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[var(--tmuted)]">
+      {children}
+    </span>
+  );
+}
+
+// KpiGlass — KPI Summary Card แบบ Glassmorphic (ภาษาเดียวกับ KPI Cards หน้า Bundle):
+// พื้นโปร่งแสงเบลอ --surface/80 + backdrop-blur-md + ขอบบาง var(--border) + แถบไล่สี tone ด้านบน 3px + ตัวเลข Hero tabular-nums
+const KPI_ACCENTS = {
+  blue: 'from-[var(--blue)]',
+  green: 'from-[var(--emerald)]',
+  amber: 'from-[var(--amber)]',
+  red: 'from-[var(--red)]',
+};
+const KPI_BOX = {
+  blue: 'bg-[var(--blue-l)] text-[var(--blue)]',
+  green: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]',
+  amber: 'bg-[var(--amber-l)] text-[var(--amber-d)]',
+  red: 'bg-[var(--red-l)] text-[var(--red)]',
+};
+function KpiGlass({ icon, tone = 'blue', label, value, unit }) {
+  return (
+    <div className="relative flex select-none items-center gap-2.5 min-w-0 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 px-3 py-2 backdrop-blur-md shadow-[var(--sh-sm)] hover:shadow-[var(--sh-md)] hover:-translate-y-px transition-all">
+      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${KPI_ACCENTS[tone] || KPI_ACCENTS.blue} to-transparent`} />
+      <span className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${KPI_BOX[tone] || KPI_BOX.blue}`}>
+        <Icon name={icon} size="sm" />
+      </span>
+      <div className="leading-none min-w-0">
+        <div className="text-[10px] font-semibold text-[var(--tmuted)] whitespace-nowrap">{label}</div>
+        <div className="mt-1 text-[20px] font-extrabold text-[var(--text)] tabular-nums leading-none">
+          {value} <span className="text-[11px] font-bold text-[var(--tsub)] whitespace-nowrap">{unit}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ActionIcon — Clean Action Group: ปุ่มไอคอนโปร่งตัวเบา + Hover Tooltip สวยงาม (แถบเม็ดเข้ม var(--ink) + เงานุ่ม)
+// tooltip วาง "แนวนอนซ้ายของไอคอน" ภายในแถวเสมอ → ไม่โดน clip จาก overflow-x-auto ของ scroll container
+function ActionIcon({ icon, label, href, target, onClick, tone = 'ink' }) {
+  const btnCls = tone === 'blue'
+    ? 'text-[var(--blue)] hover:bg-[var(--blue-l)]'
+    : 'text-[var(--tsub)] hover:bg-[var(--g100)] hover:text-[var(--ink)]';
+  const cls = `relative z-10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${btnCls}`;
+  return (
+    <span className="group/action relative flex items-center justify-center">
+      {href ? (
+        <a href={href} target={target} rel={target ? 'noreferrer' : undefined} aria-label={label} className={cls}>
+          <Icon name={icon} size="sm" />
+        </a>
+      ) : (
+        <button type="button" aria-label={label} onClick={onClick} className={cls}>
+          <Icon name={icon} size="sm" />
+        </button>
+      )}
+      <span aria-hidden="true" className="pointer-events-none absolute right-[calc(100%+6px)] top-1/2 z-20 -translate-y-1/2 whitespace-nowrap rounded-lg bg-[var(--ink)] px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow-[var(--sh-md)] transition-opacity duration-150 group-hover/action:opacity-100">
+        {label}
+      </span>
+    </span>
+  );
+}
+
+// Min-Height แถวตาราง 52px — height บน <td> ทำงานเป็น "ความสูงขั้นต่ำ" ของ cell ตาม CSS table spec (เนื้อหายาวกว่าจะขยาย)
+const DT_TD = 'px-4 py-2.5 h-[52px] align-middle';
 
 export default function Farm() {
   const navigate = useNavigate();
@@ -131,17 +220,6 @@ export default function Farm() {
     navigate(`/bundle?open=${encodeURIComponent(bundleId)}`);
   }
 
-  // ⑦a — ผลค้นหาแบบ global (ทุกฟาร์ม): อุปกรณ์รายชิ้น + ชุด — พิมพ์ 2 ตัวขึ้นไปถึงค้น
-  const find = useMemo(() => {
-    const q = findQ.toLowerCase().trim();
-    if (q.length < 2) return { assets: [], bundles: [], active: false };
-    const fa = assets.filter((a) =>
-      [a.assetId, a.code, a.name, a.serialNumber].some((v) => (v || '').toLowerCase().includes(q)));
-    const fb = bundles.filter((b) =>
-      [b.bundleId, b.bundleName].some((v) => (v || '').toLowerCase().includes(q)));
-    return { assets: fa, bundles: fb, active: true };
-  }, [findQ, assets, bundles]);
-
   // ⑦b — สรุปต่อฟาร์ม (จากข้อมูลที่โหลดอยู่แล้ว ไม่เพิ่ม request):
   // อุปกรณ์ = ตัวเดี่ยว + สมาชิกชุดที่ deploy มาฟาร์มนี้ (กฎเดียวกับตาราง) · ชุด = ชุดที่ deploy · โรงเรือน = houseName/houseId ไม่ซ้ำ
   const farmOverview = useMemo(() => {
@@ -186,18 +264,33 @@ export default function Farm() {
       .sort((a, b) => a.name.localeCompare(b.name, 'th'));
   }, [assets, bundles]);
 
+  // ⑦a — ผลค้นหาแบบ global (ทุกฟาร์ม): ฟาร์ม + อุปกรณ์รายชิ้น + ชุด — พิมพ์ 2 ตัวขึ้นไปถึงค้น
+  // ช่องเดียวค้นครบ: ชื่ออุปกรณ์ · Serial (SN) · รหัส · ชื่อฟาร์ม (ค้นได้ทั้งชื่อจริงและชื่อแบบ B2 Clean ที่ตัดรหัส BDL-xxx แล้ว)
+  const find = useMemo(() => {
+    const q = findQ.toLowerCase().trim();
+    if (q.length < 2) return { farms: [], assets: [], bundles: [], active: false };
+    const ff = farmOverview.filter((f) =>
+      [f.name, cleanBundleTitle(f.name)].some((v) => (v || '').toLowerCase().includes(q)));
+    const fa = assets.filter((a) =>
+      [a.assetId, a.code, a.name, a.serialNumber].some((v) => (v || '').toLowerCase().includes(q)));
+    const fb = bundles.filter((b) =>
+      [b.bundleId, b.bundleName, cleanBundleTitle(b.bundleName)].some((v) => (v || '').toLowerCase().includes(q)));
+    return { farms: ff, assets: fa, bundles: fb, active: true };
+  }, [findQ, assets, bundles, farmOverview]);
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Top Action Bar — ปุ่มเพิ่มซ้าย · สวิตช์มุมมองขวา — ระยะห่างสมดุล ไม่ลอยชิดขอบ/ติดช่องค้นหา */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         {/* เพิ่มฟาร์ม/โรงเรือน — ทุกคนที่ล็อกอินเพิ่มได้ (เดิม gate ไว้เฉพาะ admin ทำให้ user ติดขั้นตอนโอนย้าย) */}
         {/* เพิ่มฟาร์ม/โรงเรือน — ปุ่มเดียว แผงเดียวทำต่อเนื่อง (เดิม 2 ปุ่ม 2 modal + alert) */}
-        <div className="flex gap-2">
-          <button onClick={() => setAddLocOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)]">
+        <div className="flex gap-2 pl-0.5">
+          <button onClick={() => setAddLocOpen(true)} className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[var(--blue)] text-white text-[13px] font-semibold shadow-[var(--sh-sm)] transition hover:bg-[var(--blue-d)] hover:shadow-[var(--sh-md)] active:translate-y-px">
             <Icon name="add" size="sm" /> เพิ่มฟาร์ม / โรงเรือน
           </button>
         </div>
         {/* ⑦b — สวิตช์มุมมอง: การ์ดภาพรวมฟาร์ม (default) / ตารางรายชิ้น (โครงเดิม) */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--surface2)] border border-[var(--g200)]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-xs)]">
           <button
             onClick={() => setView('overview')}
             className={`flex items-center gap-1 px-3 h-8 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors ${view === 'overview' ? 'bg-[var(--surface)] text-[var(--blue)] shadow-sm' : 'text-[var(--tsub)] hover:text-[var(--text)]'}`}
@@ -213,29 +306,36 @@ export default function Farm() {
         </div>
       </div>
 
-      {/* ⑦a — ค้นหา-first "ของชิ้นนี้อยู่ที่ไหน?" — จุดขายหลักของหน้า: พิมพ์แล้วตอบตำแหน่งทันที (ทุกฟาร์ม) */}
-      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 sm:p-5">
-        <div className="flex items-baseline gap-2 mb-2.5 flex-wrap">
-          <span className="flex items-center gap-1.5 text-[14px] font-bold text-[var(--text)]"><Icon name="search" size="sm" className="text-[var(--blue)]" /> ของชิ้นนี้อยู่ที่ไหน?</span>
-          <span className="text-[12px] text-[var(--tmuted)]">พิมพ์ชื่อ / รหัส / Serial — ค้นได้ทั้งรายชิ้นและทั้งชุด จากทุกฟาร์ม</span>
-        </div>
+      {/* ⑦a — ช่องค้นหาลอยเม็ดเดียว (Floating Glass Search) — ยุบการ์ดขาวซ้อนชั้นเดิมให้เหลือบาร์เดียว:
+          ไอคอนค้นหาเด่นชัด + พื้นโปร่งแสงเบลอ + เงาลอย sh-md — ค้นครบ ชื่ออุปกรณ์ · Serial · รหัส · ชื่อฟาร์ม (ทุกฟาร์ม) */}
+      <div className="space-y-2.5">
         <div className="relative">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--tmuted)]"><Icon name="search" size="sm" /></span>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--blue)] text-white shadow-[0_2px_10px_var(--blue-glow)] pointer-events-none">
+            <Icon name="search" size="sm" weight="medium" />
+          </span>
           <input
             value={findQ}
             onChange={(e) => setFindQ(e.target.value)}
-            placeholder="เช่น SN-SENS-0001 · เซนเซอร์อุณหภูมิ · BDL-0001"
-            className="w-full h-11 pl-10 pr-9 rounded-xl border border-[var(--g200)] bg-[var(--surface2)] text-[14px] focus:outline-none focus:border-[var(--blue)]"
+            placeholder="ค้นหา ชื่ออุปกรณ์ · Serial (SN) · รหัส · ชื่อฟาร์ม — รวมทุกฟาร์มในช่องเดียว"
+            className="w-full h-[52px] pl-[54px] pr-10 rounded-2xl border border-[var(--g200)] bg-[var(--surface)]/85 backdrop-blur-md shadow-[var(--sh-md)] text-[14px] font-medium text-[var(--text)] placeholder:text-[var(--tmuted)] placeholder:font-normal focus:outline-none focus:border-[var(--blue)] focus:shadow-[0_0_0_4px_var(--blue-glow),var(--sh-md)] transition"
           />
           {findQ && (
-            <button onClick={() => setFindQ('')} title="ล้างคำค้น" className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--g100)]"><Icon name="close" size="xs" /></button>
+            <button onClick={() => setFindQ('')} title="ล้างคำค้น" className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--g100)]"><Icon name="close" size="xs" /></button>
           )}
         </div>
         {find.active && (
-          <div className="mt-3 space-y-2">
+          <div className="rounded-2xl border border-[var(--g200)] bg-[var(--surface)]/95 backdrop-blur-md shadow-[var(--sh-lg)] p-3 space-y-2.5">
             <div className="text-[12px] font-semibold text-[var(--tsub)]">
-              พบ {find.assets.length + find.bundles.length} รายการ (อุปกรณ์ {find.assets.length} · ชุด {find.bundles.length})
+              พบ {find.farms.length + find.assets.length + find.bundles.length} รายการ (ฟาร์ม {find.farms.length} · อุปกรณ์ {find.assets.length} · ชุด {find.bundles.length})
             </div>
+            {find.farms.length > 0 && (
+              <div className="space-y-2">
+                {find.farms.slice(0, 4).map((f) => (
+                  <FindFarmCard key={f.name} f={f} onOpen={(n) => { setCurrentFarm(n); setView('detail'); }} />
+                ))}
+                {find.farms.length > 4 && <div className="text-[12px] text-[var(--tmuted)] pl-1">+ อีก {find.farms.length - 4} ฟาร์ม — พิมพ์คำให้เจาะจงขึ้นเพื่อลดผล</div>}
+              </div>
+            )}
             {find.bundles.length > 0 && (
               <div className="space-y-2">
                 {find.bundles.slice(0, 4).map((b) => <FindBundleCard key={b.bundleId} b={b} onOpen={openBundle} />)}
@@ -257,7 +357,7 @@ export default function Farm() {
                 {find.assets.length > 8 && <div className="text-[12px] text-[var(--tmuted)] pl-1">+ อีก {find.assets.length - 8} ชิ้น — พิมพ์คำให้เจาะจงขึ้นเพื่อลดผล</div>}
               </div>
             )}
-            {find.assets.length === 0 && find.bundles.length === 0 && (
+            {find.farms.length === 0 && find.assets.length === 0 && find.bundles.length === 0 && (
               <div className="text-center py-4 text-[13px] text-[var(--tmuted)]">
                 <div className="flex justify-center mb-1"><Icon name="search_off" size="md" /></div>
                 <div>ไม่พบของที่ตรงกับ "{findQ.trim()}"</div>
@@ -268,7 +368,7 @@ export default function Farm() {
       </div>
 
       {view === 'overview' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {farmOverview.map((f) => (
             <FarmOverviewCard
               key={f.name}
@@ -290,27 +390,27 @@ export default function Farm() {
           )}
         </div>
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
-        {/* Farm sidebar — จอใหญ่เท่านั้น */}
-        <div className="hidden lg:block rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden lg:max-h-[78vh] lg:sticky lg:top-[var(--topbar-h)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[212px_1fr] gap-4 items-start">
+        {/* Farm sidebar — การ์ด Glass เรียว + ตัวเลขนับเป็น Chip แบบ Glassmorphic */}
+        <div className="hidden lg:block rounded-2xl bg-[var(--surface)]/85 backdrop-blur-md border border-[var(--border)] shadow-[var(--sh-sm)] overflow-hidden lg:sticky lg:top-[var(--topbar-h)]">
           <div className="p-2 border-b border-[var(--g100)]">
             <input
               value={farmSearch}
               onChange={(e) => setFarmSearch(e.target.value)}
               placeholder="ค้นหาฟาร์ม..."
-              className="w-full h-9 px-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px]"
+              className="w-full h-8 px-2.5 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[12px] text-[var(--ink)] focus:outline-none focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue-glow)]"
             />
           </div>
-          <div className="overflow-y-auto lg:max-h-[65vh] p-1.5">
+          <div className="overflow-y-auto lg:max-h-[65vh] p-1.5 space-y-0.5">
             <FarmItem icon="public" label="ทุกฟาร์ม" count={totalsAll} active={currentFarm === 'ALL'} onClick={() => setCurrentFarm('ALL')} />
             {Object.keys(groups).sort().map((type) => (
               <div key={type}>
-                <div className="px-2.5 pt-2.5 pb-1 flex items-center gap-1 text-[11px] font-bold text-[var(--tmuted)]"><Icon name={TYPE_ICONS[type] || 'grass'} size="xs" /> {type}</div>
+                <div className="px-2 pt-2.5 pb-1 flex items-center gap-1 text-[10px] font-bold text-[var(--tmuted)]"><Icon name={TYPE_ICONS[type] || 'grass'} size="xs" /> {type}</div>
                 {groups[type].map((f) => (
                   <FarmItem
                     key={f}
                     icon={TYPE_ICONS[type] || 'grass'}
-                    label={f}
+                    label={cleanBundleTitle(f)}
                     bundle={bundlesFor(f).length > 0}
                     count={farmTotals[f] || 0}
                     active={currentFarm === f}
@@ -322,20 +422,25 @@ export default function Farm() {
           </div>
         </div>
 
-        {/* Main */}
-        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] overflow-hidden">
-          <div className="p-4 border-b border-[var(--g100)]">
+        {/* Main — Enterprise Industrial Data Table */}
+        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--sh-sm)] overflow-hidden">
+          {/* Header — ชื่อฟาร์มซ้าย · KPI Summary Cards (Glassmorphic) มุมขวาบนตาราง */}
+          <div className="p-4 border-b border-[var(--border)] space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5 text-[14px] font-bold text-[var(--text)]">{currentFarm === 'ALL' ? <><Icon name="public" size="sm" /> ทุกฟาร์ม</> : <><Icon name="grass" size="sm" /> {currentFarm}</>}</div>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--ink)] text-white shrink-0"><Icon name="grid_on" size="xs" /></span>
+                <div className="text-[14px] font-bold text-[var(--ink)] truncate">{currentFarm === 'ALL' ? 'ทุกฟาร์ม' : cleanBundleTitle(currentFarm)}</div>
+              </div>
+              {/* KPI Summary Cards — B2: "125 ชิ้น / 45 ใช้งานได้ / 13 ชุดติดตั้ง" (ไม่มีศัพท์ BUNDLE) */}
               <div className="flex flex-wrap items-center gap-2">
-                <StatPill label="ทั้งหมด" value={`${scopeTotal} ชิ้น`} icon="inventory_2" tone="blue" />
-                <StatPill label="ใช้งาน" value={ok} icon="check_circle" tone="green" />
-                {rep > 0 && <StatPill label="ซ่อม" value={rep} icon="build" tone="red" />}
-                {shownBundles.length > 0 && <StatPill label="Bundle" value={`${shownBundles.length} ชุด`} icon="folder_open" tone="amber" />}
+                <KpiGlass icon="inventory_2" tone="blue" label="อุปกรณ์" value={scopeTotal} unit="ชิ้น" />
+                <KpiGlass icon="check_circle" tone="green" label="สภาพพร้อม" value={ok} unit="ใช้งานได้" />
+                <KpiGlass icon="folder_open" tone="amber" label="ติดตั้งที่ฟาร์ม" value={shownBundles.length} unit="ชุดติดตั้ง" />
+                {rep > 0 && <KpiGlass icon="build" tone="red" label="ต้องซ่อม" value={rep} unit="ชิ้น" />}
               </div>
             </div>
             {/* Mobile farm selector */}
-            <div className="lg:hidden flex items-center gap-2 mt-3">
+            <div className="lg:hidden flex items-center gap-2">
               <Icon name="agriculture" size="sm" />
               <select
                 value={currentFarm}
@@ -346,89 +451,105 @@ export default function Farm() {
                 {Object.entries(groups)
                   .sort(([a], [b]) => a.localeCompare(b, 'th'))
                   .flatMap(([, farms]) => farms.map((f) => (
-                    <option key={f} value={f}>{f} ({farmTotals[f] || 0})</option>
+                    <option key={f} value={f}>{cleanBundleTitle(f)} ({farmTotals[f] || 0})</option>
                   )))}
               </select>
             </div>
-            <div className="relative max-w-xs mt-3">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)]"><Icon name="search" size="sm" /></span>
+            <div className="relative max-w-sm">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)] pointer-events-none"><Icon name="search" size="sm" /></span>
               <input
                 value={assetSearch}
                 onChange={(e) => setAssetSearch(e.target.value)}
                 placeholder="ค้นหาอุปกรณ์ / ชุด..."
-                className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px]"
+                className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px] text-[var(--ink)] focus:outline-none focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue-glow)]"
               />
             </div>
           </div>
 
+          {/* ── Desktop: Enterprise Data Table — แถว Min-Height 52px · เส้นคั่นบาง var(--border) · Hover ฟ้าอ่อนโปร่งแสง · ตัวหนังสือ var(--ink) ── */}
           <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-[12px]">
+            <table className="w-full text-[12.5px]">
               <thead>
-                <tr className="text-left text-[var(--tmuted)] bg-[var(--surface2)] border-b border-[var(--g100)]">
-                  <th className="px-3 py-2.5 font-medium">รหัส</th>
-                  <th className="px-3 py-2.5 font-medium">ชื่อ</th>
-                  <th className="px-3 py-2.5 font-medium">Serial</th>
-                  <th className="px-3 py-2.5 font-medium">Status</th>
-                  <th className="px-3 py-2.5 font-medium">ตำแหน่ง</th>
-                  <th className="px-3 py-2.5 font-medium">User</th>
-                  <th className="px-3 py-2.5 font-medium text-center">จัดการ</th>
+                <tr className="text-left text-[11px] font-bold text-[var(--tmuted)] bg-[var(--surface2)] border-b border-[var(--border)]">
+                  <th className="px-4 py-3 whitespace-nowrap">รายการ</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Serial</th>
+                  <th className="px-4 py-3 whitespace-nowrap">สถานะ</th>
+                  <th className="px-4 py-3 whitespace-nowrap">ตำแหน่ง</th>
+                  <th className="px-4 py-3 whitespace-nowrap">ผู้ใช้</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan={7} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
+                {loading && <tr><td colSpan={6} className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</td></tr>}
                 {!loading && filteredAssets.length === 0 && filteredBundles.length === 0 && (
-                  <tr><td colSpan={7} className="text-center py-12 text-[var(--tmuted)]">
+                  <tr><td colSpan={6} className="text-center py-12 text-[var(--tmuted)]">
                     <div className="flex justify-center mb-2 text-[var(--tmuted)]"><Icon name="factory" size="2xl" /></div>ไม่พบอุปกรณ์ในไซต์งานนี้
                   </td></tr>
                 )}
+                {/* แถว "ชุดติดตั้ง" — ชื่อไทยเป็นตัวหนาหลัก รหัส BDL ย่อเป็น Badge เทารอง (B2) · สถานะ Pill สีชัด */}
                 {filteredBundles.map((b) => (
-                  <tr key={'bundle-' + b.bundleId} className="border-b border-[var(--g100)] bg-[var(--blue-l)] cursor-pointer hover:bg-[var(--blue-b)]" onClick={() => openBundle(b.bundleId)}>
-                    <td className="px-3 py-2"><span className="font-mono text-[11px]">{b.bundleId}</span></td>
-                    <td className="px-3 py-2 font-bold"><Icon name="folder_open" size="xs" /> {b.bundleName}</td>
-                    <td className="px-3 py-2"><span className="text-[var(--blue)]">{b.assetIds?.length || 0} ชิ้นในชุด</span></td>
-                    <td className="px-3 py-2"><StatusBadge status={b.status} /></td>
-                    <td className="px-3 py-2 text-[var(--tsub)]">{b.location || '-'}</td>
-                    <td className="px-3 py-2">-</td>
-                    <td className="px-3 py-2 text-center">
-                      <button onClick={(e) => { e.stopPropagation(); openBundle(b.bundleId); }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--blue)] text-white text-[11px] font-semibold mx-auto"><Icon name="folder_open" size="xs" /> ดูชุด</button>
+                  <tr key={'bundle-' + b.bundleId} className="border-b border-[var(--border)] bg-[var(--blue-l)]/35 transition-colors hover:bg-[var(--blue-l)]/70 cursor-pointer" onClick={() => openBundle(b.bundleId)}>
+                    <td className={DT_TD}>
+                      <div className="flex items-center gap-2.5 min-w-[230px]">
+                        <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--blue)] shrink-0 shadow-[var(--sh-xs)]"><Icon name="folder_open" size="xs" /></span>
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-bold text-[var(--ink)] truncate" title={b.bundleName}>{cleanBundleTitle(b.bundleName || b.bundleId)}</div>
+                          <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <CodeBadge>{b.bundleId}</CodeBadge>
+                            <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-[var(--blue-l)] border border-[var(--blue-b)] px-1.5 py-px text-[10px] font-bold text-[var(--blue)]"><Icon name="inventory_2" size="xs" /> {b.assetIds?.length || 0} ชิ้นในชุด</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className={DT_TD + ' text-center text-[var(--tmuted)]'}>—</td>
+                    <td className={DT_TD}><StatusBadge status={b.status} tone={BUNDLE_TONES[b.status]} /></td>
+                    <td className={DT_TD + ' font-medium text-[var(--ink)]'}>{(b.location || '').trim() || 'คลังกลาง'}</td>
+                    <td className={DT_TD + ' text-center text-[var(--tmuted)]'}>—</td>
+                    <td className={DT_TD}>
+                      <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <ActionIcon icon="visibility" label="ดูรายละเอียดชุด" tone="blue" onClick={() => openBundle(b.bundleId)} />
+                        <ActionIcon icon="local_shipping" label="ย้ายชุดไปฟาร์ม" tone="blue" onClick={() => navigate(`/bundle?deploy=${encodeURIComponent(b.bundleId)}`)} />
+                      </div>
                     </td>
                   </tr>
                 ))}
+                {/* แถว "รายชิ้น" — Modern Pill Badges สีชัด + Clean Action Group Icons พร้อม Hover Tooltip */}
                 {filteredAssets.map((a) => (
-                  <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--g100)] hover:bg-[var(--surface2)]">
-                    <td className="px-3 py-2">
-                      <div className="font-mono text-[11px] text-[var(--blue)]">{a.code}</div>
-                      <div className="font-mono text-[10px] text-[var(--tmuted)]">{a.assetId}</div>
+                  <tr key={a.serialNumber + a.assetId} className="border-b border-[var(--border)] transition-colors hover:bg-[var(--blue-l)]/45">
+                    <td className={DT_TD}>
+                      <div className="flex items-center gap-2.5 min-w-[230px]">
+                        <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--g100)] text-[var(--tsub)] shrink-0"><Icon name="devices" size="xs" /></span>
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-bold text-[var(--ink)] truncate" title={a.name}>{a.name}</div>
+                          <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            {a.code && <CodeBadge>{a.code}</CodeBadge>}
+                            <span className="font-mono text-[10px] text-[var(--tmuted)]">{a.assetId}</span>
+                          </div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-3 py-2 font-medium">{a.name}</td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-[var(--blue)]"><span className="block max-w-[150px] truncate" title={a.serialNumber}>{a.serialNumber}</span></td>
-                    <td className="px-3 py-2"><StatusBadge status={a.status} /></td>
-                    <td className="px-3 py-2">
+                    <td className={DT_TD}><span className="block max-w-[150px] truncate font-mono text-[12px] font-semibold text-[var(--ink)]" title={a.serialNumber}>{a.serialNumber}</span></td>
+                    <td className={DT_TD}><StatusBadge status={a.status} tone={farmAssetTone(a.status)} /></td>
+                    <td className={DT_TD}>
                       <div className="min-w-0 max-w-[260px]">
                         {a.bundleId && (
-                          <span className="mb-0.5 inline-flex max-w-full items-center gap-1 rounded bg-[var(--blue-l)] px-1.5 py-px text-[10px] font-medium text-[var(--blue)] border border-[var(--blue-b)]">
+                          <span className="mb-0.5 inline-flex max-w-full items-center gap-1 rounded bg-[var(--blue-l)] px-1.5 py-px text-[10px] font-semibold text-[var(--blue)] border border-[var(--blue-b)]">
                             <Icon name="inventory_2" size="xs" className="flex-shrink-0" />
                             <span className="truncate">{a.bundleName || a.bundleId}</span>
                           </span>
                         )}
-                        <LocationPath
-                          siteName={a.siteName}
-                          houseName={a.houseName}
-                          houseId={a.houseId}
-                          location={a.location}
-                          bundleId={a.bundleId}
-                        />
+                        <LocationPath tone="ink" siteName={a.siteName} houseName={a.houseName} houseId={a.houseId} location={a.location} bundleId={a.bundleId} />
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-[var(--tsub)]">{a.user}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center justify-center gap-0.5">
-                        <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" title="ดู trace" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="description" size="sm" /></a>
-                        <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" title="QR" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="qr_code" size="sm" /></a>
-                        <button onClick={() => setTransfer({
+                    <td className={DT_TD + ' text-[var(--tsub)]'}>{a.user || '—'}</td>
+                    <td className={DT_TD}>
+                      <div className="flex items-center justify-center gap-1">
+                        <ActionIcon icon="description" label="ดูประวัติการเคลื่อนไหว (Trace)" href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" />
+                        <ActionIcon icon="qr_code" label="ฉลาก QR" href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" />
+                        <ActionIcon icon="local_shipping" label="โอนย้าย" tone="blue" onClick={() => setTransfer({
                           serial: a.serialNumber,
                           current: { status: a.status, location: a.location, siteName: a.siteName, user: a.user },
-                        })} title="โอนย้าย" className="h-8 w-8 flex items-center justify-center rounded-lg text-[var(--blue)] hover:bg-[var(--blue-l)]"><Icon name="local_shipping" size="sm" /></button>
+                        })} />
                       </div>
                     </td>
                   </tr>
@@ -437,25 +558,25 @@ export default function Farm() {
             </table>
           </div>
 
-          {/* Mobile card list */}
-          <div className="md:hidden divide-y divide-[var(--g100)]">
+          {/* Mobile card list — B2 Clean (ตำแหน่งผ่าน buildLocation — "คลังกลาง" ภาษาไทยเท่านั้น) + สถานะ Pill สีชัด */}
+          <div className="md:hidden divide-y divide-[var(--border)]">
             {loading && <div className="text-center py-10 text-[var(--tmuted)] text-[13px]">กำลังโหลด...</div>}
             {!loading && filteredAssets.length === 0 && filteredBundles.length === 0 && (
               <div className="text-center py-12 text-[var(--tmuted)] text-[13px]">ไม่พบอุปกรณ์ในไซต์งานนี้</div>
             )}
             {filteredBundles.map((b) => (
-              <div key={'bundle-' + b.bundleId} className="p-3.5 space-y-2.5 bg-[var(--blue-l)]" onClick={() => openBundle(b.bundleId)}>
+              <div key={'bundle-' + b.bundleId} className="p-3.5 space-y-2.5 bg-[var(--blue-l)]/40" onClick={() => openBundle(b.bundleId)}>
                 <div className="flex items-center gap-2.5">
                   <span className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-[var(--surface)] text-[var(--blue)] shadow-sm">
                     <Icon name="folder_open" size="sm" />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-bold text-[var(--text)] leading-snug">{b.bundleName}</div>
-                    <div className="text-[11px] font-mono text-[var(--blue)] mt-0.5">{b.bundleId}</div>
+                    <div className="text-[13px] font-bold text-[var(--ink)] leading-snug">{cleanBundleTitle(b.bundleName || b.bundleId)}</div>
+                    <div className="mt-0.5"><CodeBadge>{b.bundleId}</CodeBadge></div>
                   </div>
-                  <StatusBadge status={b.status} />
+                  <StatusBadge status={b.status} tone={BUNDLE_TONES[b.status]} />
                 </div>
-                <div className="pl-[42px] text-[12px] text-[var(--tsub)]">{b.assetIds?.length || 0} ชิ้นในชุด{b.location ? ` · ${b.location}` : ''}</div>
+                <div className="pl-[42px] text-[12px] font-medium text-[var(--ink)]">{b.assetIds?.length || 0} ชิ้นในชุด · {(b.location || '').trim() || 'คลังกลาง'}</div>
                 <div className="pl-[42px]">
                   <button onClick={(e) => { e.stopPropagation(); openBundle(b.bundleId); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold">
                     <Icon name="folder_open" size="xs" /> ดูชุด
@@ -463,40 +584,45 @@ export default function Farm() {
                 </div>
               </div>
             ))}
-            {filteredAssets.map((a) => (
-              <div key={a.serialNumber + a.assetId} className="p-3.5 space-y-2.5">
-                <div className="flex items-start gap-2.5">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-[var(--g100)] text-[var(--tsub)]">
-                    <Icon name="devices" size="sm" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-[var(--text)] leading-snug">{a.name}</div>
-                    <div className="text-[11px] font-mono text-[var(--blue)] mt-0.5">{a.assetId} · {a.code}</div>
+            {filteredAssets.map((a) => {
+              const mLoc = buildLocation({ siteName: a.siteName, houseName: a.houseName, houseId: a.houseId, location: a.location, bundleId: a.bundleId });
+              return (
+                <div key={a.serialNumber + a.assetId} className="p-3.5 space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-[var(--g100)] text-[var(--tsub)]">
+                      <Icon name="devices" size="sm" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-bold text-[var(--ink)] leading-snug">{a.name}</div>
+                      <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        {a.code && <CodeBadge>{a.code}</CodeBadge>}
+                        <span className="font-mono text-[10px] text-[var(--tmuted)]">{a.assetId}</span>
+                      </div>
+                    </div>
+                    <StatusBadge status={a.status} tone={farmAssetTone(a.status)} />
                   </div>
-                  <StatusBadge status={a.status} />
+                  <div className="pl-[42px] grid grid-cols-1 gap-1 text-[12px]">
+                    <div className="text-[var(--tsub)]">Serial: <span className="font-mono font-semibold text-[var(--ink)]">{a.serialNumber}</span></div>
+                    <div className="text-[var(--tsub)]">ที่อยู่: <span className="font-medium text-[var(--ink)]">{mLoc.full || 'ไม่ระบุตำแหน่ง'}</span></div>
+                    {a.user && <div className="text-[var(--tsub)]">ผู้ใช้: <span className="text-[var(--ink)]">{a.user}</span></div>}
+                  </div>
+                  <div className="pl-[42px] flex items-center gap-2">
+                    <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
+                      <Icon name="description" size="xs" /> Trace
+                    </a>
+                    <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
+                      <Icon name="qr_code" size="xs" /> QR
+                    </a>
+                    <button onClick={() => setTransfer({
+                      serial: a.serialNumber,
+                      current: { status: a.status, location: a.location, siteName: a.siteName, user: a.user },
+                    })} className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold">
+                      <Icon name="local_shipping" size="xs" /> โอนย้าย
+                    </button>
+                  </div>
                 </div>
-                <div className="pl-[42px] grid grid-cols-1 gap-1 text-[12px]">
-                  <div className="text-[var(--tsub)]">Serial: <span className="font-mono text-[var(--text)]">{a.serialNumber}</span></div>
-                  <div className="text-[var(--tsub)]">ที่อยู่: <span className="text-[var(--text)]">{a.location}</span></div>
-                  {a.siteName && a.siteName !== a.location && <div className="text-[var(--tsub)]">Site: <span className="text-[var(--text)]">{a.siteName}</span></div>}
-                  {a.user && <div className="text-[var(--tsub)]">ผู้ใช้: <span className="text-[var(--text)]">{a.user}</span></div>}
-                </div>
-                <div className="pl-[42px] flex items-center gap-2">
-                  <a href={`/trace/${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
-                    <Icon name="description" size="xs" /> Trace
-                  </a>
-                  <a href={`/qr?serial=${encodeURIComponent(a.serialNumber)}`} target="_blank" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--g300)] text-[12px] text-[var(--tsub)]">
-                    <Icon name="qr_code" size="xs" /> QR
-                  </a>
-                  <button onClick={() => setTransfer({
-                    serial: a.serialNumber,
-                    current: { status: a.status, location: a.location, siteName: a.siteName, user: a.user },
-                  })} className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[12px] font-semibold">
-                    <Icon name="local_shipping" size="xs" /> โอนย้าย
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -517,28 +643,74 @@ export default function Farm() {
   );
 }
 
-// ⑦b — การ์ดภาพรวมฟาร์ม (มุมมอง default ของหน้า): ชื่อ+ประเภท · N อุปกรณ์ · N ชุด · N โรงเรือน · ใช้งาน/ซ่อม
+// ⑦b — การ์ดภาพรวมฟาร์ม (มุมมอง default ของหน้า) — Modern Depth & B2 Clean UI:
+//   • หัวการ์ด Dark Slate (--ink = #0F172A) + Category Badge คมชัด — Visual Separation จากพื้นหลัง (ภาษาเดียวกับ FarmAccessCard หน้าแรก)
+//   • B2 Clean Titles — ซ่อนรหัสชุด "(BDL-xxx)" ออกจากชื่อหลัก (ชื่อจริงยังใช้ค้นหา/เปิดฟาร์มตามเดิม)
+//   • Glassmorphic Metric Chips — ขอบบาง var(--border) + ตัวเลข hero ใหญ่อ่านง่าย
+//   • Health Pill สีชัด + Glow — เขียวเมื่อปกติ / ส้มอำพันเรืองแสงเมื่อมีรายการต้องซ่อม (ช่างเห็นจากระยะไกล)
 // กดการ์ด → เข้ามุมมองรายชิ้นของฟาร์มนั้น (ตารางเดิมกลายเป็นชั้นลึก)
 function FarmOverviewCard({ name, type, assets, bundles, houses, ok, rep, onOpen }) {
+  const icon = TYPE_ICONS[type] || 'help';
+  const title = cleanBundleTitle(name); // B2 Clean — ชื่อหลักไม่มีรหัสชุด
   return (
-    <button onClick={() => onOpen(name)} className="text-left rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 hover:border-[var(--blue-b)] hover:shadow-md transition-shadow space-y-3">
-      <div className="flex items-center gap-2.5">
-        <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--emerald-l)] text-[var(--emerald-d)] flex-shrink-0"><Icon name={TYPE_ICONS[type] || 'help'} size="md" /></span>
-        <div className="min-w-0">
-          <div className="text-[14px] font-bold text-[var(--text)] truncate">{name}</div>
-          <div className="text-[11px] text-[var(--tmuted)]">{type}</div>
+    <button
+      onClick={() => onOpen(name)}
+      title={`เปิดมุมมองรายชิ้นของ ${title}`}
+      className="group text-left rounded-[var(--r5)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--sh-sm)] overflow-hidden hover:shadow-[var(--sh-md)] hover:-translate-y-0.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue-glow)]"
+    >
+      {/* Dark Slate Header — แถบสีเข้มคมชัด แยกชั้นการ์ดออกจากพื้นหลัง */}
+      <div className="flex items-center gap-2.5 bg-[var(--ink)] px-4 py-3">
+        <span className="w-9 h-9 rounded-xl bg-white/10 ring-1 ring-white/15 text-white/90 flex items-center justify-center shrink-0 backdrop-blur-sm">
+          <Icon name={icon} size="sm" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-bold text-white truncate" title={name}>{title}</div>
+          {title !== name && <div className="text-[10px] text-white/45 truncate">{name}</div>}
+        </div>
+        {/* Category Badge — ประเภทฟาร์มบนพื้นเข้ม อ่านชัดทันที */}
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold text-white/90 whitespace-nowrap shrink-0">
+          <Icon name={icon} size="xs" weight="medium" /> {type}
+        </span>
+        <span className="text-white/50 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0">
+          <Icon name="chevron_right" size="sm" />
+        </span>
+      </div>
+
+      <div className="p-4 pt-3 space-y-3">
+        {/* Glassmorphic Metric Chips — Pill ขอบบางคมชัด + ตัวเลข hero ใหญ่ */}
+        <div className="flex flex-wrap gap-1.5">
+          <MetricChip icon="inventory_2" label="อุปกรณ์" value={assets} />
+          <MetricChip icon="folder_open" label="ชุด" value={bundles} />
+          <MetricChip icon="home_work" label="โรงเรือน" value={houses} />
+        </div>
+        {/* High-Contrast Health Status — Pill สีชัดเจน + Glow Effect */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--emerald-l)] text-[var(--emerald-d)] ring-1 ring-[var(--emerald-b)] text-[11px] font-bold">
+            <Icon name="check_circle" size="xs" /> ใช้งานได้ {ok}
+          </span>
+          {rep > 0 ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--amber-l)] text-[var(--amber-d)] ring-1 ring-[var(--amber-b)] text-[11px] font-bold shadow-[0_0_14px_var(--amber-b)]">
+              <Icon name="build" size="xs" /> ต้องซ่อม {rep}
+            </span>
+          ) : (
+            <span className="text-[11px] font-semibold text-[var(--tmuted)]">สถานะปกติ</span>
+          )}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-lg bg-[var(--surface2)] py-1.5"><div className="text-[15px] font-bold text-[var(--text)]">{assets}</div><div className="text-[10px] text-[var(--tmuted)]">อุปกรณ์</div></div>
-        <div className="rounded-lg bg-[var(--surface2)] py-1.5"><div className="text-[15px] font-bold text-[var(--text)]">{bundles}</div><div className="text-[10px] text-[var(--tmuted)]">ชุด</div></div>
-        <div className="rounded-lg bg-[var(--surface2)] py-1.5"><div className="text-[15px] font-bold text-[var(--text)]">{houses}</div><div className="text-[10px] text-[var(--tmuted)]">โรงเรือน</div></div>
-      </div>
-      <div className="flex items-center gap-3 text-[11px] font-medium">
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--emerald)' }} /> ใช้งานได้ {ok}</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--amber)' }} /> ซ่อม {rep}</span>
-      </div>
     </button>
+  );
+}
+
+// MetricChip — Glassmorphic Pill Badge: ขอบบาง 1px var(--border) + พื้นโปร่งแสงเบลอ + ตัวเลข hero (tabular-nums)
+function MetricChip({ icon, label, value }) {
+  return (
+    <span className="inline-flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[var(--surface2)]/80 backdrop-blur-sm border border-[var(--border)] shadow-[var(--sh-xs)]">
+      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--blue)] shrink-0">
+        <Icon name={icon} size="xs" />
+      </span>
+      <span className="text-[18px] font-extrabold text-[var(--text)] tabular-nums leading-none">{value}</span>
+      <span className="text-[10px] font-semibold text-[var(--tmuted)]">{label}</span>
+    </span>
   );
 }
 
@@ -582,7 +754,7 @@ function FindBundleCard({ b, onOpen }) {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 rounded-xl border border-[var(--blue-b)] bg-[var(--blue-l)]">
       <div className="flex-1 min-w-[230px]">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 text-[13px] font-bold text-[var(--text)]"><Icon name="folder_open" size="sm" /> {b.bundleName || b.bundleId}</span>
+          <span className="inline-flex items-center gap-1 text-[13px] font-bold text-[var(--text)]"><Icon name="folder_open" size="sm" /> {cleanBundleTitle(b.bundleName || b.bundleId)}</span>
           <span className="font-mono text-[11px] text-[var(--tmuted)]">{b.bundleId}</span>
           <StatusBadge status={b.status} />
         </div>
@@ -597,14 +769,33 @@ function FindBundleCard({ b, onOpen }) {
   );
 }
 
+// ⑦a — ผลค้นหาระดับฟาร์ม: ชื่อฟาร์ม (B2 Clean) + ประเภท + สรุปยอด — กดเพื่อเปิดมุมมองรายชิ้นของฟาร์มทันที
+function FindFarmCard({ f, onOpen }) {
+  const icon = TYPE_ICONS[f.type] || 'help';
+  return (
+    <button onClick={() => onOpen(f.name)} className="w-full flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 rounded-xl border border-[var(--g200)] bg-[var(--surface2)]/70 hover:border-[var(--blue-b)] hover:bg-[var(--surface)] hover:shadow-[var(--sh-sm)] text-left transition-all">
+      <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--emerald-l)] text-[var(--emerald-d)] flex-shrink-0"><Icon name={icon} size="sm" /></span>
+      <div className="flex-1 min-w-[200px]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[13px] font-bold text-[var(--text)] truncate">{cleanBundleTitle(f.name)}</span>
+          <span className="px-1.5 py-px rounded-full bg-[var(--g100)] border border-[var(--border)] text-[10px] font-bold text-[var(--tsub)]">{f.type}</span>
+        </div>
+        <div className="text-[11px] text-[var(--tmuted)] mt-0.5">{f.assets} อุปกรณ์ · {f.bundles} ชุด · {f.houses} โรงเรือน</div>
+      </div>
+      <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--blue)] text-white text-[11px] font-semibold whitespace-nowrap"><Icon name="grid_on" size="xs" /> เปิดฟาร์ม</span>
+    </button>
+  );
+}
+
 function FarmItem({ icon, label, count, active, onClick, bundle }) {
   return (
-    <button onClick={onClick} className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-colors ${active ? 'bg-[var(--blue-l)] text-[var(--blue)]' : 'hover:bg-[var(--surface2)]'}`}>
-      <span className={`flex items-center justify-center w-6 h-6 rounded-md shrink-0 ${active ? 'bg-[var(--blue-l)] text-[var(--blue)]' : 'bg-[var(--g100)] text-[var(--tsub)]'}`}>
+    <button onClick={onClick} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors ${active ? 'bg-[var(--blue-l)] text-[var(--blue)]' : 'hover:bg-[var(--surface2)]'}`}>
+      <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 ${active ? 'bg-white/70 text-[var(--blue)]' : 'bg-[var(--g100)] text-[var(--tsub)]'}`}>
         <Icon name={icon} size="xs" />
       </span>
-      <span className="flex items-center gap-1 flex-1 min-w-0 text-[12px] font-semibold truncate">{label}{bundle && <Icon name="folder_open" size="xs" />}</span>
-      <span className={`text-[11px] font-bold ${active ? 'text-[var(--blue)]' : 'text-[var(--tmuted)]'}`}>{count}</span>
+      <span className={`flex items-center gap-1 flex-1 min-w-0 text-[12px] font-semibold truncate ${active ? 'text-[var(--blue)]' : 'text-[var(--ink)]'}`}>{label}{bundle && <Icon name="folder_open" size="xs" className="shrink-0" />}</span>
+      {/* ตัวเลขนับรายการ — Glassmorphic Chip อ่านง่าย */}
+      <span className={`flex items-center justify-center min-w-[26px] px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums backdrop-blur-sm shrink-0 ${active ? 'bg-white/75 text-[var(--blue)] border border-[var(--blue-b)]' : 'bg-white/60 text-[var(--tsub)] border border-[var(--border)]'}`}>{count}</span>
     </button>
   );
 }

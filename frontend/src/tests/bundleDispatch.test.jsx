@@ -28,9 +28,9 @@ describe('PO dispatch Bundle assembly', () => {
 
   it('creates a Bundle from only the selected subset and leaves the rest staged', async () => {
     render(<MemoryRouter initialEntries={['/bundle?dispatch=1']}><Routes><Route path="/bundle" element={<Bundle />} /></Routes></MemoryRouter>);
-    expect(await screen.findByText(/Bundle.*PO/)).toBeTruthy();
+    expect(await screen.findByText(/ประกอบชุด.*PO/)).toBeTruthy();
     fireEvent.click(screen.getByLabelText(/SN-2/));
-    fireEvent.change(screen.getAllByText(/Bundle \*/)[1].parentElement.querySelector('input'), { target: { value: 'Fan cabinet 1' } });
+    fireEvent.change(screen.getAllByText(/ชุด \*/)[1].parentElement.querySelector('input'), { target: { value: 'Fan cabinet 1' } });
     await waitFor(() => expect(screen.getByRole('button', { name: /Serial/ }).textContent).toContain('1'));
     fireEvent.click(screen.getByRole('button', { name: /Serial/ }));
     await waitFor(() => expect(axios.post).toHaveBeenCalledWith('/api/bundles/BDL-001/assets/bulk', { assetIds: ['A1'] }));

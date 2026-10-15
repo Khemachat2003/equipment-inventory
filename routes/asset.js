@@ -972,7 +972,7 @@ router.post("/api/bulk-add-asset",
         await appendInboundRows(null, SPREADSHEET_ID, inboundRows);
         if (batch.poNumber) await savePOStatus(null, SPREADSHEET_ID, batch.poNumber, "active");
         cache.del("partCatalog");
-        return res.json({ success: true, ...created, serials: created.assets.map((asset) => asset.serialNumber), ...batch, poNumber: batch.poNumber, supplier: batch.supplier, inboundStorage: "local-file" });
+        return res.json({ success: true, ...created, serials: created.assets.map((asset) => asset.serialNumber), assetIds: created.assets.map((asset) => asset.assetId), ...batch, poNumber: batch.poNumber, supplier: batch.supplier, inboundStorage: "local-file" });
       }
       const sheets = await getSheetsClient();
 
@@ -1132,6 +1132,7 @@ res.json({
   success: true,
   added: qty,
   serials: newRows.map((r) => r[4]),
+  assetIds: newRows.map((r) => r[0]),
   ...batch,
   poNumber: batch.poNumber,
   supplier: batch.supplier,

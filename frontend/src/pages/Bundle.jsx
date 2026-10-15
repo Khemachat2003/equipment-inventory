@@ -9,8 +9,9 @@ import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 import { showConfirm, ConfirmHost } from '../components/ui/Confirm.jsx';
 import { buildLocation, buildBundleLocation } from '../utils/location.js';
-import { farmKeyOf, STOCK_KEY } from '../utils/bundleGroups.js';
+import { farmKeyOf, STOCK_KEY, suggestBundleId } from '../utils/bundleGroups.js';
 import { FarmInlineAdd, HouseInlineAdd } from '../components/InlineFarmAdd.jsx';
+import CreateBundleModal from '../components/CreateBundleModal.jsx';
 import { readDispatchQueue, writeDispatchQueue, removeDispatchedAssets } from '../utils/dispatchQueue.js';
 
 const BTONES = {
@@ -25,13 +26,6 @@ function isUnbundledStockAsset(asset) {
   const site = String(asset.siteName || '').trim().toLowerCase();
   return location === 'stock' || location === 'intranin' || site === 'stock' || site === 'intranin'
     || String(asset.status || '').trim().toLowerCase() === 'in stock';
-}
-
-function suggestBundleId(existingIds = []) {
-  const used = new Set(existingIds.map((id) => String(id || '').toUpperCase()));
-  let next = 1;
-  while (used.has(`BDL-${String(next).padStart(3, '0')}`)) next += 1;
-  return `BDL-${String(next).padStart(3, '0')}`;
 }
 
 // ── ก้อน ⑥ (Issue A): จัดกลุ่มอัตโนมัติ + ตัวกรองฟาร์ม ──────────────────────────
@@ -285,16 +279,16 @@ export default function Bundle() {
   async function recall(bundleId) {
     // ยืนยันด้วยกล่องในระบบ (แทน window.confirm) — ยกเลิก/Esc/คลิกพื้นหลัง = ไม่ทำอะไร
     if (!(await showConfirm({
-      title: 'คืนชุดนี้กลับเข้าคลัง?',
-      message: 'อุปกรณ์ทุกชิ้นในชุดจะถูกคืนเข้าคลังกลางด้วย',
-      confirmLabel: 'คืนเข้าคลัง',
+      title: 'เบิกคืนชุดนี้เข้าคลังกลาง?',
+      message: 'อุปกรณ์ทุกชิ้นในชุดจะถูกเบิกคืนเข้าคลังกลางด้วย',
+      confirmLabel: 'เบิกคืนคลังกลาง',
     }))) return;
-    await busy.run('กำลังคืนชุดกลับเข้าคลัง...', async () => {
+    await busy.run('กำลังเบิกคืนชุดเข้าคลังกลาง...', async () => {
       try {
         const { data } = await axios.post(`/api/bundles/${bundleId}/recall`);
         await load();
         if (detail) await openDetail(bundleId);
-        showToast(data.message || 'คืนชุดเข้าคลังแล้ว', { actionLabel: 'เปิดดูชุดนี้', onAction: () => openDetail(bundleId) });
+        showToast(data.message || 'เบิกคืนชุดเข้าคลังกลางแล้ว', { actionLabel: 'เปิดดูชุดนี้', onAction: () => openDetail(bundleId) });
       } catch (e) {
         showToast(e.response?.data?.error || 'เกิดข้อผิดพลาด', { type: 'err' });
       }
@@ -354,44 +348,44 @@ export default function Bundle() {
       <ConfirmHost />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <button onClick={exportCSV} className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg border border-[var(--g300)] text-[14px] sm:text-[13px] hover:bg-[var(--surface2)] whitespace-nowrap">
+          <button onClick={exportCSV} className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 min-h-11 sm:min-h-0 px-3.5 py-1.5 rounded-xl border border-[var(--g200)] bg-[var(--surface)] text-[14px] sm:text-[13px] text-[var(--tsub)] hover:bg-[var(--surface2)] hover:text-[var(--text)] whitespace-nowrap transition-colors">
             <Icon name="download" size="sm" /> CSV
           </button>
-          <button onClick={() => setCreateOpen(true)} className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 min-h-11 sm:min-h-0 px-3 py-1.5 rounded-lg bg-[var(--blue)] text-white text-[14px] sm:text-[13px] font-semibold hover:bg-[var(--blue-d)] whitespace-nowrap">
-            <Icon name="add" size="sm" /> สร้างชุดใหม่ (Bundle)
+          <button onClick={() => setCreateOpen(true)} className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 min-h-11 sm:min-h-0 px-3.5 py-1.5 rounded-xl bg-[var(--blue)] text-white text-[14px] sm:text-[13px] font-semibold shadow-[0_2px_10px_var(--blue-glow)] hover:bg-[var(--blue-d)] active:translate-y-px whitespace-nowrap transition-colors">
+            <Icon name="add" size="sm" /> เพิ่มชุดติดตั้งใหม่
           </button>
         </div>
       </div>
 
       {dispatchQueue?.items?.length > 0 && (
         <section className="flex flex-col gap-3 rounded-xl border border-[var(--blue-b)] bg-[var(--blue-l)]/50 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-          <div className="min-w-0"><div className="text-[13px] font-bold text-[var(--blue)]">คิวจัดชุดจาก PO {dispatchQueue.poNumber}</div><div className="text-[12px] text-[var(--tsub)]">เหลือ {dispatchQueue.items.length} Serial · แบ่งลง Bundle ได้หลายชุด</div></div>
+          <div className="min-w-0"><div className="text-[13px] font-bold text-[var(--blue)]">คิวจัดชุดจาก PO {dispatchQueue.poNumber}</div><div className="text-[12px] text-[var(--tsub)]">เหลือ {dispatchQueue.items.length} Serial · แบ่งลงชุดติดตั้งได้หลายชุด</div></div>
           <div className="flex gap-2"><button onClick={() => { writeDispatchQueue(null); setDispatchQueue(null); setDispatchOpen(false); }} className="min-h-11 rounded-lg border border-[var(--g300)] bg-[var(--surface)] px-3 text-[12px] font-semibold text-[var(--tsub)]">ล้างคิว</button><button onClick={() => setDispatchOpen(true)} className="min-h-11 rounded-lg bg-[var(--blue)] px-4 text-[12px] font-semibold text-white">จัดชุดต่อ</button></div>
         </section>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      {/* Stats — Glassmorphic / Slate Accent Cards (B2): ตัวเลข Hero ใหญ่สะดุดตา */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <StatCard label="ชุดทั้งหมด" value={stats.all} icon="folder_open" tone="blue" />
-        <StatCard label="อยู่ในคลัง (In Stock)" value={stats.inStock} icon="inventory_2" tone="green" />
-        <StatCard label={<>ติดตั้งที่ฟาร์มแล้ว <span className="hidden sm:inline">(Deployed)</span></>} value={stats.deployed} icon="local_shipping" tone="amber" />
+        <StatCard label="พร้อมใช้งานในคลัง" value={stats.inStock} icon="inventory_2" tone="green" />
+        <StatCard label="ติดตั้งที่ฟาร์มแล้ว" value={stats.deployed} icon="local_shipping" tone="amber" />
         <StatCard label="อุปกรณ์ในชุด" value={stats.devices} icon="devices_other" tone="red" />
       </div>
 
-      {/* Filters — มือถือ: ช่องค้นหา/ตัวกรองกางเต็มกว้างเรียงลงเป็นชั้น (sm ขึ้นไป: เรียงแถวเดียวพับได้) */}
-      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+      {/* Filters — มือถือ: ช่องค้นหา/ตัวกรองกางเต็มกว้างเรียงลงเป็นชั้น (sm ขึ้นไป: เรียงแถวเดียว) — สเปซ gap สมดุลกับ Industrial Dashboard */}
+      <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
         <div className="relative sm:max-w-xs sm:flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)]"><Icon name="search" size="sm" /></span>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาชุดอุปกรณ์..."
-            className="w-full h-11 sm:h-9 pl-9 pr-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[14px] sm:text-[13px]" />
+            className="w-full h-11 sm:h-9 pl-9 pr-3 rounded-xl border border-[var(--g200)] bg-[var(--surface)] text-[14px] sm:text-[13px] focus:outline-none focus:border-[var(--blue)] focus:shadow-[0_0_0_3px_var(--blue-glow)] transition" />
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full sm:w-auto h-11 sm:h-9 px-3 rounded-lg border border-[var(--g200)] text-[14px] sm:text-[13px]">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full sm:w-auto h-11 sm:h-9 px-3 rounded-xl border border-[var(--g200)] bg-[var(--surface)] text-[14px] sm:text-[13px] focus:outline-none focus:border-[var(--blue)] focus:shadow-[0_0_0_3px_var(--blue-glow)] transition">
           <option value="">ทุกสถานะ</option>
-          <option value="In Stock">อยู่ในคลัง (In Stock)</option>
-          <option value="Deployed">ติดตั้งที่ฟาร์มแล้ว (Deployed)</option>
-          <option value="Maintenance">ซ่อมบำรุง (Maintenance)</option>
+          <option value="In Stock">อยู่ในคลัง</option>
+          <option value="Deployed">ติดตั้งแล้ว</option>
+          <option value="Maintenance">ซ่อมบำรุง</option>
         </select>
-        </div>
+      </div>
 
       <FarmFilterCombobox value={filterFarm} onChange={setFilterFarm} counts={farmCounts} />
 
@@ -416,7 +410,7 @@ export default function Bundle() {
         <div className="space-y-5">
           {loading && <div className="text-center py-10 text-[var(--tmuted)]">กำลังโหลด...</div>}
           {!loading && filtered.length === 0 && (
-            <div className="text-center py-10 text-[var(--tmuted)]">ไม่พบ Bundle</div>
+            <div className="text-center py-10 text-[var(--tmuted)]">ไม่พบชุดอุปกรณ์ที่ตรงกับเงื่อนไข</div>
           )}
 
           {/* 📦 โซนคลัง — ชุดที่ยังไม่ได้ติดตั้ง (In Stock / ไม่ผูกฟาร์ม) */}
@@ -452,8 +446,8 @@ export default function Bundle() {
         </div>
       )}
 
-      {/* Create modal */}
-      {createOpen && <CreateModal onClose={() => setCreateOpen(false)} onSubmit={createBundle} existingIds={bundles.map((b) => b.bundleId)} />}
+      {/* Create modal — Episode 2: component กลาง CreateBundleModal (รันเลขรหัสชุดถัดไปอัตโนมัติ) */}
+      {createOpen && <CreateBundleModal onClose={() => setCreateOpen(false)} onSubmit={createBundle} existingIds={bundles.map((b) => b.bundleId)} />}
       {dispatchOpen && dispatchQueue?.items?.length > 0 && <DispatchAssemblyModal key={dispatchQueue.items.map((item) => item.assetId).join('|')} queue={dispatchQueue} existingIds={bundles.map((b) => b.bundleId)} onClose={() => setDispatchOpen(false)} onSubmit={assembleDispatchBundle} />}
 
       {/* Deploy modal */}
@@ -652,19 +646,28 @@ function FarmFilterCombobox({ value, onChange, counts }) {
   );
 }
 
+// KPI การ์ดสรุป — Glassmorphic / Slate Accent (B2): พื้นโปร่งแสงเบลอ + ขอบคม 1px var(--border)
+// + แถบสี tone ด้านบนบางๆ + ตัวเลข Hero ขยายใหญ่ชัดเจนสะดุดตา
 function StatCard({ label, value, icon, tone }) {
-  const tones = {
+  const accents = {
+    blue: 'from-[var(--blue)]',
+    green: 'from-[var(--emerald)]',
+    amber: 'from-[var(--amber)]',
+    red: 'from-[var(--red)]',
+  };
+  const chips = {
     blue: 'bg-[var(--blue-l)] text-[var(--blue)]',
     green: 'bg-[var(--emerald-l)] text-[var(--emerald-d)]',
     amber: 'bg-[var(--amber-l)] text-[var(--amber-d)]',
     red: 'bg-[var(--red-l)] text-[var(--red)]',
   };
   return (
-    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 min-w-0">
-      <span className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex-shrink-0 ${tones[tone]}`}><Icon name={icon} size="md" /></span>
+    <div className="relative overflow-hidden rounded-2xl bg-[var(--surface)]/80 backdrop-blur-md border border-[var(--border)] shadow-[var(--sh-sm)] hover:shadow-[var(--sh-md)] hover:-translate-y-0.5 transition-all p-3 sm:p-4 flex items-center gap-3 min-w-0">
+      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${accents[tone]} to-transparent`} />
+      <span className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex-shrink-0 shadow-[var(--sh-xs)] ${chips[tone]}`}><Icon name={icon} size="md" /></span>
       <div className="min-w-0">
-        <div className="text-[12px] text-[var(--tmuted)] leading-tight">{label}</div>
-        <div className="text-lg sm:text-xl font-bold text-[var(--text)]">{value}</div>
+        <div className="text-[11px] sm:text-[12px] font-semibold text-[var(--tmuted)] leading-tight truncate">{label}</div>
+        <div className="text-[26px] sm:text-[30px] leading-none font-extrabold text-[var(--text)] tabular-nums mt-0.5">{value}</div>
       </div>
     </div>
   );
@@ -699,18 +702,22 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
       ].filter(Boolean);
   const loc = inStock ? 'คลังกลาง' : locParts.join(' › ');
   return (
-    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4 flex flex-col gap-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="font-mono text-[13px] font-bold text-[var(--text)]">{b.bundleId}</div>
-          <div className="text-[14px] sm:text-[13px] font-semibold text-[var(--text)]">{b.bundleName}</div>
+    <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--sh-sm)] hover:shadow-[var(--sh-md)] hover:-translate-y-0.5 transition-all p-4 flex flex-col">
+      {/* โซนข้อมูล — ชื่อชุดไทยเป็นตัวหนาหลัก (B2 Title Hierarchy) + รหัส BDL-xxx ย่อเป็น Badge เทารองขนาดเล็ก */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[15px] sm:text-[14px] font-bold text-[var(--text)] leading-snug">{b.bundleName}</div>
           {b.description && <div className="text-[11px] text-[var(--tmuted)] mt-0.5 line-clamp-2">{b.description}</div>}
         </div>
         <StatusBadge status={b.status} tone={BTONES[b.status]} />
       </div>
-      <div className="flex items-center gap-3 text-[12px] text-[var(--tsub)]">
-        <span className="flex items-center gap-1 flex-shrink-0"><Icon name="devices" size="xs" /> {b.assetIds?.length || 0} อุปกรณ์</span>
-        <span className="flex items-center gap-1 min-w-0">
+      <div className="mt-1.5">
+        <span className="inline-block font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--g100)] border border-[var(--border)] text-[var(--tmuted)]">{b.bundleId}</span>
+      </div>
+      {/* โซนข้อมูล — จำนวนอุปกรณ์ภายใน + สถานที่จัดเก็บ */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px] text-[var(--tsub)]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--surface2)] border border-[var(--border)] flex-shrink-0"><Icon name="devices" size="xs" /> <strong className="font-semibold tabular-nums text-[var(--text)]">{b.assetIds?.length || 0}</strong> อุปกรณ์</span>
+        <span className="inline-flex items-center gap-1 min-w-0">
           <Icon name="place" size="xs" className="flex-shrink-0" />
           <span className="truncate" title={loc}>
             {loc}
@@ -722,11 +729,12 @@ function BundleCard({ bundle, onDetail, onDeploy, onRecall }) {
           </button>
         )}
       </div>
-      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-[var(--g100)]">
-        <button onClick={onDetail} className="flex items-center justify-center gap-1 w-full sm:flex-1 sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg border border-[var(--g300)] text-[13px] sm:text-[12px] text-[var(--tsub)] hover:bg-[var(--surface2)] whitespace-nowrap"><Icon name="search" size="xs" /> รายละเอียด</button>
+      {/* โซนปุ่ม Action — แยกโซนออกจากข้อมูลชัดเจน + Modern Pill Buttons (มิตินุ่มนวล ไม่เป็นกล่องสีทึบหนาเตอะ) */}
+      <div className="mt-3 pt-3 border-t border-[var(--g100)] flex flex-col sm:flex-row gap-2">
+        <button onClick={onDetail} className="flex items-center justify-center gap-1 w-full sm:flex-1 sm:w-auto min-h-11 sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-full border border-[var(--g200)] bg-[var(--surface2)] text-[13px] sm:text-[12px] text-[var(--tsub)] hover:bg-[var(--g100)] hover:text-[var(--text)] whitespace-nowrap transition-colors"><Icon name="search" size="xs" /> รายละเอียด</button>
         {b.status === 'In Stock'
-          ? <button onClick={onDeploy} className="w-full sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold whitespace-nowrap">ย้ายไปฟาร์ม (Deploy)</button>
-          : <button onClick={onRecall} className="w-full sm:w-auto min-h-11 sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg bg-[var(--amber)] text-white text-[13px] sm:text-[12px] font-semibold whitespace-nowrap">คืนเข้าคลัง (Recall)</button>}
+          ? <button onClick={onDeploy} className="w-full sm:w-auto min-h-11 sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-full bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold shadow-[0_2px_10px_var(--blue-glow)] hover:bg-[var(--blue-d)] active:translate-y-px whitespace-nowrap transition-colors">ส่งไปติดตั้ง</button>
+          : <button onClick={onRecall} className="w-full sm:w-auto min-h-11 sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-full bg-[var(--amber-l)] text-[var(--amber-d)] border border-[var(--amber-b)] text-[13px] sm:text-[12px] font-semibold hover:bg-[var(--amber-b)]/50 active:translate-y-px whitespace-nowrap transition-colors">เบิกคืนคลังกลาง</button>}
       </div>
     </div>
   );
@@ -752,22 +760,22 @@ function BundleDetail({ bundle: b, assets, onBack, onRefresh, onAdd, onRemove, o
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[16px] font-bold text-[var(--text)]">{b.bundleId}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[16px] font-bold text-[var(--text)]">{b.bundleName}</span>
+                <span className="inline-block font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--g100)] border border-[var(--border)] text-[var(--tmuted)]">{b.bundleId}</span>
                 <StatusBadge status={b.status} tone={BTONES[b.status]} />
               </div>
-              <div className="text-[14px] font-semibold text-[var(--text)] mt-1">{b.bundleName}</div>
-              {b.description && <div className="text-[12px] text-[var(--tmuted)]">{b.description}</div>}
+              {b.description && <div className="text-[12px] text-[var(--tmuted)] mt-0.5">{b.description}</div>}
             </div>
           </div>
           <div className="flex w-full sm:w-auto flex-wrap items-center gap-2">
             {b.status === 'In Stock'
-              ? <button onClick={onDeploy} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ย้ายไปฟาร์ม (Deploy)</button>
+              ? <button onClick={onDeploy} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-full bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold shadow-[0_2px_10px_var(--blue-glow)] hover:bg-[var(--blue-d)] active:translate-y-px transition-colors"><Icon name="local_shipping" size="sm" /> ส่งไปติดตั้ง</button>
               : <>
-                <button onClick={onDeploy} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold"><Icon name="local_shipping" size="sm" /> ย้ายทั้งชุดไปฟาร์ม</button>
-                <button onClick={onRecall} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--amber)] text-white text-[13px] sm:text-[12px] font-semibold">คืนเข้าคลัง (Recall)</button>
+                <button onClick={onDeploy} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-full bg-[var(--blue)] text-white text-[13px] sm:text-[12px] font-semibold shadow-[0_2px_10px_var(--blue-glow)] hover:bg-[var(--blue-d)] active:translate-y-px transition-colors"><Icon name="local_shipping" size="sm" /> ย้ายทั้งชุดไปฟาร์ม</button>
+                <button onClick={onRecall} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-full bg-[var(--amber-l)] text-[var(--amber-d)] border border-[var(--amber-b)] text-[13px] sm:text-[12px] font-semibold hover:bg-[var(--amber-b)]/50 active:translate-y-px transition-colors">เบิกคืนคลังกลาง</button>
               </>}
-            <button onClick={onAdd} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-lg bg-[var(--emerald)] text-white text-[13px] sm:text-[12px] font-semibold"><Icon name="add" size="sm" /> เพิ่มอุปกรณ์</button>
+            <button onClick={onAdd} className="flex-1 sm:flex-none min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-full bg-[var(--emerald)] text-white text-[13px] sm:text-[12px] font-semibold shadow-[0_2px_10px_var(--emerald-b)] hover:bg-[var(--emerald-d)] active:translate-y-px transition-colors"><Icon name="add" size="sm" /> เพิ่มอุปกรณ์</button>
           </div>
         </div>
         <div className="flex flex-wrap gap-4 mt-3 text-[12px] text-[var(--tsub)]">
@@ -848,56 +856,22 @@ function DispatchAssemblyModal({ queue, existingIds, onClose, onSubmit }) {
   const selectedSet = new Set(selectedIds);
   function toggle(id) { setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]); }
   return (
-    <Modal onClose={onClose} title="ประกอบ Bundle จากคิว PO">
-      <div className="rounded-lg border border-[var(--blue-b)] bg-[var(--blue-l)] px-3 py-2 text-[12px] text-[var(--blue)]">PO {queue.poNumber || 'ไม่ระบุ PO'} · เลือก Serial สำหรับ Bundle นี้ ({selectedIds.length}/{queue.items.length})</div>
-      <Field label="รหัส Bundle *"><input value={bundleId} onChange={(event) => setBundleId(event.target.value.toUpperCase())} className={inp} /></Field>
-      {duplicate && <div className="text-[12px] font-semibold text-[var(--red)]">รหัส Bundle นี้มีอยู่แล้ว</div>}
-      <Field label="ชื่อ Bundle *"><input value={bundleName} onChange={(event) => setBundleName(event.target.value)} placeholder="เช่น ตู้ควบคุมพัดลม · โรงเรือน 1" className={inp} /></Field>
+    <Modal onClose={onClose} title="ประกอบชุดจากคิว PO">
+      <div className="rounded-lg border border-[var(--blue-b)] bg-[var(--blue-l)] px-3 py-2 text-[12px] text-[var(--blue)]">PO {queue.poNumber || 'ไม่ระบุ PO'} · เลือก Serial สำหรับชุดนี้ ({selectedIds.length}/{queue.items.length})</div>
+      <Field label="รหัสชุด *"><input value={bundleId} onChange={(event) => setBundleId(event.target.value.toUpperCase())} className={inp} /></Field>
+      {duplicate && <div className="text-[12px] font-semibold text-[var(--red)]">รหัสชุดนี้มีอยู่แล้ว</div>}
+      <Field label="ชื่อชุด *"><input value={bundleName} onChange={(event) => setBundleName(event.target.value)} placeholder="เช่น ตู้ควบคุมพัดลม · โรงเรือน 1" className={inp} /></Field>
       <Field label="คำอธิบาย"><input value={description} onChange={(event) => setDescription(event.target.value)} className={inp} /></Field>
       <div className="flex items-center justify-between gap-2"><span className="text-[12px] font-semibold text-[var(--tsub)]">Serial ในคิว</span><button onClick={() => setSelectedIds(selectedIds.length === queue.items.length ? [] : queue.items.map((item) => item.assetId))} className="min-h-11 px-2 text-[12px] font-semibold text-[var(--blue)]">{selectedIds.length === queue.items.length ? 'ล้างที่เลือก' : 'เลือกทั้งหมด'}</button></div>
       <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-[var(--g200)] p-1">{queue.items.map((item) => <label key={item.assetId} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 hover:bg-[var(--surface2)]"><input type="checkbox" className="h-5 w-5 shrink-0" checked={selectedSet.has(item.assetId)} onChange={() => toggle(item.assetId)} /><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-semibold">{item.name || item.assetId}</span><span className="block truncate font-mono text-[11px] text-[var(--blue)]">{item.serialNumber} · {item.batchId}</span></span></label>)}</div>
-      <p className="text-[11px] text-[var(--tmuted)]">หลังสร้างชุด สามารถกด “กำหนดปลายทาง” เพื่อเลือกฟาร์มและโรงเรือนให้ Bundle นี้แยกจากชุดอื่น</p>
-      <ModalFooter onClose={onClose} onSubmit={() => onSubmit({ bundleId: bundleId.trim(), bundleName: bundleName.trim(), description, status: 'In Stock' }, selectedIds)} submitLabel={`สร้าง Bundle (${selectedIds.length} Serial)`} submitDisabled={!bundleId.trim() || !bundleName.trim() || duplicate || selectedIds.length === 0} />
+      <p className="text-[11px] text-[var(--tmuted)]">หลังสร้างชุด สามารถกด “กำหนดปลายทาง” เพื่อเลือกฟาร์มและโรงเรือนให้ชุดนี้แยกจากชุดอื่น</p>
+      <ModalFooter onClose={onClose} onSubmit={() => onSubmit({ bundleId: bundleId.trim(), bundleName: bundleName.trim(), description, status: 'In Stock' }, selectedIds)} submitLabel={`สร้างชุด (${selectedIds.length} Serial)`} submitDisabled={!bundleId.trim() || !bundleName.trim() || duplicate || selectedIds.length === 0} />
     </Modal>
   );
 }
 
-function CreateModal({ onClose, onSubmit, existingIds = [] }) {
-  // ก้อน ⑤ (B2) — เดารหัสชุดถัดไป BDL-XXX ให้อัตโนมัติ (แก้ได้) + กันกรอกรหัสซ้ำกับที่มีอยู่
-  const [bundleId, setBundleId] = useState(() => suggestBundleId(existingIds));
-  const [bundleName, setBundleName] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('In Stock');
-  const dup = bundleId.trim()
-    ? existingIds.some((x) => (x || '').trim().toUpperCase() === bundleId.trim().toUpperCase())
-    : false;
-  return (
-    <Modal onClose={onClose} title="สร้างชุดใหม่ (Bundle)">
-      <Field label="รหัสชุด (Bundle ID) *">
-        <input value={bundleId} onChange={(e) => setBundleId(e.target.value.toUpperCase())} placeholder="เช่น BDL-001" className={inp} />
-        <div className="mt-1 flex items-center gap-1 text-[11px] flex-wrap">
-          {dup
-            ? <span className="flex items-center gap-1 font-semibold text-[var(--red)]"><Icon name="warning" size="sm" /> รหัสนี้ถูกใช้แล้ว — ต้องไม่ซ้ำกับชุดเดิม</span>
-            : <span className="flex items-center gap-1 text-[var(--tmuted)]"><Icon name="info" size="sm" /> ระบบเดารหัสถัดไป (BDL-…) ให้แล้ว — แก้ได้ตามต้องการ</span>}
-        </div>
-      </Field>
-      <Field label="ชื่อชุดอุปกรณ์ *"><input value={bundleName} onChange={(e) => setBundleName(e.target.value)} placeholder="เช่น ชุดตู้ควบคุมฟาร์ม 1" className={inp} /></Field>
-      <Field label="คำอธิบาย"><input value={description} onChange={(e) => setDescription(e.target.value)} className={inp} /></Field>
-      <Field label="สถานะเริ่มต้น">
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={inp}>
-          <option>In Stock</option>
-          <option>Maintenance</option>
-        </select>
-      </Field>
-      <ModalFooter
-        onClose={onClose}
-        onSubmit={() => onSubmit({ bundleId: bundleId.trim(), bundleName, description, status })}
-        submitLabel="บันทึก"
-        submitDisabled={!bundleId.trim() || !bundleName.trim() || dup}
-      />
-    </Modal>
-  );
-}
+// CreateModal ถูกแยกออกเป็น components/CreateBundleModal.jsx (Episode 2 — ใช้ซ้ำกับ Fast-Track
+// Intake Flow ใน AddDeviceModal ได้ และรันเลขรหัสชุดถัดไปอัตโนมัติจากรหัสล่าสุด BDL-XXX +1)
 
 function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
   const [farmId, setFarmId] = useState('');
@@ -957,7 +931,7 @@ function DeployModal({ bundle, farms, onClose, onDeploy, onFarmAdded }) {
     <Modal onClose={onClose} title={step === 'form' ? 'ย้ายชุดอุปกรณ์ไปฟาร์ม' : 'สรุปก่อนย้ายชุด'}>
       {bundle && (
         <div className="px-4 py-3 rounded-xl bg-[var(--blue-l)] border border-[var(--blue-b)] mb-4">
-          <div className="text-[12px] font-bold text-[var(--blue)]">Bundle ที่เลือก</div>
+          <div className="text-[12px] font-bold text-[var(--blue)]">ชุดที่เลือก</div>
           <div className="text-[14px] font-bold text-[var(--text)]">{bundle.bundleName}</div>
           <div className="text-[12px] text-[var(--tsub)]">{bundle.assetIds?.length || 0} อุปกรณ์จะถูกย้ายพร้อมกัน</div>
         </div>

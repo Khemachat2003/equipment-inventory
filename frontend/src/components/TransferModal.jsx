@@ -21,7 +21,7 @@ const EMPTY_CURRENT = {};
 // ปลายทาง → action/status "เดิม" ของ API (แค่ map ศัพท์ให้ user นึกถึงปลายทาง ไม่ใช่ศัพท์ระบบ)
 const DESTINATIONS = [
   { id: 'farm', icon: 'agriculture', title: 'ไปฟาร์ม', sub: 'ย้ายตำแหน่งอุปกรณ์', action: 'ย้ายตำแหน่งอุปกรณ์', status: 'ใช้งานได้' },
-  { id: 'stock', icon: 'inventory_2', title: 'คืนคลังกลาง', sub: 'กลับเข้าคลัง Intranin', action: 'คืนคลังสินค้า', status: 'สำรอง' },
+  { id: 'stock', icon: 'inventory_2', title: 'คืนคลังกลาง', sub: 'กลับเข้าคลังกลาง', action: 'คืนคลังสินค้า', status: 'สำรอง' },
   { id: 'repair', icon: 'build', title: 'ส่งซ่อม', sub: 'ส่งซ่อมภายนอก', action: 'ส่งซ่อมภายนอก', status: 'ส่งซ่อม' },
 ];
 
@@ -81,18 +81,21 @@ export default function TransferModal({ open, onClose, onSuccess, serial, curren
   // ปลายทาง active ไล่จาก action เสมอ → ปุ่มปลายทางกับ advanced select ใช้ state เดียวกัน
   const activeDest = action.includes('คืนคลัง') ? 'stock' : action.includes('ซ่อม') ? 'repair' : 'farm';
 
-  // ── แถบสรุปก่อนยืนยัน ──
+  // ── แถบสรุปก่อนยืนยัน (B2 Strict Terminology — แสดง "คลังกลาง" ภาษาไทยเท่านั้น ไม่มีวงเล็บศัพท์ระบบ) ──
   const destSiteName = siteId === 'Intranin'
-    ? 'คลังกลาง (Intranin)'
+    ? 'คลังกลาง'
     : (sites.find((s) => s.siteId === siteId)?.siteName || siteFree || '');
   const houseLabel = houseId
     ? `${houseId} ${houses.find((h) => h.houseId === houseId)?.houseName || ''}`.trim()
     : '';
+  // จุดย่อยประกอบชื่อไซต์เดิม — ไม่ประกอบค่าคลัง (Stock) เพื่อไม่ให้ศัพท์ระบบหลุดมาโชว์
+  const curLoc = (cur.location || '').trim();
+  const locSuffix = curLoc && curLoc !== 'Stock' && curLoc !== '-' ? ` (${curLoc})` : '';
   const fromText = assets.length > 1 ? 'หลายตำแหน่ง' : cur.siteName
-    ? `${cur.siteName}${cur.location ? ` (${cur.location})` : ''}`
+    ? `${cur.siteName}${locSuffix}`
     : 'ตำแหน่งเดิม';
   const summaryText = activeDest === 'stock'
-    ? 'คลังกลาง (Stock)'
+    ? 'คลังกลาง'
     : activeDest === 'repair'
       ? 'ส่งซ่อม'
       : [destSiteName || 'ฟาร์มปลายทาง', houseLabel, location.trim()].filter(Boolean).join(' › ');
