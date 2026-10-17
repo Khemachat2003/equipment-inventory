@@ -8,6 +8,7 @@ import LocationPath from '../components/ui/LocationPath.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { suggestSiteId, suggestHouseId } from '../utils/farmId.js';
 import { buildLocation } from '../utils/location.js';
+import { isRepairStatus, isUsableStatus } from '../utils/status.js';
 
 const TYPE_ICONS = { 'สัตว์ปีก': 'egg', 'สัตว์บก': 'pets', 'สุกร': 'agriculture', 'อื่นๆ': 'category', 'ไม่ระบุ': 'help' };
 const FARM_TYPES = ['สัตว์ปีก', 'สัตว์บก', 'สุกร', 'อื่นๆ'];
@@ -149,8 +150,10 @@ export default function Farm() {
       const f = inDeployed ? bundleFarm[a.bundleId] : (a.siteName || 'ไม่ระบุไซต์').trim();
       if (!f) return;
       totals[f] = (totals[f] || 0) + 1;
-      const isOk = !!a.status && a.status.includes('ใช้งานได้');
-      const isRep = !!a.status && a.status.includes('ซ่อม');
+      // ใช้งานได้ = สถานะปกติทุกชนิด (ใช้งานได้ · In Bundle · สำรอง · ค่าว่าง) —
+      // สมาชิกชุด deploy สถานะ "In Bundle" ต้องนับเป็น "ใช้งานได้" ด้วย ไม่ตกหล่นเป็น 0
+      const isOk = isUsableStatus(a.status);
+      const isRep = isRepairStatus(a.status);
       if (isOk || isRep) {
         if (!stats[f]) stats[f] = { ok: 0, rep: 0 };
         if (isOk) stats[f].ok++;
@@ -227,9 +230,14 @@ export default function Farm() {
     bundles.forEach((b) => {
       if (b.status === 'Deployed' && (b.location || '').trim()) bundleFarm[b.bundleId] = b.location.trim();
     });
+    // จำนวน "ชุด" รายฟาร์ม = รหัสชุด (Bundle ID) ที่ deploy แล้วเท่านั้น — นับที่ตัวชุด ไม่นับชิ้นอุปกรณ์สมาชิก
+    // (แก้บั๊กเดิม: bundleCount ถูกเพิ่มทีละชิ้นในลูปสมาชิก ทำให้เลข "ชุด" ดีดตามจำนวนอุปกรณ์ในชุด เช่น 11 ชุด → 61)
+    const bundleCount = {};
+    Object.entries(bundleFarm).forEach(([bid, farm]) => {
+      if (bid) bundleCount[farm] = (bundleCount[farm] || 0) + 1;
+    });
     const types = {};
     const assetsOf = {};
-    const bundleCount = {};
     const houses = {};
     const stats = {};
     assets.forEach((a) => {
@@ -237,12 +245,13 @@ export default function Farm() {
       const f = inDeployed ? bundleFarm[a.bundleId] : (a.siteName || '').trim();
       if (!f) return;
       assetsOf[f] = (assetsOf[f] || 0) + 1;
-      if (inDeployed) bundleCount[f] = (bundleCount[f] || 0) + 1;
       if (!inDeployed && a.farmType && a.farmType !== '-') types[f] = types[f] || a.farmType;
       const h = (a.houseName || a.houseId || '').trim();
       if (h) { if (!houses[f]) houses[f] = new Set(); houses[f].add(h); }
-      const isOk = !!a.status && a.status.includes('ใช้งานได้');
-      const isRep = !!a.status && a.status.includes('ซ่อม');
+      // ใช้งานได้ = สถานะปกติทุกชนิด (ใช้งานได้ · In Bundle · สำรอง · ค่าว่าง) —
+      // สมาชิกชุด deploy สถานะ "In Bundle" ต้องนับเป็น "ใช้งานได้" ด้วย ไม่ตกหล่นเป็น 0
+      const isOk = isUsableStatus(a.status);
+      const isRep = isRepairStatus(a.status);
       if (isOk || isRep) {
         if (!stats[f]) stats[f] = { ok: 0, rep: 0 };
         if (isOk) stats[f].ok++;

@@ -1,5 +1,6 @@
 // farmMonitor.js — ตัวช่วยรวมข้อมูล "สุขภาพฟาร์ม" สำหรับ Executive Overview บนหน้าแรก
 // (Farm Health & Status Summary + Quick Farm Access Cards + FarmDetailModal)
+import { isRepairStatus, isUsableStatus } from './status.js';
 //
 // กฎการนับ = กฎเดียวกับหน้า Farm Monitor (/farm) — อ่านตำแหน่งด้วยกติกาเดียวกับ utils/location.js:
 //   • อุปกรณ์ที่อยู่ในชุด (Bundle) ที่ Deployed → นับที่ฟาร์มตามคอลัมน์ Location ของชุด
@@ -99,8 +100,10 @@ export function buildFarmOverview({ assets = [], bundles = [], farms = [] } = {}
     const h = clean(a.houseName) || clean(a.houseId);
     if (h) f.houseSet.add(h);
     const status = clean(a.status);
-    if (status.includes('ใช้งานได้')) f.ok += 1;
-    if (status.includes('ซ่อม')) f.rep += 1;
+    // ใช้งานได้ = สถานะปกติทุกชนิด (ใช้งานได้ · In Bundle · สำรอง · ค่าว่าง) —
+    // สมาชิกชุด deploy ถูกบังคับสถานะ "In Bundle" (routes/bundle.js) ต้องนับเป็น "ใช้งานได้" ด้วย ไม่ตกหล่นเป็น 0
+    if (isUsableStatus(status)) f.ok += 1;
+    if (isRepairStatus(status)) f.rep += 1;
   });
 
   // ฟาร์มที่มีชุด deploy แต่ยังไม่มีสมาชิก → โผล่การ์ดให้เห็นว่าฟาร์มนี้มีตู้อยู่

@@ -100,6 +100,39 @@ describe('farmMonitor — buildFarmOverview (สรุปรายฟาร์�
   it('คลังกลาง (Intranin) ไม่กลายเป็นการ์ดฟาร์ม', () => {
     expect(overview.find((x) => x.name === 'Intranin')).toBeUndefined();
   });
+
+  it('สมาชิกชุด deploy สถานะ "In Bundle" → นับเป็น "ใช้งานได้" ที่ฟาร์ม (ไม่ตกหล่นเป็น 0 ทั้งที่มีของอยู่จริง)', () => {
+    const inBundleAssets = [
+      A({ assetId: '1', serialNumber: 'SN-IB-1', bundleId: 'BDL-001', siteName: 'ชุด A', location: 'ฟาร์มหนองแค', status: 'In Bundle' }),
+      A({ assetId: '2', serialNumber: 'SN-IB-2', bundleId: 'BDL-001', siteName: 'ชุด A', location: 'ฟาร์มหนองแค', status: 'In Bundle' }),
+      A({ assetId: '3', serialNumber: 'SN-IB-3', bundleId: 'BDL-001', siteName: 'ชุด A', location: 'ฟาร์มหนองแค', status: '' }),
+    ];
+    const ov = buildFarmOverview({
+      assets: inBundleAssets,
+      bundles: [{ bundleId: 'BDL-001', bundleName: 'ชุด A', status: 'Deployed', location: 'ฟาร์มหนองแค', assetIds: ['1', '2', '3'] }],
+      farms: [],
+    });
+    const f = ov.find((x) => x.name === 'ฟาร์มหนองแค');
+    expect(f.assets).toBe(3);   // อุปกรณ์ 3 ชิ้น
+    expect(f.ok).toBe(3);       // ใช้งานได้ 3 (In Bundle ×2 + ค่าว่าง ×1) — ไม่ใช่ 0
+    expect(f.rep).toBe(0);
+  });
+
+  it('สมาชิกชุด deploy ที่ชำรุด/สูญหาย → นับเข้ากลุ่ม "ส่งซ่อม/ต้องดูแล" ไม่นับเป็นใช้งานได้', () => {
+    const mixed = [
+      A({ assetId: '1', serialNumber: 'SN-MX-1', bundleId: 'BDL-001', siteName: 'ชุด A', location: 'ฟาร์มหนองแค', status: 'In Bundle' }),
+      A({ assetId: '2', serialNumber: 'SN-MX-2', bundleId: 'BDL-001', siteName: 'ชุด A', location: 'ฟาร์มหนองแค', status: 'ชำรุด/สูญหาย' }),
+    ];
+    const ov = buildFarmOverview({
+      assets: mixed,
+      bundles: [{ bundleId: 'BDL-001', bundleName: 'ชุด A', status: 'Deployed', location: 'ฟาร์มหนองแค', assetIds: ['1', '2'] }],
+      farms: [],
+    });
+    const f = ov.find((x) => x.name === 'ฟาร์มหนองแค');
+    expect(f.assets).toBe(2);
+    expect(f.ok).toBe(1);
+    expect(f.rep).toBe(1);
+  });
 });
 
 describe('FarmDetailModal — Quick Farm Access (Asset Breakdown + Bundle Control)', () => {

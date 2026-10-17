@@ -4,6 +4,7 @@ import Icon from './ui/Icon.jsx';
 import StatusBadge from './ui/StatusBadge.jsx';
 import LocationPath from './ui/LocationPath.jsx';
 import { buildBundleFarmMap, farmAssetsOf } from '../utils/farmMonitor.js';
+import { isRepairStatus, isUsableStatus } from '../utils/status.js';
 
 const TYPE_ICONS = { 'สัตว์ปีก': 'egg', 'สัตว์บก': 'pets', 'สุกร': 'agriculture', 'อื่นๆ': 'category', 'ไม่ระบุ': 'help' };
 
@@ -87,8 +88,8 @@ export default function FarmDetailModal({ farm, assets = [], bundles = [], loadi
           <div className="grid grid-cols-4 gap-2">
             <MiniStat icon="inventory_2" tone="blue" label="อุปกรณ์" value={farmAssets.length} />
             <MiniStat icon="grid_on" tone="purple" label="ตู้ชุด" value={farmBundles.length} />
-            <MiniStat icon="check_circle" tone="green" label="ใช้งานได้" value={farmAssets.filter((a) => (a.status || '').includes('ใช้งานได้')).length} />
-            <MiniStat icon="build" tone="red" label="ส่งซ่อม" value={farmAssets.filter((a) => (a.status || '').includes('ซ่อม')).length} />
+            <MiniStat icon="check_circle" tone="green" label="ใช้งานได้" value={farmAssets.filter((a) => isUsableStatus(a.status)).length} />
+            <MiniStat icon="build" tone="red" label="ส่งซ่อม" value={farmAssets.filter((a) => isRepairStatus(a.status)).length} />
           </div>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)] pointer-events-none">

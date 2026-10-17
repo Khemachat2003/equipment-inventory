@@ -3,19 +3,25 @@
 //   เพราะโลโก้+Nav Pills+Avatar อยู่ที่ Topbar ของ Layout แล้ว (B2): ปุ่มสามขีดเปิด drawer เมนูเสริม / bottom nav (มือถือ <md))
 //   → ส่วนทักทาย + ช่องค้นหาทรงเม็ด (มือถือ ≤520px มีปุ่มสแกน QR เต็มความกว้างใต้ช่องค้นหา) → ปุ่มงานหลักวงกลม 5 ปุ่ม
 //   → ผลลัพธ์ค้นหา / สถิติ / เตือนของใกล้หมด / โอนย้ายล่าสุด / โซนฟาร์ม (ฟังก์ชันเดิมครบทุกอย่าง)
+// Clean Home Layout (ล่าสุด): การ์ด "ติดตามและจัดการอุปกรณ์ตาม PO" ถูกถอดออกจากหน้าแรกถาวร (ไม่ดันเนื้อหา/ไม่ต้อง scroll โดยไม่จำเป็น)
+//   → กดปุ่มวงกลม "ย้ายอุปกรณ์" เปิด Transfer Center Modal ป๊อปอัปกลางหน้าจอแทน (2 แท็บ: โอนย้ายตาม PO / โอนย้ายอุปกรณ์ทั่วไป นอก PO)
 // ฟังก์ชันหน้าแรกเดิมที่คงไว้: ค้นหา (ชื่อ/รหัส/Serial/PO/ล็อต/ผู้ขาย) + ย้าย (TransferModal) + ประวัติ
 //   + ฉลาก + เบิก (/stock?q=) + เพิ่มอุปกรณ์ (AddDeviceModal) + รีเฟรช + เตือนของใกล้หมด
 //   + Farm Health & Quick Farm Access (FarmDetailModal, deep-link ?farm=) + ลงทะเบียนล่าสุด
 // ไม่แสดงกราฟ chart.js (กราฟเดิมอยู่ที่ /dashboard)
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { isInStock } from '../utils/location.js';
+import { isRepairStatus } from '../utils/status.js';
 import Icon from '../components/ui/Icon.jsx';
 import StatusBadge from '../components/ui/StatusBadge.jsx';
 import LocationPath from '../components/ui/LocationPath.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import TransferModal from '../components/TransferModal.jsx';
+import TransferCenterModal from '../components/TransferCenterModal.jsx';
+import { ToastHost } from '../components/ui/Toast.jsx';
 import { AssetHistoryModal } from '../components/AssetHistory.jsx';
 import FarmDetailModal from '../components/FarmDetailModal.jsx';
 import { buildFarmOverview } from '../utils/farmMonitor.js';
@@ -42,7 +48,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [transfer, setTransfer] = useState(null); // ปุ่ม "ย้าย" เปิดฟอร์มโอนย้ายทันทีบนหน้าแรก (ไม่ต้องเด้งไป /scan ก่อน)
-  const [transferPickOpen, setTransferPickOpen] = useState(false); // ปุ่มวงกลม "ย้ายอุปกรณ์" — เปิดตัวเลือกอุปกรณ์แล้วเปิดฟอร์มย้ายทันทีบนหน้าแรก (ไม่เด้งไป /scan)
+  const [transferCenterOpen, setTransferCenterOpen] = useState(false); // ปุ่มวงกลม "ย้ายอุปกรณ์" — เปิด Transfer Center Modal ป๊อปอัปกลางหน้าจอ (2 แท็บ: ตาม PO / อุปกรณ์ทั่วไป นอก PO)
   const [lowStockOpen, setLowStockOpen] = useState(false); // แถบเตือนของใกล้หมด — กดกาง/พับรายการ
   const [historySerial, setHistorySerial] = useState('');
   const [farmOpen, setFarmOpen] = useState(null); // ชื่อฟาร์มที่เปิด FarmDetailModal (Quick Farm Access — ดูรายละเอียดฟาร์มได้จากหน้าแรก)
@@ -136,17 +142,30 @@ export default function Home() {
   }, [farmOverview, farmQuery, showAllFarms]);
 
   // ── สถิติเพิ่มเติม (derive จากข้อมูลที่มีอยู่ ไม่ต้องเรียก API เพิ่ม) ──
+  // การ์ดสรุปสถานะ 3 ใบ "นับจากตำแหน่ง/สถานะจริงของทุกชิ้น" ไม่กรองเฉพาะคำสถานะ
+  // (เดิมการ์ด "อยู่ในคลัง" นับเฉพาะสถานะ "สำรอง" → ขึ้น 0 ทั้งที่มีอุปกรณ์อยู่ในคลัง):
+  //   • อยู่ในคลัง  = ทุกชิ้นที่ยังไม่ได้ผูกเข้ากับฟาร์ม/โรงเรือน — พร้อมใช้งานที่คลังกลาง
+  //                   (Intranin / Stock / คลังกลาง), ไม่ระบุฟาร์มจัดเก็บ, หรืออยู่ในชุดที่ยังไม่ได้ deploy
+  //                   (กฎตำแหน่งเดียวกับ LocationPath "คลังกลาง" — utils/location.js isInStock)
+  //   • ติดตั้งแล้ว = ชิ้นที่ผูกเข้ากับฟาร์ม/โรงเรือนแล้ว (ตัวเดี่ยวมีฟาร์ม / สมาชิกชุดที่ Deployed)
+  //   • ส่งซ่อม     = สถานะ ส่งซ่อม / รอซ่อม / ชำรุด·สูญหาย (Damaged) — utils/status.js isRepairStatus
+  // แหล่งข้อมูล: /api/assets (ทะเบียนเต็มคอลัมน์ตำแหน่ง — ชุดข้อมูลเดียวกับที่ deep-link ไปเปิดที่ /asset)
+  // ถ้า API ทะเบียนล้มเหลวค่อยใช้ assets ของ /api/dashboard-full แทน (กันตัวเลขติด 0)
   const derived = useMemo(() => {
-    const totalAssets = stats?.assets?.length ?? assets.length;
-    const statusCount = stats?.statusCount || {};
+    const list = assets.length ? assets : (stats?.assets || assets);
+    const totalAssets = list.length;
     // (Step 3: ตัด derived.statuses ทิ้ง — การ์ด "สถานะอุปกรณ์" ถูกลบไปแล้ว ไม่มีผู้ใช้ข้อมูลชุดนี้)
-    const repairCount = (statusCount['ส่งซ่อม'] || 0) + (statusCount['ชำรุด/สูญหาย'] || 0);
 
+    let inStockCount = 0;
+    let installedCount = 0;
     let bundleAssets = 0;
     const bundleSet = new Set();
-    (stats?.assets || assets).forEach((a) => {
+    list.forEach((a) => {
+      if (isInStock(a)) inStockCount += 1; else installedCount += 1;
       if (a.bundleId) { bundleSet.add(a.bundleId); bundleAssets++; }
     });
+    // ต้องดูแล (ซ่อม/ชำรุด) — นับจากสถานะจริงของทุกชิ้น (ทนทานกว่านับคำจาก statusCount ที่อาจไม่ครบ)
+    const repairCount = list.filter((a) => isRepairStatus(a.status)).length;
 
     // Serial ลงทะเบียนล่าสุด — parse วันที่จากรูปแบบ SN-{part}-{ddmmyyyy}-{seq}
     const recentSerials = (stats?.assets || assets)
@@ -175,9 +194,9 @@ export default function Home() {
       readyCount: Math.max(0, totalAssets - repairCount),
       bundleCount: bundleSet.size, bundleAssets,
       installedPct, recentSerials, lowStock, outCount,
-      inStockCount: statusCount['สำรอง'] || 0,
-      installedCount: statusCount['ใช้งานได้'] || 0,
-      repairPendingCount: statusCount['ส่งซ่อม'] || 0,
+      inStockCount,
+      installedCount,
+      repairPendingCount: repairCount,
     };
   }, [stats, assets, stock]);
 
@@ -200,7 +219,7 @@ export default function Home() {
   // มือถือ ≤520px: ปุ่มสแกน QR (primary) ถูกซ่อนจากแถววงกลม — ไปแสดงเป็นปุ่มเต็มความกว้างใต้ช่องค้นหาแทน
   const orbActions = [
     { key: 'scan', icon: 'qr_code_scanner', label: 'สแกน QR', title: 'สแกนบาร์โค้ด / QR', primary: true, onClick: () => navigate('/scan') },
-    { key: 'transfer', icon: 'local_shipping', label: 'ย้ายอุปกรณ์', title: 'ย้าย/โอนอุปกรณ์ — เลือกอุปกรณ์แล้วเปิดฟอร์มทันที', onClick: () => setTransferPickOpen(true) },
+    { key: 'transfer', icon: 'local_shipping', label: 'ย้ายอุปกรณ์', title: 'เปิด Transfer Center — โอนย้ายตาม PO หรืออุปกรณ์ทั่วไป (นอก PO)', onClick: () => setTransferCenterOpen(true) },
     { key: 'stock', icon: 'inventory_2', label: 'เบิก–คืนของ', title: 'เบิก / คืนของจากคลัง', onClick: () => navigate('/stock') },
     { key: 'add', icon: 'add', label: 'เพิ่มอุปกรณ์', title: 'เพิ่มอุปกรณ์ใหม่ — ระบบสร้าง Serial ให้อัตโนมัติ ไม่ซ้ำ', onClick: () => setAddOpen(true) },
     { key: 'bundle', icon: 'folder_open', label: 'ชุดติดตั้งฟาร์ม', title: 'จัดการชุดอุปกรณ์ติดตั้งที่ฟาร์ม', onClick: () => navigate('/bundle') },
@@ -215,40 +234,34 @@ export default function Home() {
     document.getElementById('home-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // กดเลือกอุปกรณ์จาก picker → ปิด picker แล้วเปิดฟอร์มย้ายทันที (คงอยู่บนหน้าแรกตลอด)
-  function pickAssetForTransfer(a) {
-    setTransferPickOpen(false);
-    setTransfer({
-      serial: a.serialNumber || a.assetId || '',
-      current: { status: a.status, location: a.location, siteName: a.siteName, user: a.user },
-    });
-  }
-
   // จำนวนฟาร์มที่มีอุปกรณ์ติดตั้งอยู่จริง (สำหรับ "ติดตั้งแล้ว · ใน N ฟาร์ม") — จาก Farm Overview เดิม
   const installedFarmCount = farmOverview.filter((f) => f.assets > 0).length;
 
   // การ์ดสรุปสถานะ 3 ใบ (แนว B2) — ใช้ทั้งสีและรูปร่าง (■ ● ▲) เสมอ
   // ตัวเลข/ชื่อสถานะเป็น slate เข้ม (contrast ≥ 4.5:1) — สีสถานะใช้กับรูปร่างเท่านั้น
-  // ตัวเลขจากข้อมูลจริง (statusCount ของ /api/dashboard-full) ไม่ hardcode
-  // กดการ์ด → หน้าทะเบียนรายชิ้นพร้อมกรองสถานะ (?status=)
+  // ตัวเลขนับจากตำแหน่ง/สถานะจริงของทุกชิ้น (isInStock / isRepairStatus) — ไม่กรองเฉพาะคำสถานะ "สำรอง"
+  // กดการ์ด → หน้าทะเบียนรายชิ้นพร้อมตัวกรองที่ "ตรงกับตัวเลขบนการ์ดเป๊ะ":
+  //   • อยู่ในคลัง  → /asset?location=stock  (เฉพาะชิ้นในคลังกลาง — ไม่ใช่ ?status=สำรอง ที่หาไม่เจอ)
+  //   • ติดตั้งแล้ว → /asset?location=farm   (เฉพาะชิ้นที่ผูกเข้ากับฟาร์ม/โรงเรือน)
+  //   • ส่งซ่อม     → /asset?status=repair   (ส่งซ่อม / รอซ่อม / ชำรุด·สูญหาย)
   const statusCards = [
     {
       key: 'stock', shape: '■', shapeCls: 'text-[var(--blue)]', label: 'อยู่ในคลัง',
-      sub: 'พร้อมให้เบิก', value: derived.inStockCount,
-      title: 'ดูอุปกรณ์ที่อยู่ในคลัง (สำรอง)',
-      onClick: () => navigate(`/asset?status=${encodeURIComponent('สำรอง')}`),
+      sub: 'พร้อมใช้งานในคลังกลาง', value: derived.inStockCount,
+      title: 'ดูอุปกรณ์ที่ยังอยู่ในคลังกลาง (ยังไม่ได้ติดตั้งที่ฟาร์ม)',
+      onClick: () => navigate('/asset?location=stock'),
     },
     {
       key: 'installed', shape: '●', shapeCls: 'text-[var(--emerald-d)]', label: 'ติดตั้งแล้ว',
       sub: `ใน ${installedFarmCount} ฟาร์ม`, value: derived.installedCount,
-      title: 'ดูอุปกรณ์ที่ติดตั้งที่ฟาร์ม (ใช้งานได้)',
-      onClick: () => navigate(`/asset?status=${encodeURIComponent('ใช้งานได้')}`),
+      title: 'ดูอุปกรณ์ที่ผูกเข้ากับฟาร์ม/โรงเรือนแล้ว',
+      onClick: () => navigate('/asset?location=farm'),
     },
     {
       key: 'repair', shape: '▲', shapeCls: 'text-[var(--amber-d)]', label: 'ส่งซ่อม',
       sub: 'รอตามผล', value: derived.repairPendingCount,
-      title: 'ดูอุปกรณ์ที่ส่งซ่อม',
-      onClick: () => navigate(`/asset?status=${encodeURIComponent('ส่งซ่อม')}`),
+      title: 'ดูอุปกรณ์ที่ส่งซ่อม / ชำรุด',
+      onClick: () => navigate('/asset?status=repair'),
     },
   ];
 
@@ -333,6 +346,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Clean Home Layout: การ์ด PO Tracking แผ่กว้างถูกถอดออกถาวร — การโอนย้ายทั้งหมดอยู่ใน Transfer Center Modal
+          (เปิดด้วยปุ่มวงกลม "ย้ายอุปกรณ์" ด้านบน หรือปุ่มในการ์ด "โอนย้ายล่าสุด" ตอนยังไม่มีรายการ) */}
 
       
 
@@ -572,8 +588,8 @@ export default function Home() {
         </div>
         {recent.length === 0 ? (
           <button
-            onClick={() => setTransferPickOpen(true)}
-            title="เปิดฟอร์มย้ายอุปกรณ์"
+            onClick={() => setTransferCenterOpen(true)}
+            title="เปิด Transfer Center — ย้ายอุปกรณ์"
             className="w-full px-4 py-5 flex items-center justify-center gap-2 text-[12px] text-[var(--tmuted)] hover:bg-[var(--surface2)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue-glow)]"
           >
             {loading ? 'กำลังโหลด...' : (
@@ -810,16 +826,7 @@ export default function Home() {
         />
       )}
 
-      {/* เลือกอุปกรณ์เพื่อย้าย — จากปุ่มวงกลม "ย้ายอุปกรณ์" (เปิดฟอร์มย้ายทันที ไม่เด้งไป /scan) */}
-      {transferPickOpen && (
-        <TransferPickModal
-          open
-          assets={assets}
-          loading={loading}
-          onClose={() => setTransferPickOpen(false)}
-          onPick={pickAssetForTransfer}
-        />
-      )}
+      {/* Episode 3 → Clean Home: TransferPickModal เดิม → PODispatchPicker → ปัจจุบันคือ Transfer Center Modal (ด้านล่าง) */}
 
       {/* ย้าย/โอนอุปกรณ์ — ปุ่ม "ย้าย" ในผลค้นหาเปิดฟอร์มทันทีบนหน้าแรก (ตัดคลิกเปล่าไป /scan) */}
       {transfer && (
@@ -845,6 +852,22 @@ export default function Home() {
         />
       )}
       {historySerial && <AssetHistoryModal key={historySerial} serial={historySerial} onClose={() => setHistorySerial('')} />}
+
+      {/* Transfer Center Modal — กดปุ่มวงกลม "ย้ายอุปกรณ์" → ป๊อปอัปกลางหน้าจอ 2 แท็บ
+          (แท็บ 1: โอนย้ายตาม PO · แท็บ 2: โอนย้ายอุปกรณ์ทั่วไป นอก PO) — ข้อมูลใช้ preload ของหน้าแรก ไม่ดึง API ซ้ำ
+          ย้ายสำเร็จ → ปิด Modal + toast แจ้งเตือน + bump dataVersion ให้หน้าแรกรีเฟรช */}
+      {transferCenterOpen && (
+        <TransferCenterModal
+          open
+          onClose={() => setTransferCenterOpen(false)}
+          preloadAssets={assets}
+          preloadBundles={bundles}
+          onTransferSuccess={() => setDataVersion((v) => v + 1)}
+        />
+      )}
+
+      {/* ToastHost ระดับหน้า — toast แจ้งผลโอนย้ายจาก Transfer Center ยังโชว์ต่อแม้ Modal ปิดแล้ว */}
+      <ToastHost />
     </div>
   );
 }
@@ -907,111 +930,8 @@ function fmtWhen(raw = '') {
   return when.getFullYear() === now.getFullYear() ? md : `${md} ${String(when.getFullYear()).slice(2)}`;
 }
 
-// ── TransferPickModal — เลือกอุปกรณ์ที่จะย้าย (จากปุ่มวงกลม "ย้ายอุปกรณ์") ──
-// เปิดฟอร์มย้ายได้ทันทีบนหน้าแรกโดยไม่ต้องเด้งไป /scan:
-//   ค้นหา Serial/ชื่อ/รหัส/ฟาร์ม → กดเลือก → เปิด TransferModal ทันที (payload เดิมทุกบิต)
-function TransferPickModal({ open, assets, loading, onClose, onPick }) {
-  const [pickQ, setPickQ] = useState('');
-  const inputRef = useRef(null);
-
-  // โฟกัสช่องค้นหาทันทีที่เปิด (modal ถูก mount ใหม่ทุกครั้งที่เปิด → pickQ เริ่มว่างเสมอ ไม่ต้อง reset)
-  useEffect(() => {
-    const t = setTimeout(() => inputRef.current?.focus(), 50);
-    return () => clearTimeout(t);
-  }, []);
-
-  const filtered = useMemo(() => {
-    const k = pickQ.trim().toLowerCase();
-    const list = k
-      ? assets.filter((a) => [a.serialNumber, a.assetId, a.name, a.code, a.partNumber, a.siteName, a.houseName].some((v) => (v || '').toLowerCase().includes(k)))
-      : assets;
-    return list.slice(0, 30);
-  }, [assets, pickQ]);
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="w-full max-w-lg bg-[var(--surface)] rounded-2xl shadow-xl my-8 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--g100)]">
-          <div className="flex items-center gap-2">
-            <span className="text-[var(--blue)]"><Icon name="local_shipping" /></span>
-            <span className="text-[15px] font-bold text-[var(--text)]">เลือกอุปกรณ์ที่จะย้าย</span>
-          </div>
-          <button
-            onClick={onClose}
-            title="ปิด"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--surface2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue-glow)]"
-          >
-            <Icon name="close" size="sm" />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-3">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)] pointer-events-none">
-              <Icon name="search" size="sm" />
-            </span>
-            <input
-              ref={inputRef}
-              value={pickQ}
-              onChange={(e) => setPickQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key !== 'Escape') return;
-                if (pickQ.trim()) setPickQ('');
-                else onClose();
-              }}
-              placeholder="พิมพ์ Serial / ชื่อ / รหัส / ฟาร์ม..."
-              aria-label="ค้นหาอุปกรณ์ที่จะย้าย"
-              className="w-full h-10 pl-9 pr-3 rounded-lg border border-[var(--g200)] bg-[var(--surface2)] text-[13px] text-[var(--text)] focus:outline-none focus:border-[var(--blue)] placeholder:text-[var(--tmuted)]"
-            />
-          </div>
-
-          {loading ? (
-            <div className="py-8 text-center text-[13px] text-[var(--tmuted)]">กำลังโหลดข้อมูลอุปกรณ์...</div>
-          ) : filtered.length === 0 ? (
-            <div className="py-8 text-center text-[13px] text-[var(--tmuted)]">
-              {pickQ.trim() ? `ไม่พบอุปกรณ์ที่ตรงกับ "${pickQ}"` : 'ยังไม่มีอุปกรณ์ในระบบ'}
-            </div>
-          ) : (
-            <>
-              <div className="text-[11px] text-[var(--tmuted)] tabular-nums">
-                {pickQ.trim()
-                  ? `พบ ${filtered.length === 30 ? '30+' : filtered.length} รายการ — กดเพื่อเปิดฟอร์มย้าย`
-                  : `ทั้งหมด ${assets.length} รายการ — พิมพ์เพื่อค้นหา`}
-              </div>
-              <div className="max-h-80 overflow-y-auto divide-y divide-[var(--g100)] -mx-1 px-1">
-                {filtered.map((a) => (
-                  <button
-                    key={`${a.serialNumber}-${a.assetId}`}
-                    onClick={() => onPick(a)}
-                    className="w-full text-left py-2.5 px-2 rounded-lg hover:bg-[var(--surface2)] flex items-center gap-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue-glow)]"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[13px] font-semibold text-[var(--text)] truncate">{a.name || a.code}</span>
-                        <StatusBadge status={a.status} />
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 min-w-0">
-                        <span className="text-[11px] font-mono text-[var(--blue)] truncate">{a.serialNumber || a.assetId || a.code}</span>
-                        {(a.siteName || a.houseName || a.location) && (
-                          <span className="text-[11px] text-[var(--tmuted)] truncate">
-                            @ {[a.siteName, a.houseName, a.location].filter(Boolean).join(' › ')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Icon name="chevron_right" size="sm" className="text-[var(--tmuted)] shrink-0" />
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+// ── TransferPickModal (คอมเมนต์อดีต) — Episode 3: แทนด้วย PODispatchPicker แบบฝังหน้าแรก
+//    → Clean Home (ล่าสุด): ถอดการ์ดฝังออก ใช้ TransferCenterModal ป๊อปอัปกลางจอจากปุ่ม "ย้ายอุปกรณ์" แทน ──
 
 function Card({ icon, tone, title, children }) {
   return (

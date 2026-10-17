@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { BarcodeFormat } from '@zxing/library';
@@ -9,7 +10,6 @@ import TransferModal from '../components/TransferModal.jsx';
 import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
-import PODispatchPicker from '../components/PODispatchPicker.jsx';
 
 const FORMATS = [
   BarcodeFormat.QR_CODE,
@@ -58,11 +58,15 @@ function captureFrame(vid) {
 }
 
 export default function ScanPage() {
+  const navigate = useNavigate();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const readerRef = useRef(null);
   const pendingRef = useRef(false);
   const foundRef = useRef(false);
+  // Episode 3 — "จัดการชุดติดตั้ง (ย้ายเข้า/ออกจากชุด)" จาก Quick Actions ใต้ผลสแกน:
+  // เก็บ asset ที่กำลังจัดการชุด (null = ปิด modal) — เพิ่มเข้าชุด/นำออกจากชุดได้ทันทีโดยไม่ต้องสลับหน้า
+  const [bundleAsset, setBundleAsset] = useState(null);
 
   async function getCameraStream() {
     const c = { video: { facingMode: 'environment', width: { ideal: 1280 } } };
@@ -267,10 +271,11 @@ export default function ScanPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <ToastHost />
-      <PODispatchPicker />
-      {/* ① ค้นหาอุปกรณ์ที่จะย้าย — ทางเข้าหลัก (พิมพ์ชื่อ/รหัส/Serial ก็เจอ) */}
+      {/* Episode 3: ส่วน "ติดตามและจัดการอุปกรณ์ตาม PO" (PODispatchPicker) ถูกย้ายไปหน้าแรก (Home.jsx)
+          แล้ว — หน้านี้เป็น Focused QR Scanner: สแกน/ค้นหา Serial → การ์ดรายละเอียด + Quick Actions ต่อทันที */}
+      {/* ① ค้นหาอุปกรณ์ — ทางเข้าหลัก (พิมพ์ชื่อ/รหัส/Serial ก็เจอ) */}
       <div className="rounded-2xl bg-[var(--surface)] border border-[var(--g200)] shadow-[var(--sh-sm)] p-4">
-        <div className="text-[13px] font-semibold text-[var(--text)] mb-2.5">ค้นหาอุปกรณ์ที่จะย้าย</div>
+        <div className="text-[13px] font-semibold text-[var(--text)] mb-2.5">ค้นหาอุปกรณ์</div>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tmuted)] pointer-events-none">
             <Icon name="search" size="sm" />
@@ -460,8 +465,10 @@ export default function ScanPage() {
           history={history}
           onHistory={() => openHistory(asset.serialNumber)}
           onTransfer={() => setTransfer(asset)}
+          onDetails={() => navigate(`/asset?q=${encodeURIComponent(asset.serialNumber || asset.assetId || '')}`)}
+          onBundle={() => setBundleAsset(asset)}
+          onPrint={() => window.open(`/qr?serial=${encodeURIComponent(asset.serialNumber || '')}`, '_blank')}
           onScanAgain={() => { reset(); startCam(); }}
-          onRefresh={refresh}
         />
       )}
 
@@ -540,12 +547,21 @@ export default function ScanPage() {
         />
       )}
 
+      {/* Episode 3 — Quick Action "จัดการชุดติดตั้ง": ย้ายเข้า/ออกจากชุดได้ทันทีจากหน้าสแกน (ไม่ต้องเด้งไปหน้า Bundle) */}
+      {bundleAsset && (
+        <BundleManageModal
+          asset={bundleAsset}
+          onClose={() => setBundleAsset(null)}
+          onDone={() => { setBundleAsset(null); refresh(); }}
+        />
+      )}
+
       <BusyOverlay label={busy.busyLabel} />
     </div>
   );
 }
 
-function ResultCard({ asset, history, onHistory, onTransfer, onScanAgain, onRefresh }) {
+function ResultCard({ asset, history, onHistory, onTransfer, onDetails, onBundle, onPrint, onScanAgain }) {
   return (
     <Card title="พบอุปกรณ์" accent="success">
       <div className="rounded-xl border border-[var(--g200)] overflow-hidden">
@@ -625,13 +641,25 @@ function ResultCard({ asset, history, onHistory, onTransfer, onScanAgain, onRefr
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2 mt-4">
-        <button onClick={onHistory} className="flex items-center justify-center gap-1.5 h-10 rounded-xl border border-[var(--g300)] text-[13px] text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="history" size="sm" /> ประวัติ</button>
-        <button onClick={onScanAgain} className="flex items-center justify-center gap-1.5 h-10 rounded-xl border border-[var(--g300)] text-[13px] text-[var(--tsub)] hover:bg-[var(--surface2)]"><Icon name="document_scanner" size="sm" /> สแกนอีก</button>
+      {/* ── Episode 3: Quick Action Buttons ใต้ผลสแกน — ทำงานต่อทันทีโดยไม่ต้องสลับหน้า ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+        <button onClick={onDetails} title="เปิดหน้าทะเบียนรายชิ้นที่อุปกรณ์นี้ (ค้นหาไว้ให้แล้ว)" className="flex items-center justify-center gap-1.5 h-11 rounded-xl border border-[var(--g300)] text-[13px] font-semibold text-[var(--tsub)] hover:bg-[var(--surface2)]">
+          <Icon name="description" size="sm" /> ดูรายละเอียด
+        </button>
+        <button onClick={onTransfer} title="โอนย้าย / คืนอุปกรณ์นี้" className="flex items-center justify-center gap-1.5 h-11 rounded-xl bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)]">
+          <Icon name="local_shipping" size="sm" /> โอนย้ายอุปกรณ์
+        </button>
+        <button onClick={onBundle} title="ย้ายเข้า/ออกจากชุดติดตั้ง (Bundle)" className="flex items-center justify-center gap-1.5 h-11 rounded-xl border border-[var(--g300)] text-[13px] font-semibold text-[var(--tsub)] hover:bg-[var(--surface2)]">
+          <Icon name="workspaces" size="sm" /> จัดการชุดติดตั้ง
+        </button>
+        <button onClick={onPrint} title="เปิดหน้าพิมพ์ฉลาก QR สำหรับ Serial นี้ (แท็บใหม่)" className="flex items-center justify-center gap-1.5 h-11 rounded-xl border border-[var(--g300)] text-[13px] font-semibold text-[var(--tsub)] hover:bg-[var(--surface2)]">
+          <Icon name="print" size="sm" /> พิมพ์ฉลากซ้ำ
+        </button>
       </div>
-      <button onClick={onTransfer} className="w-full mt-2 flex items-center justify-center gap-1.5 h-11 rounded-xl bg-[var(--blue)] text-white text-[14px] font-semibold hover:bg-[var(--blue-d)]">
-        <Icon name="local_shipping" size="sm" /> โอนย้าย / คืนอุปกรณ์นี้
-      </button>
+      <div className="grid grid-cols-2 gap-2 mt-2">
+        <button onClick={onHistory} className="flex items-center justify-center gap-1.5 h-10 rounded-xl border border-[var(--g300)] text-[12px] text-[var(--tmuted)] hover:bg-[var(--surface2)]"><Icon name="history" size="sm" /> ประวัติ</button>
+        <button onClick={onScanAgain} className="flex items-center justify-center gap-1.5 h-10 rounded-xl border border-[var(--g300)] text-[12px] text-[var(--tmuted)] hover:bg-[var(--surface2)]"><Icon name="document_scanner" size="sm" /> สแกนอีก</button>
+      </div>
     </Card>
   );
 }
@@ -657,4 +685,107 @@ function Card({ title, accent, children }) {
     </div>
   );
 }
+
+// ── BundleManageModal — Quick Action "จัดการชุดติดตั้ง (ย้ายเข้า/ออกจากชุด)" จากหน้าสแกน ──
+// อุปกรณ์ที่อยู่ในชุด → ปุ่ม "นำออกจากชุด" (DELETE /api/bundles/:id/assets/:assetId — แนวเดียวกับหน้า Bundle)
+// อุปกรณ์ที่ยังไม่มีชุด → เลือกชุดจาก dropdown + "ย้ายเข้าชุดนี้" (POST /api/bundles/:id/assets/bulk)
+function BundleManageModal({ asset, onClose, onDone }) {
+  const [bundles, setBundles] = useState([]);
+  const [bundleId, setBundleId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const busy = useBusy();
+
+  useEffect(() => {
+    let alive = true;
+    axios.get('/api/bundles').then(({ data }) => {
+      if (!alive) return;
+      // เรียงชุดที่ยังอยู่คลัง (In Stock / Maintenance) ไว้บนหัว — ชุด Deployed ตามหลัง (ยังเลือกได้ กรณีเพิ่มอุปกรณ์เข้าชุดที่ติดตั้งแล้ว)
+      const list = (data || []).slice().sort((a, b) => Number(b.status === 'Deployed') - Number(a.status === 'Deployed'));
+      setBundles(list);
+    }).catch(() => { if (alive) setErr('โหลดรายการชุดติดตั้งไม่สำเร็จ'); }).finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  const inBundle = Boolean(asset.bundleId);
+  const currentBundle = bundles.find((b) => b.bundleId === asset.bundleId);
+  // ชุดที่เลือกได้ตอนย้ายเข้า: ตัดชุดเดิมของ asset ออก (กันข้อมูล stale ซ้ำซ้อน)
+  const pickable = bundles.filter((b) => b.bundleId !== asset.bundleId);
+
+  async function removeFromBundle() {
+    await busy.run('กำลังนำอุปกรณ์ออกจากชุด...', async () => {
+      try {
+        await axios.delete(`/api/bundles/${encodeURIComponent(asset.bundleId)}/assets/${encodeURIComponent(asset.assetId)}`);
+        showToast('นำออกจากชุดสำเร็จ', { type: 'ok' });
+        onDone();
+      } catch (e) {
+        showToast('นำออกจากชุดไม่สำเร็จ — ลองใหม่อีกครั้ง', { type: 'err' });
+      }
+    });
+  }
+
+  async function addToBundle() {
+    await busy.run('กำลังย้ายเข้าชุด...', async () => {
+      try {
+        const { data } = await axios.post(`/api/bundles/${encodeURIComponent(bundleId)}/assets/bulk`, { assetIds: [asset.assetId] });
+        if (!data.success) throw new Error(data.error || 'เพิ่มเข้าชุดไม่สำเร็จ');
+        showToast(`ย้ายเข้าชุดสำเร็จ${data.message ? ` — ${data.message}` : ''}`, { type: 'ok' });
+        onDone();
+      } catch (e) {
+        showToast('ย้ายเข้าชุดไม่สำเร็จ — ลองใหม่อีกครั้ง', { type: 'err' });
+      }
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
+      <div className="w-full max-w-sm bg-[var(--surface)] rounded-2xl shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--g100)]">
+          <span className="flex items-center gap-2 text-[14px] font-bold text-[var(--text)]"><Icon name="workspaces" size="sm" className="text-[var(--blue)]" /> จัดการชุดติดตั้ง</span>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--tmuted)] hover:bg-[var(--surface2)]"><Icon name="close" size="sm" /></button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="rounded-xl border border-[var(--g200)] bg-[var(--surface2)] px-3 py-2.5">
+            <div className="text-[13px] font-semibold text-[var(--text)] truncate">{asset.name || asset.code}</div>
+            <div className="font-mono text-[11px] text-[var(--blue)] mt-0.5">{asset.serialNumber}</div>
+          </div>
+
+          {inBundle ? (
+            <>
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-[var(--blue-b)] bg-[var(--blue-l)]/40 text-[12px] text-[var(--text)]">
+                <Icon name="inventory_2" size="sm" className="text-[var(--blue)] shrink-0" />
+                <span className="min-w-0">อยู่ในชุด: <span className="font-semibold">{asset.bundleName || asset.bundleId}</span>{asset.bundleId && <span className="font-mono text-[var(--tsub)]"> ({asset.bundleId})</span>}{currentBundle?.status ? <span className="text-[var(--tsub)]"> · {currentBundle.status}</span> : null}</span>
+              </div>
+              <button onClick={removeFromBundle} disabled={busy.busyLabel} className="w-full h-11 rounded-xl bg-[var(--red-l)] border border-[var(--red-b)] text-[var(--red)] text-[13px] font-semibold hover:bg-[var(--red)] hover:text-white disabled:opacity-50 flex items-center justify-center gap-1.5">
+                <Icon name="remove_circle_outline" size="sm" /> นำออกจากชุด
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-[12px] text-[var(--tsub)]">อุปกรณ์นี้ยังไม่อยู่ในชุด — เลือกชุดติดตั้งเพื่อย้ายเข้า:</div>
+              <select
+                value={bundleId}
+                onChange={(e) => setBundleId(e.target.value)}
+                aria-label="เลือกชุดติดตั้ง"
+                className="w-full h-11 rounded-lg border border-[var(--g200)] bg-[var(--surface)] px-3 text-[13px]"
+                disabled={loading || !pickable.length}
+              >
+                <option value="">{loading ? 'กำลังโหลดรายการชุด...' : pickable.length ? 'เลือกชุดติดตั้ง' : 'ยังไม่มีชุดติดตั้งในระบบ'}</option>
+                {pickable.map((b) => (
+                  <option key={b.bundleId} value={b.bundleId}>{b.bundleName || b.bundleId} ({b.bundleId}) · {b.status === 'Deployed' ? b.location || b.status : b.status}</option>
+                ))}
+              </select>
+              <button onClick={addToBundle} disabled={busy.busyLabel || !bundleId} className="w-full h-11 rounded-xl bg-[var(--blue)] text-white text-[13px] font-semibold hover:bg-[var(--blue-d)] disabled:opacity-50 flex items-center justify-center gap-1.5">
+                <Icon name="add_circle_outline" size="sm" /> ย้ายเข้าชุดนี้
+              </button>
+            </>
+          )}
+          {err && <div className="text-[12px] text-[var(--red)]">{err}</div>}
+        </div>
+      </div>
+      <BusyOverlay label={busy.busyLabel} />
+    </div>
+  );
+}
+
 

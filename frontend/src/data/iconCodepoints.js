@@ -33,6 +33,7 @@ export const ICON_CODEPOINTS = {
   'database': 0xf20e,
   'delete': 0xe92e,
   'description': 0xe873,
+  'details': 0xe3c8,
   'devices': 0xe326,
   'devices_other': 0xe337,
   'dns': 0xe875,
@@ -115,6 +116,7 @@ export const ICON_CODEPOINTS = {
   'start': 0xe089,
   'storage': 0xe1db,
   'summarize': 0xf071,
+  'swap_horiz': 0xe8d4,
   'sync': 0xe627,
   'sync_alt': 0xea18,
   'tab': 0xe8d8,
@@ -130,5 +132,6 @@ export const ICON_CODEPOINTS = {
   'visibility': 0xe8f4,
   'warning': 0xf083,
   'workspace_premium': 0xe7af,
+  'workspaces': 0xea0f,
 };
-// 129/129 icons mapped
+// 132/132 icons mapped

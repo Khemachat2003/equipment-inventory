@@ -2,7 +2,7 @@
 // ตรวจ: ศัพท์ไทยล้วนบนหน้าจอ (ไม่มี Part / In Bundle / (Stock) หลุดขึ้นจอ),
 //        KPI Glassmorphic ตรงตัวเลข, ตารางแถว 52px + ชื่อตัวหนา + Action Icons พร้อม tooltip
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import Asset from '../pages/Asset.jsx';
 
 vi.mock('axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
@@ -77,5 +77,28 @@ describe('Asset — Enterprise Data Table', () => {
     // tooltip = span ลอย (pointer-events-none) ที่วางข้างปุ่ม — ข้อความตรงกับ action
     const tooltip = screen.getAllByRole('button', { name: 'โอนย้ายอุปกรณ์' })[0].parentElement.querySelector('span[class*="pointer-events-none"]');
     expect(tooltip.textContent).toBe('โอนย้ายอุปกรณ์');
+  });
+});
+
+// ═══ Consolidate Action Buttons — ลบปุ่ม "รับเข้า" (สีเขียว) ที่ซ้ำซ้อนกับ "เพิ่มอุปกรณ์ใหม่" ═══
+// เพิ่มอุปกรณ์ใหม่ = Primary Action เดียว — เปิด AddDeviceModal ที่มี Fast-Track Intake Flow
+// (กรอกข้อมูล → จัดชุด → โอนย้าย → พิมพ์ฉลาก) ครอบคลุมทุกการรับเข้าแล้ว
+describe('Asset — Consolidated Primary Action (Action Bar คลีน)', () => {
+  it('Action Bar เหลือ Primary "เพิ่มอุปกรณ์ใหม่" ปุ่มเดียว + ปุ่มรีเฟรช — ไม่มีปุ่ม "รับเข้า" ซ้ำซ้อน', async () => {
+    await renderPage();
+    // Primary Blue — ปุ่มรับเข้าอุปกรณ์เพียงปุ่มเดียวของหน้า
+    expect(screen.getAllByRole('button', { name: 'เพิ่มอุปกรณ์ใหม่' })).toHaveLength(1);
+    // ปุ่มรีเฟรชข้อมูล (Icon Button)
+    expect(screen.getByRole('button', { name: 'รีเฟรชข้อมูล' })).toBeTruthy();
+    // ไม่มีปุ่ม "รับเข้า" ที่ทำหน้าที่ซ้ำซ้อนหลงเหลืออยู่
+    expect(screen.queryByRole('button', { name: 'รับเข้า' })).toBeNull();
+  });
+
+  it('กด "เพิ่มอุปกรณ์ใหม่" → เปิด AddDeviceModal (Fast-Track Intake Flow ครบใน Modal เดียว)', async () => {
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'เพิ่มอุปกรณ์ใหม่' }));
+    // Modal เปิด — หัว Modal "เพิ่มอุปกรณ์ใหม่" แสดงเพิ่มจากปุ่มใน Hero Bar + ฟอร์มรับเข้า (Step 1)
+    expect(screen.getAllByText('เพิ่มอุปกรณ์ใหม่').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('① อุปกรณ์อะไร? (พิมพ์ชื่อหรือ Part Number)')).toBeTruthy();
   });
 });

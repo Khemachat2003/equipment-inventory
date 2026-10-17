@@ -79,6 +79,26 @@ export function buildLocation(input = {}) {
 }
 
 /**
+ * อุปกรณ์ชิ้นนี้ยังอยู่ "คลังกลาง" หรือไม่ (ยังไม่ได้ผูกเข้ากับฟาร์ม/โรงเรือน)?
+ * ใช้กฎเดียวกับ buildLocation ที่ LocationPath แสดงเป็น "คลังกลาง" (kind === 'stock') เสมอ:
+ *   • ชิ้นที่อยู่ในชุด (Bundle): ฟาร์มอ่านจากคอลัมน์ Location — ว่าง/Stock = ชุดยังไม่ deploy → ยังอยู่คลัง
+ *   • ชิ้นเดี่ยว: SiteName ว่าง/Intranin (Stock/คลังกลาง) หรือ Location = Stock → ยังอยู่คลัง
+ * ใช้ร่วมกันทั้งหน้าแรก (ตัวเลขการ์ด "อยู่ในคลัง") และทะเบียนรายชิ้น (ตัวกรอง ?location=stock)
+ * → ตัวเลขบนการ์ดหน้าแรกตรงกับรายการที่แสดงเมื่อกดการ์ดเป๊ะ
+ * @param {object} asset แถวจาก /api/assets (siteName/location/bundleId/houseId/houseName)
+ * @returns {boolean} true = ยังอยู่คลังกลาง (ยังไม่ได้ติดตั้งที่ฟาร์ม)
+ */
+export function isInStock(asset = {}) {
+  return buildLocation({
+    siteName: asset?.siteName,
+    houseName: asset?.houseName,
+    houseId: asset?.houseId,
+    location: asset?.location,
+    bundleId: asset?.bundleId,
+  }).kind === 'stock';
+}
+
+/**
  * รวมตำแหน่งของชุดอุปกรณ์จากสมาชิกทุกชิ้น
  * @returns {{main:object, divergent:boolean, paths:string[]}}
  */

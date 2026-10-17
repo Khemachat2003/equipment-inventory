@@ -27,8 +27,9 @@ import AddDeviceModal from '../components/AddDeviceModal.jsx';
 import { useBusy, BusyOverlay } from '../components/ui/Busy.jsx';
 import { showToast, ToastHost } from '../components/ui/Toast.jsx';
 import { CATEGORY_FALLBACK, categoryIcon, categoryLabel } from '../data/categories.js';
-import { buildLocation } from '../utils/location.js';
+import { buildLocation, isInStock } from '../utils/location.js';
 import { matchesInboundFilters } from '../utils/inbound.js';
+import { isRepairStatus } from '../utils/status.js';
 
 // Min-Height แถวตาราง 52px — height บน <td> ทำงานเป็น "ความสูงขั้นต่ำ" ตาม CSS table spec (เนื้อหายาวกว่าจะขยาย)
 const DT_TD = 'px-3 py-2.5 h-[52px] align-middle';
@@ -41,7 +42,10 @@ export default function Asset() {
   const [currentPart, setCurrentPart] = useState('');
   const [partSearch, setPartSearch] = useState('');
   // Unified Search — ช่องเดียวค้นได้ทั้ง ชื่อ/รหัส/AssetID/Serial และ ล็อต (Batch) / PO / ผู้ขาย
-  const [search, setSearch] = useState('');
+  // Episode 3 — รับ ?q= จากหน้าสแกน (ปุ่ม Quick Action "ดูรายละเอียด") → กรองทะเบียนไว้ให้เลย แนวเดียวกับ ?status=
+  const [search, setSearch] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('q') || ''; } catch { return ''; }
+  });
   const [receivedFrom, setReceivedFrom] = useState('');
   const [receivedTo, setReceivedTo] = useState('');
   const [recentBatches, setRecentBatches] = useState([]);
@@ -52,7 +56,6 @@ export default function Asset() {
   const [selectedSerials, setSelectedSerials] = useState([]);
   const [historySerial, setHistorySerial] = useState('');
   const [addOpen, setAddOpen] = useState(false);
-  const [receiveOpen, setReceiveOpen] = useState(false); // "รับเข้า" — AddDeviceModal แบบขยายแผนล็อต/PO ไว้ล่วงหน้า
   const [loading, setLoading] = useState(true);
   const busy = useBusy();
 
@@ -60,6 +63,14 @@ export default function Asset() {
   // (อ่านจาก window.location ตรง ๆ แนวเดียวกับ Stock ?q= — ไม่ต้องพึ่ง Router context)
   const [statusFilter, setStatusFilter] = useState(() => {
     try { return new URLSearchParams(window.location.search).get('status') || ''; } catch { return ''; }
+  });
+
+  // รับ ?location= จากหน้าแรก (การ์ดสรุปสถานะ) → กรองตาม "ตำแหน่งจริง" ของอุปกรณ์:
+  //   • location=stock → เฉพาะอุปกรณ์ที่ยังอยู่คลังกลาง (ยังไม่ได้ผูกเข้ากับฟาร์ม/โรงเรือน)
+  //   • location=farm  → เฉพาะอุปกรณ์ที่ผูกเข้ากับฟาร์ม/โรงเรือนแล้ว
+  // (อ่านจาก window.location ตรง ๆ แนวเดียวกับ ?status= / ?q= — ไม่ต้องพึ่ง Router context)
+  const [locationFilter, setLocationFilter] = useState(() => {
+    try { return (new URLSearchParams(window.location.search).get('location') || '').toLowerCase(); } catch { return ''; }
   });
 
   const load = useCallback(async () => {
@@ -127,7 +138,14 @@ export default function Asset() {
   const filtered = useMemo(() => {
     const k = search.trim().toLowerCase();
     return assets.filter((a) => {
-      if (statusFilter && !(a.status || '').includes(statusFilter)) return false;
+      // ?status=repair (การ์ด "ส่งซ่อม" หน้าแรก) → กลุ่มสถานะต้องซ่อม: ส่งซ่อม/รอซ่อม/ชำรุด·สูญหาย
+      if (statusFilter === 'repair') {
+        if (!isRepairStatus(a.status)) return false;
+      } else if (statusFilter && !(a.status || '').includes(statusFilter)) return false;
+      // ?location=stock|farm (การ์ด "อยู่ในคลัง"/"ติดตั้งแล้ว" หน้าแรก) → กรองตามตำแหน่งจริง
+      // (กฎ isInStock ตัวเดียวกับตัวเลขการ์ด → จำนวนที่แสดงตรงกับการ์ดเป๊ะ)
+      if (locationFilter === 'stock' && !isInStock(a)) return false;
+      if (locationFilter === 'farm' && isInStock(a)) return false;
       if (currentPart && a.partNumber !== currentPart) return false;
       if (categoryFilter && catOf(a) !== categoryFilter) return false;
       if (!matchesInboundFilters(a, { from: receivedFrom, to: receivedTo })) return false;
@@ -137,11 +155,11 @@ export default function Asset() {
       const inboundHit = matchesInboundFilters(a, { query: search });
       return assetHit || inboundHit;
     });
-  }, [assets, statusFilter, currentPart, categoryFilter, catOf, search, receivedFrom, receivedTo]);
+  }, [assets, statusFilter, locationFilter, currentPart, categoryFilter, catOf, search, receivedFrom, receivedTo]);
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  useEffect(() => { setPage(1); }, [currentPart, categoryFilter, search, receivedFrom, receivedTo, pageSize, statusFilter]);
+  useEffect(() => { setPage(1); }, [currentPart, categoryFilter, search, receivedFrom, receivedTo, pageSize, statusFilter, locationFilter]);
 
   const currentPartName = currentPart ? (parts.find((p) => p.partNumber === currentPart)?.partName || currentPart) : '';
   const stats = useMemo(() => {
@@ -204,7 +222,7 @@ export default function Asset() {
 
   return (
     <div className="space-y-4">
-      {!transfer && !addOpen && !receiveOpen && <ToastHost />}
+      {!transfer && !addOpen && <ToastHost />}
 
       {/* ═══ Top Hero Bar — หัวหน้า + Primary Action Buttons + KPI Glassmorphic ═══ */}
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]/85 backdrop-blur-md shadow-[var(--sh-sm)] p-3.5 sm:p-4 space-y-3.5">
@@ -216,19 +234,14 @@ export default function Asset() {
               <p className="text-[11.5px] text-[var(--tsub)] truncate">ติดตามอุปกรณ์ทุกชิ้น — สถานะ ตำแหน่ง และประวัติ</p>
             </div>
           </div>
-          {/* Primary Action Buttons — เด่นชัด มีไอคอนนำหน้าสะดุดตา */}
+          {/* Primary Action Button — ปุ่มเดียวครอบคลุมทุกการรับเข้า (AddDeviceModal: กรอกข้อมูล → จัดชุด → โอนย้าย → พิมพ์ฉลาก) */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setAddOpen(true)}
+              title="เพิ่มอุปกรณ์ใหม่ — รับเข้า · จัดชุดติดตั้ง · โอนย้าย · พิมพ์ฉลาก QR ครบในโฟลว์เดียว"
               className="flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[var(--blue)] text-white text-[13px] font-bold shadow-[0_2px_10px_var(--blue-glow)] transition hover:bg-[var(--blue-d)] hover:shadow-[var(--sh-md)] active:translate-y-px"
             >
               <Icon name="add" size="sm" /> เพิ่มอุปกรณ์ใหม่
-            </button>
-            <button
-              onClick={() => setReceiveOpen(true)}
-              className="flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[var(--emerald)] text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(0,200,150,.25)] transition hover:bg-[var(--emerald-d)] hover:shadow-[var(--sh-md)] active:translate-y-px"
-            >
-              <Icon name="inbox" size="sm" /> รับเข้า
             </button>
             <button
               onClick={load}
@@ -249,8 +262,8 @@ export default function Asset() {
           {stats.repair > 0 && <KpiGlass testId="kpi-repair" icon="build" tone="amber" label="ส่งซ่อม" value={stats.repair} unit="ชิ้น" />}
         </div>
 
-        {/* ชิปตัวกรองที่กำลังใช้งาน — รายการอุปกรณ์ที่เลือก / สถานะจาก deep-link หน้าแรก */}
-        {(currentPartName || statusFilter) && (
+        {/* ชิปตัวกรองที่กำลังใช้งาน — รายการอุปกรณ์ที่เลือก / สถานะ / ตำแหน่งจาก deep-link หน้าแรก */}
+        {(currentPartName || statusFilter || locationFilter) && (
           <div className="flex flex-wrap items-center gap-2">
             {currentPartName && (
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--g100)] border border-[var(--g200)] text-[12px] font-semibold text-[var(--ink)]">
@@ -267,11 +280,24 @@ export default function Asset() {
             )}
             {statusFilter && (
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--blue-l)] border border-[var(--blue-b)] text-[12px] font-semibold text-[var(--blue-d)]">
-                <Icon name="filter_alt" size="xs" /> สถานะ: {statusFilter}
+                <Icon name="filter_alt" size="xs" /> สถานะ: {statusFilter === 'repair' ? 'ส่งซ่อม / ชำรุด' : statusFilter}
                 <button
                   onClick={() => setStatusFilter('')}
                   title="ล้างตัวกรองสถานะ"
                   aria-label="ล้างตัวกรองสถานะ"
+                  className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-[var(--blue-b)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue-glow)]"
+                >
+                  <Icon name="close" size="xs" />
+                </button>
+              </span>
+            )}
+            {locationFilter && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--blue-l)] border border-[var(--blue-b)] text-[12px] font-semibold text-[var(--blue-d)]">
+                <Icon name="location_on" size="xs" /> ตำแหน่ง: {locationFilter === 'stock' ? 'คลังกลาง' : 'ติดตั้งที่ฟาร์ม/โรงเรือน'}
+                <button
+                  onClick={() => setLocationFilter('')}
+                  title="ล้างตัวกรองตำแหน่ง"
+                  aria-label="ล้างตัวกรองตำแหน่ง"
                   className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-[var(--blue-b)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue-glow)]"
                 >
                   <Icon name="close" size="xs" />
@@ -605,10 +631,8 @@ export default function Asset() {
       {historySerial && <AssetHistoryModal key={historySerial} serial={historySerial} onClose={() => setHistorySerial('')} />}
       {batchHistoryOpen && <BatchHistoryModal onClose={() => setBatchHistoryOpen(false)} onSelectPO={(po) => { setBatchHistoryOpen(false); selectPO(po); }} onClosed={load} />}
 
-      {/* เพิ่มอุปกรณ์ใหม่ / รับเข้า — โฟลว์เดียว (เลือก/สร้างรายการอุปกรณ์ → Serial อัตโนมัติ)
-          "รับเข้า" เปิดมาพร้อมแผนล็อต/PO ขยายไว้ล่วงหน้า (presetAdvanced) */}
+      {/* เพิ่มอุปกรณ์ใหม่ — Primary Action เดียวครอบคลุมทุกการรับเข้า (Fast-Track Flow: กรอกข้อมูล → จัดชุด → โอนย้าย → พิมพ์ฉลาก QR) */}
       {addOpen && <AddDeviceModal open onClose={() => setAddOpen(false)} onDone={() => { setAddOpen(false); load(); }} />}
-      {receiveOpen && <AddDeviceModal open presetAdvanced onClose={() => setReceiveOpen(false)} onDone={() => { setReceiveOpen(false); load(); }} />}
 
       <BusyOverlay label={busy.busyLabel} />
     </div>

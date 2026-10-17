@@ -73,7 +73,7 @@ function StepPanel({ title, onBack, children }) {
   );
 }
 
-export default function AddDeviceModal({ open, presetName = '', presetAdvanced = false, onClose, onDone }) {
+export default function AddDeviceModal({ open, presetName = '', onClose, onDone }) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null); // { partNumber, partName, isNew }
   const [qty, setQty] = useState('1');
@@ -135,8 +135,7 @@ export default function AddDeviceModal({ open, presetName = '', presetAdvanced =
     setBatchId('');
     setBatchQuery('');
     setBatchListLoaded(false);
-    // "รับเข้า" เปิดมาพร้อมแผนล็อต/PO ขยายไว้ล่วงหน้า (presetAdvanced)
-    setAdvanced(Boolean(presetAdvanced));
+    setAdvanced(false);
     setResult(null);
     setNewPart(null);
     // Episode 2 — เคลียร์ Fast-Track Flow ทุกครั้งที่เปิดใหม่
@@ -162,7 +161,7 @@ export default function AddDeviceModal({ open, presetName = '', presetAdvanced =
     axios.get('/api/part-catalog').then(({ data }) => setParts(data || [])).catch(() => {});
     setAvailableBatches([]);
     setBatchListLoaded(false);
-  }, [open, presetName, presetAdvanced]);
+  }, [open, presetName]);
 
   const selectedBatch = availableBatches.find((batch) => batch.batchId === batchId);
   const filteredBatches = useMemo(() => {
